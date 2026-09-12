@@ -1,0 +1,17 @@
+{
+  "name": "@lemol/todo-md-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The `todo` command-line tool for todo.md lists",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@lemol/todo-md-core": "workspace:*",
+    "@lemol/todo-md-fs": "workspace:*",
+    "@lemol/todo-md-spec": "workspace:*",
+    "effect": "catalog:"
+  }
+}
