@@ -157,25 +157,29 @@ imports too.
 - **Parsing uses `mdast-util-from-markdown`** with the GFM task-list and
   frontmatter extensions. The AST gives headings, lists, links and code
   fences, following CommonMark. Every node carries source offsets.
-- **The parse result is the model plus a source map.** The map records, for
-  each section, item, metadata line and comment, the offsets where it lives
-  in the original text.
-- **Writing splices text; it never re-serializes.** Edits such as
-  `insertTask`, `removeTask`, `setItemLine`, `setMetadataLine` and
-  `prependComment` replace only the offsets involved, and new lines come from
-  small canonical templates. This is how the spec's minimal-diff rule
+- **The parse result records where everything is.** Each section and item
+  keeps its line range, so edits know exactly which lines to replace.
+  Titles, metadata and descriptions are read from the source lines, not
+  re-rendered from the AST.
+- **Writing splices lines; it never re-serializes.** Edits such as
+  `insertItem`, `removeItem`, `replaceItem`, `setItemHead`, `updateTaskFile`
+  and `prependComment` replace only the lines involved, and new lines come
+  from small canonical templates. This is how the spec's minimal-diff rule
   (§2.10) holds. `remark-stringify` is deliberately not used, because it
   rewrites the whole document.
-- **Frontmatter goes through `yaml`'s `Document` API**, which keeps comments,
-  key order and unknown keys when a field is edited.
+- **Frontmatter edits rewrite only the changed keys' lines**, using the
+  source ranges `yaml` reports, so comments and formatting elsewhere survive.
 - **It also owns:**
-  - normalization, as a pure function from a snapshot to a list of edits;
-  - slugs and ID formatting;
+  - the text-only steps of normalization (assigning IDs, syncing link text);
+    the `fs` adapter does the steps that move files;
+  - slugs, paths and ID formatting;
   - the metadata-line grammar;
-  - the format diagnostics.
+  - converting between the format and the model;
+  - the diagnostics that need only the text.
 - **It doesn't depend on Bun or Node**, so a browser (the web app) or a
   GitHub-backed adapter can reuse it.
-- **Tests are golden fixtures:** `input.md` + operation → `expected.md`.
+- **Tests compare exact text:** each edit's test states the whole expected
+  output, so it also proves nothing else changed.
 
 ## fs
 

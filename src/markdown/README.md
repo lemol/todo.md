@@ -2,36 +2,60 @@
 
 Pure parser and writer for the
 [todo.md file format](../../docs/spec.md#part-2-the-todomd-format): `TODO.md`
-and task files in, model and edited text out. It does no I/O.
+and task files in, model and edited text out. It does no I/O; the `fs`
+adapter reads and writes the files.
 
-> Status: scaffolded, not implemented yet.
+> Status: implemented for spec 0.1.
 
 ## Contents
 
-| Area            | Exports (planned)                                                                 |
-| --------------- | --------------------------------------------------------------------------------- |
-| Parsing         | `parseTodoFile(text)` and `parseTaskFile(text)`, returning the model, a source map and diagnostics |
-| Editing         | `insertTask`, `removeTask`, `setItemLine`, `setMetadataLine`, `setFrontmatter`, `prependComment`, … each returning new text |
-| Normalization   | `normalize(snapshot)`, which returns the edits for spec §2.11                     |
-| Conventions     | `slug`, `formatId` / `parseId`, `taskFilePath`, `doneFilePath`                    |
-| Metadata line   | `parseMetadataLine` / `formatMetadataLine` (spec §2.5)                            |
+| Area | Exports |
+| --- | --- |
+| `TODO.md` | `parseTodoFile(text)` → `TodoFile`: config, title, description, sections (ungrouped first) with their `TodoItem`s, and diagnostics. `allItems`, `findItem`, `sectionOf`. |
+| `TODO.md` edits | `insertItem`, `removeItem`, `replaceItem`, `setItemHead`, `renameSection` (each returns the new text), `formatTodoFile` for a new list. |
+| Task files | `parseTaskFile(text, file)` → `TaskFile`. `formatTaskFile(content)` for a new file; `updateTaskFile(text, changes)` and `prependComment(text, comment)` for edits. |
+| Items | `formatInlineItem`, `formatLinkedItem`, `parseHead`, `formatHead`. |
+| Metadata line | `parseMetadataLine`, `formatMetadataLine`, `fitsMetadataLine` (spec §2.5). |
+| Model | `inlineTask`, `fileTask` (format → `Task`); `fitsInline`, `inlineItemFor`, `linkedItemFor`, `taskFileFor` (`Task` → format). |
+| Normalization | `normalize(todo, context)`: assigns IDs and syncs link text, and lists checked items for the caller to complete (spec §2.11). `staleLinkText`. |
+| Conventions | `parseId`, `formatId`, `nextId`, `isId` (spec §2.7); `slug`, `groupSlug`, `taskPath`, `resolveLink`, `linkTarget`, `normalizePath`, `joinPath`, `basename`, `dirname` (spec §2.8). |
+| Timestamps | `formatInstant` (frontmatter), `formatTimestamp` and `parseCommentHeading` (comments). |
 
 ## How it works
 
 - **Reading:** `mdast-util-from-markdown` with the GFM task-list and
-  frontmatter extensions builds a CommonMark AST with source offsets.
-- **Writing:** edits splice the original text at those offsets, and new lines
-  come from canonical templates. It never re-serializes the AST, which is what
-  keeps diffs minimal (spec §2.10).
-- **Frontmatter:** edited through `yaml`'s `Document` API, so comments, key
-  order and unknown keys survive.
+  frontmatter extensions finds headings, lists, links and code blocks
+  (CommonMark rules), with the line range of every node. Titles, metadata and
+  descriptions are then read from the source lines themselves, so nothing is
+  lost to re-rendering.
+- **Writing:** every edit replaces a line range and returns the new text. Only
+  the lines an operation is about change (spec §2.10); new lines use the
+  canonical forms. Nothing is ever re-serialized from the AST.
+- **Frontmatter:** read with `yaml`. Edits rewrite only the lines of the keys
+  whose value changes, so comments, quoting and key order elsewhere survive.
+- **Line endings:** CRLF files stay CRLF.
 
 It runs anywhere JavaScript runs (Bun, Node, browsers).
 
+## Who reports what
+
+`parseTodoFile` and `parseTaskFile` report the diagnostics that need only
+the text:
+
+- **`TODO.md`:** `invalid-frontmatter`, `duplicate-group`, `outside-root`,
+  `id-mismatch`, `linked-body`, `reserved-field`, `multiple-assignees`,
+  `invalid-metadata`, `missing-id`, `checked-item`.
+- **Task files:** `invalid-frontmatter`, `invalid-comment`.
+
+`staleLinkText` builds `stale-link-text`. The `fs` adapter reports the
+diagnostics that need the file system: `broken-link`, `orphan-file`,
+`interrupted-completion`, `duplicate-id`.
+
 ## Testing
 
-Golden fixtures: `test/fixtures/<case>/input.md` + an operation →
-`expected.md`. Each case asserts that only the expected lines changed.
+Each file in `src/markdown` has a test file in `test/markdown`. Edits are
+tested against exact expected text, so every test also checks that nothing
+else changed.
 
 ## May import (enforced by `test/boundaries.test.ts`)
 

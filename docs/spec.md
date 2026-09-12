@@ -255,6 +255,7 @@ Server-side work.          ← group description
   CommonMark block structure.
 - Group names MUST be unique, and so MUST their slugs (§2.8). A violation is a
   `duplicate-group` diagnostic (error).
+- A level-2 heading with no text is ordinary content, not a group.
 - Nested groups are not supported in this version; level-3+ headings are
   ordinary content.
 
@@ -267,7 +268,9 @@ inline:  - [ ] <id> - <title>
 linked:  - [ ] [<id> - <title>](<path>)
 ```
 
-- **Bullet.** Parsers accept `-`, `*` and `+`; writers use `-`.
+- **Bullet.** Parsers accept `-`, `*` and `+`; writers use `-`. As in GFM, the
+  checkbox must be followed by a space, and an item with no text after the
+  checkbox is ordinary content.
 - **Checkbox.** `[ ]` means open. `[x]` or `[X]` means "done, not yet
   archived": the task is treated as done (excluded from `load`, included in
   `listDone`, without `completedAt`), and normalization (§2.11) moves it to
@@ -411,6 +414,9 @@ YAML between `---` lines at the start of the file.
 - The body extends to the next level-3 heading or the end of the file.
   Comment bodies MUST NOT contain level-1 to level-3 headings; use level 4
   or deeper.
+- A level-3 heading in the comments section that does not match the form
+  above is an `invalid-comment` diagnostic (error), and its body is not read
+  as a comment.
 - **Order.** Comments SHOULD be ordered newest first. Writers insert new
   comments directly below the `## Comments` heading. Parsers MUST NOT reorder
   comments.
@@ -437,7 +443,8 @@ YAML between `---` lines at the start of the file.
 - **Slug.** A slug is made by:
   1. Unicode NFKD normalization, then removing combining marks.
   2. Lowercasing.
-  3. Replacing each run of non-alphanumeric characters with `-`.
+  3. Replacing each run of characters other than ASCII letters and digits
+     with `-`.
   4. Trimming leading and trailing `-`.
   5. Truncating to 60 characters at a `-` boundary where possible.
 
@@ -599,6 +606,7 @@ These are in addition to the model checks in §1.6:
 | `orphan-file`            | warning  | §2.8    |
 | `id-mismatch`            | warning  | §2.6    |
 | `invalid-frontmatter`    | error    | §2.6    |
+| `invalid-comment`        | error    | §2.6    |
 | `missing-id`             | info     | §2.11   |
 | `checked-item`           | info     | §2.11   |
 | `stale-link-text`        | info     | §2.11   |
