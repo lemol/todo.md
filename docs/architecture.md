@@ -122,10 +122,11 @@ implementation.)
 - **`MemoryTodoStore`** (in `spec`) is the simplest executable statement of the
   operation semantics. `core`'s tests run against it.
 - **The conformance suite** (in `spec`) is a list of runner-agnostic cases,
-  each an Effect that takes a `TodoStore` layer. `runConformance(layer)`
-  registers them with `bun:test`. Every adapter's test suite calls it, and
-  `MemoryTodoStore` passes it too. The spec's operation semantics are
-  therefore tested, not only written down.
+  each an Effect that runs against a fresh store and asserts with
+  `node:assert`. `runConformance(name, layer)` registers them with
+  `bun:test`. Every adapter's test suite calls it, and `MemoryTodoStore`
+  passes it too. The spec's operation semantics are therefore tested, not
+  only written down.
 
 ## core
 
