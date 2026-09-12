@@ -1,0 +1,66 @@
+import { describe, expect, test } from "bun:test"
+import {
+  escapeLinkText,
+  formatInlineItem,
+  formatLinkedItem,
+  parseHead,
+  unescapeLinkText,
+} from "../../src/markdown/items.ts"
+import { noFields } from "../../src/markdown/metadata.ts"
+
+describe("parseHead", () => {
+  test("splits at the first ' - ' after the ID", () => {
+    expect(parseHead("07 - 2024 - budget review")).toEqual({
+      id: "7",
+      title: "2024 - budget review",
+    })
+  })
+
+  test("has no ID without '<digits> - '", () => {
+    expect(parseHead("Buy milk")).toEqual({ id: undefined, title: "Buy milk" })
+    expect(parseHead("2024 budget")).toEqual({ id: undefined, title: "2024 budget" })
+  })
+})
+
+describe("formatInlineItem", () => {
+  test("writes the head, metadata line and indented description", () => {
+    expect(
+      formatInlineItem({
+        id: "3",
+        title: "Fix login redirect",
+        fields: { ...noFields, tags: ["bug"], assignee: "lemol" },
+        description: "Users land on /home.\n\n- check the referrer",
+      }),
+    ).toEqual([
+      "- [ ] 03 - Fix login redirect",
+      "  #bug @lemol",
+      "  Users land on /home.",
+      "",
+      "  - check the referrer",
+    ])
+  })
+
+  test("separates a description that would read as metadata with a blank line", () => {
+    expect(
+      formatInlineItem({ id: "3", title: "T", fields: noFields, description: "note:important" }),
+    ).toEqual(["- [ ] 03 - T", "", "  note:important"])
+  })
+
+  test("writes a checked box", () => {
+    expect(
+      formatInlineItem({ id: "3", title: "T", checked: true, fields: noFields, description: "" }),
+    ).toEqual(["- [x] 03 - T"])
+  })
+})
+
+describe("formatLinkedItem", () => {
+  test("links to the file with ./ and escapes brackets in the title", () => {
+    expect(
+      formatLinkedItem({ id: "7", title: "Fix [x] bug", path: "backend/07-fix-x-bug.md" }),
+    ).toEqual(["- [ ] [07 - Fix \\[x\\] bug](./backend/07-fix-x-bug.md)"])
+  })
+})
+
+test("escapeLinkText and unescapeLinkText round-trip", () => {
+  expect(unescapeLinkText(escapeLinkText("a [b] \\ c"))).toBe("a [b] \\ c")
+})
