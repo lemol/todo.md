@@ -30,8 +30,9 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
 }
 
 // Test helpers shipped for adapters (`@lemol/todo-md/spec/testing`) may use
-// the test runner; nothing else may import them.
+// the test runner and assertions; nothing else may import them.
 const testingEntry = join("spec", "testing")
+const testingPackages = ["bun:test", "node:assert"]
 const isTestingFile = (path: string) =>
   path === testingEntry || path === `${testingEntry}.ts` || path.startsWith(testingEntry + sep)
 
@@ -65,7 +66,7 @@ export const violations = (file: string, source: string): string[] => {
       if (targetModule === module || rule.modules.includes(targetModule)) return []
       return [`${file}: module ${module} must not import module ${targetModule}`]
     }
-    if (specifier === "bun:test" && isTestingFile(file)) return []
+    if (isTestingFile(file) && testingPackages.some((entry) => allows(entry, specifier))) return []
     if (rule.packages.some((entry) => allows(entry, specifier))) return []
     return [`${file}: module ${module} must not import package ${specifier}`]
   })
@@ -111,6 +112,9 @@ describe("module boundaries", () => {
 
     test("keeps test helpers out of runtime code", () => {
       expect(violations(at("spec", "testing.ts"), 'import { test } from "bun:test"')).toEqual([])
+      expect(
+        violations(at("spec", "testing", "assert.ts"), 'import { ok } from "node:assert/strict"'),
+      ).toEqual([])
       expect(violations(at("spec", "store.ts"), 'import { test } from "bun:test"')).toHaveLength(1)
       expect(
         violations(at("core", "service.ts"), 'import { effectTest } from "../spec/testing.ts"'),
