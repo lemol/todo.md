@@ -1,0 +1,81 @@
+import { Effect } from "effect"
+import { TodoStore } from "../../TodoStore.ts"
+import { equal, failsWith } from "./assert.ts"
+import type { ConformanceCase } from "./case.ts"
+
+export const updatingCases: ReadonlyArray<ConformanceCase> = [
+  {
+    name: "update changes the given fields and keeps the rest",
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const dependency = yield* store.add({ title: "Dependency" })
+      const task = yield* store.add({
+        title: "Old title",
+        tags: ["api"],
+        assignee: "lemol",
+        extra: { estimate: 3 },
+      })
+      const updated = yield* store.update(task.id, {
+        title: "New title",
+        description: "Details.",
+        dependsOn: [dependency.id],
+      })
+      equal(updated.title, "New title")
+      const stored = yield* store.get(task.id)
+      equal(stored.title, "New title")
+      equal(stored.description, "Details.")
+      equal(stored.dependsOn, [dependency.id])
+      equal(stored.tags, ["api"])
+      equal(stored.assignee, "lemol")
+      equal(stored.extra, { estimate: 3 })
+    }),
+  },
+  {
+    name: "update clears the assignee with null and replaces tags without duplicates",
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const task = yield* store.add({ title: "Task", tags: ["a"], assignee: "lemol" })
+      yield* store.update(task.id, { assignee: null, tags: ["x", "y", "x"] })
+      const stored = yield* store.get(task.id)
+      equal(stored.assignee, undefined)
+      equal(stored.tags, ["x", "y"])
+    }),
+  },
+  {
+    name: "update works on a done task",
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const task = yield* store.add({ title: "Old title" })
+      yield* store.complete(task.id)
+      yield* store.update(task.id, { title: "New title" })
+      const stored = yield* store.get(task.id)
+      equal(stored.title, "New title")
+      equal(stored.status, "done")
+    }),
+  },
+  {
+    name: "update allows a dependency on a task that no longer exists",
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const gone = yield* store.add({ title: "Gone" })
+      yield* store.remove(gone.id)
+      const task = yield* store.add({ title: "Task" })
+      yield* store.update(task.id, { dependsOn: [gone.id] })
+      equal((yield* store.get(task.id)).dependsOn, [gone.id])
+    }),
+  },
+  {
+    name: "update rejects invalid input, self-dependencies and cycles, changing nothing",
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const a = yield* store.add({ title: "A" })
+      const b = yield* store.add({ title: "B", dependsOn: [a.id] })
+      yield* failsWith(store.update(a.id, { title: "" }), "ValidationError")
+      yield* failsWith(store.update(a.id, { dependsOn: [a.id] }), "ValidationError")
+      yield* failsWith(store.update(a.id, { dependsOn: [b.id] }), "ValidationError")
+      const stored = yield* store.get(a.id)
+      equal(stored.title, "A")
+      equal(stored.dependsOn, [])
+    }),
+  },
+]

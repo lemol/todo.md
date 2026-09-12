@@ -5,12 +5,16 @@ import { effectTest } from "../effectTest.ts"
 import { addingCases } from "./adding.ts"
 import type { ConformanceCase } from "./case.ts"
 import { lifecycleCases } from "./lifecycle.ts"
+import { movingCases } from "./moving.ts"
 import { readingCases } from "./reading.ts"
+import { updatingCases } from "./updating.ts"
 
 /** Every conformance case, as runner-agnostic Effects. */
 export const conformanceCases: ReadonlyArray<ConformanceCase> = [
   ...readingCases,
   ...addingCases,
+  ...updatingCases,
+  ...movingCases,
   ...lifecycleCases,
 ]
 

@@ -5,7 +5,7 @@
 
 import { DateTime, Effect, Layer, SynchronizedRef } from "effect"
 import { InvalidTransition, TaskNotFound, ValidationError } from "./errors.ts"
-import { Placement, type Task, type TaskId, TaskInput, type TodoList } from "./model.ts"
+import { Placement, type Task, type TaskId, TaskInput, TaskPatch, type TodoList } from "./model.ts"
 import { allCapabilities, TodoStore } from "./TodoStore.ts"
 import { ensureAcyclic, unique, validate } from "./validation.ts"
 
@@ -71,6 +71,15 @@ const withoutTask = (state: State, id: TaskId): State => ({
     tasks: section.tasks.filter((task) => task.id !== id),
   })),
   done: state.done.filter((task) => task.id !== id),
+})
+
+const replaceTask = (state: State, updated: Task): State => ({
+  ...state,
+  sections: state.sections.map((section) => ({
+    ...section,
+    tasks: section.tasks.map((task) => (task.id === updated.id ? updated : task)),
+  })),
+  done: state.done.map((task) => (task.id === updated.id ? updated : task)),
 })
 
 /** The index just past the last task of `group`, or 0 if the group does not exist. */
@@ -207,8 +216,43 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
             }),
           ),
 
-        update: notYet("update"),
-        move: notYet("move"),
+        update: (id, patch) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              const valid = yield* validate(TaskPatch, patch)
+              const task = yield* findTask(state, id)
+              const updated: Task = {
+                ...task,
+                title: valid.title ?? task.title,
+                description: valid.description ?? task.description,
+                tags: valid.tags === undefined ? task.tags : unique(valid.tags),
+                assignee:
+                  valid.assignee === undefined ? task.assignee : (valid.assignee ?? undefined),
+                dependsOn: valid.dependsOn === undefined ? task.dependsOn : unique(valid.dependsOn),
+                extra: valid.extra ?? task.extra,
+              }
+              const next = replaceTask(state, updated)
+              yield* ensureAcyclic(allTasks(next))
+              return [updated, next] as const
+            }),
+          ),
+
+        move: (id, placement) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              const where = yield* validate(Placement, placement)
+              const { task } = yield* findOpen(state, id, "move")
+              if (where.before === id || where.after === id) {
+                return yield* new ValidationError({
+                  issues: [`task ${id} cannot be placed next to itself`],
+                })
+              }
+              const rest = withoutTask(state, id)
+              const target = yield* resolve(rest, where)
+              const moved: Task = { ...task, group: target.group }
+              return [moved, insert(rest, target.group, target.index, moved)] as const
+            }),
+          ),
         complete: (id) =>
           transact((state) =>
             Effect.gen(function* () {
