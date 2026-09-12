@@ -37,6 +37,7 @@ import {
   InvalidTransition,
   Label,
   Placement,
+  type StoreError,
   type Task,
   type TaskId,
   TaskInput,
@@ -50,7 +51,7 @@ import {
 } from "../spec/index.ts"
 import { type Files, makeFiles } from "./files.ts"
 import { defaultLockOptions, type LockOptions, makeLock } from "./lock.ts"
-import { normalizeList } from "./normalization.ts"
+import { type NormalizeReport, normalizeList } from "./normalization.ts"
 import {
   doneTask,
   type Entry,
@@ -444,3 +445,14 @@ export const layer = (
     TodoStore,
     Effect.flatMap(makeFiles(options.root), (files) => makeStore(files, options)),
   )
+
+/** Normalizes the list at `root` on request, holding the lock (spec §2.11). Backs `todo fmt`. */
+export const normalize = (
+  root: string,
+  lock?: Partial<LockOptions>,
+): Effect.Effect<NormalizeReport, StoreError, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    const files = yield* makeFiles(root)
+    const withLock = yield* makeLock(root, { ...defaultLockOptions, ...lock })
+    return yield* withLock(normalizeList(files))
+  })

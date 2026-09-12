@@ -49,7 +49,8 @@ bun run fix           # apply Biome fixes
   `src/spec/testing.ts`.
 - **Effect version.** `effect` is an exact peer dependency matching the
   other lemol repositories (framework, org, nzila, mionso). Change it only
-  together with them, and keep `@effect/platform-bun` on the same version.
+  together with them, and keep `@effect/platform-bun` and
+  `@effect/platform-node-shared` (pinned and overridden) on the same version.
 - **This repo stands alone.** It must not depend on other lemol
   repositories. `lemol-workspace` composes it as `repos/todo-md`.
 - **Docs.** Keep them short and local. Module-specific details go in that

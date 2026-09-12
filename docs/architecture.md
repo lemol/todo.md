@@ -184,10 +184,11 @@ imports too.
 ## fs
 
 `FsTodoStore.layer({ root })` implements `TodoStore` for a list directory
-using Effect's `FileSystem` and `Path` services. `findListRoot(cwd)` handles
+using Effect's `FileSystem` and `Path` services, and passes the same
+conformance suite as `MemoryTodoStore`. `findListRoot(cwd)` handles
 discovery: starting at `cwd` and walking up, the first directory where
 `todo/TODO.md` or `TODO.md` exists wins, with `todo/TODO.md` preferred at
-each level.
+each level. `initList(dir, options)` creates a list.
 
 ### The write path
 
@@ -195,13 +196,15 @@ Every mutating operation runs the same pipeline:
 
 ```
 acquire lock
-  → read TODO.md (+ the task files it needs)
-  → parse (markdown)
   → normalize (spec §2.11)
-  → apply the operation's edits
+  → read a snapshot: TODO.md, linked task files, done files
+  → apply the operation's edits (markdown)
   → write files in crash-safe order
 release lock
 ```
+
+Reads (`load`, `get`, `listDone`, `diagnostics`) take the snapshot without
+the lock and never write.
 
 - **No cache.** Every operation re-reads the files, so hand edits made
   between commands are always seen. A long-running host (the web app) watches
@@ -217,9 +220,12 @@ release lock
   reports. For `complete` and `reopen` the done file is the commit point
   (spec §2.10): an interrupted completion is finished, and an interrupted
   reopen is rolled back.
-- **Normalization** is also exposed on its own as `normalize()`. It is
-  specific to the file format, so it is not part of the contract; the CLI's
-  `fmt` command calls it directly.
+- **Normalization** is also exposed on its own as
+  `FsTodoStore.normalize(root)`. It is specific to the file format, so it is
+  not part of the contract; the CLI's `fmt` command calls it directly.
+- **Bounded scanning.** Orphan task files are looked for only directly in the
+  tasks directory and its group directories, so a list at a project root
+  never walks the whole project.
 
 ## cli
 
@@ -271,7 +277,11 @@ todo.pipe(
 - **Bun 1.4** with a single `package.json` at the repository root.
 - **Effect 4 RC.** `effect` is a pinned peer dependency (plus the same
   version as a dev dependency), and `@effect/platform-bun` uses the same
-  version. Upgrade both together with the other lemol repositories.
+  version. Upgrade them together with the other lemol repositories.
+- **`@effect/platform-node-shared` is pinned too**, as a dependency and in
+  `overrides`. `@effect/platform-bun` asks for it with a range
+  (`^4.0.0-rc.108`) that otherwise resolves to a newer release candidate,
+  which imports modules missing from our `effect`.
 - **TypeScript**, strict, with `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`.
 - **Biome** for linting and formatting.

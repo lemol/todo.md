@@ -2,52 +2,73 @@
 
 The reference `TodoStore` adapter. It stores a todo.md list as a directory of
 Markdown files, exactly as described in
-[spec Part 2](../../docs/spec.md#part-2-the-todomd-format).
+[spec Part 2](../../docs/spec.md#part-2-the-todomd-format), and passes the
+same conformance suite as `MemoryTodoStore`.
 
-> Status: scaffolded, not implemented yet.
+> Status: implemented for spec 0.1.
 
 ## Contents
 
-| Export                     | What it is                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------- |
-| `FsTodoStore.layer({ root })` | A `TodoStore` over the list at `root`. Requires Effect's `FileSystem` and `Path`.  |
-| `FsTodoStore.normalize()`  | Normalizes the list on request (spec §2.11). Backs `todo fmt`.                        |
-| `findListRoot(cwd)`        | Discovery: walks up from `cwd`; at each level `todo/TODO.md` wins over `TODO.md`.     |
-| `initList(dir, options)`   | Creates a new list (`TODO.md` with a title). Backs `todo init`.                       |
+| Export | What it is |
+| --- | --- |
+| `FsTodoStore.layer({ root, lock? })` | A `TodoStore` over the list at `root`, the absolute path of the directory holding `TODO.md`. Requires Effect's `FileSystem` and `Path` (e.g. `BunServices.layer`). All capabilities. |
+| `FsTodoStore.normalize(root, lock?)` | Normalizes the list on request (spec §2.11) and returns a `NormalizeReport` (`assigned`, `finished`, `swept`). Backs `todo fmt`. |
+| `findListRoot(cwd)` | Discovery: walking up from `cwd`, the first level with `todo/TODO.md` or `TODO.md` (in that order) is the list. Returns an `Option`. |
+| `initList(dir, { title, description? })` | Creates a list (`TODO.md`), creating `dir`. Fails if `dir` already has one. Backs `todo init`. |
+| `LockOptions` | `timeout` (default 10 s), `staleAfter` (30 s), `retryEvery` (50 ms). |
 
-Capabilities: `groups`, `reorder`, `renameGroup` and `comments`, i.e. all of
-them.
+## Reads and writes
 
-## Write path
+- **Reads never write.** `load`, `get`, `listDone` and `diagnostics` read a
+  snapshot of the list: `TODO.md`, the linked task files, the done
+  directory, and the file names in the tasks directory and its group
+  directories. Hand-edited state (a missing ID, a ticked box, stale link
+  text, an interrupted completion) is reported as diagnostics.
+- **Every mutation runs the same pipeline:**
 
-Every mutation runs:
+  ```
+  lock → normalize (spec §2.11) → read a snapshot → edit → write files → unlock
+  ```
 
-```
-lock → read → parse → normalize → edit → write (crash-safe order) → unlock
-```
-
-- **No cache.** Every operation re-reads from disk, so hand edits are always
-  seen.
-- **Atomic files.** Writes go to a temporary file, then rename over the
-  original.
+- **No cache.** Hand edits made between commands are always seen.
+- **Atomic files.** Each write goes to a temporary file, then is renamed over
+  the original.
 - **Lock.** `<root>/.todo.lock` is created exclusively for the duration of a
-  mutation, and a stale lock is taken over after a timeout. Reads never lock.
-- **Crash safety.** Multi-file operations follow the order in spec §2.10, so
-  an interruption leaves a state that normalization repairs.
+  mutation, so concurrent processes (typically agents) cannot lose each
+  other's writes. A lock older than `staleAfter` was left by a crashed
+  process and is taken over.
+- **Crash safety.** Multi-file operations follow the order in spec §2.10. For
+  `complete` and `reopen`, the done file is the commit point, so an
+  interrupted operation is finished or rolled back by the next change.
+
+## Diagnostics it adds
+
+On top of the text-only diagnostics from [`markdown`](../markdown), a
+snapshot reports:
+
+- `broken-link`
+- `orphan-file`: task files directly in the tasks directory or in a group
+  directory; other directories are not scanned
+- `interrupted-completion`
+- `duplicate-id`: across items, and between items and done files
 
 ## Testing
 
-- `runConformance(FsTodoStore.layer(...))` against temporary directories.
-- Scenario tests: hand edits between operations, interrupted completion,
-  concurrent mutations and the lock.
+- **Conformance:** `test/fs/conformance.test.ts` runs the conformance suite on
+  real temporary directories.
+- **Exact output:** the other tests pin exact file contents after each
+  operation.
+- **Other areas covered:** hand edits, diagnostics, recovery, the lock
+  (including concurrent stores on one directory), discovery and
+  configuration.
 
 ## May import (enforced by `test/boundaries.test.ts`)
 
 - [`spec`](../spec)
 - [`markdown`](../markdown)
-- `effect` (`FileSystem`, `Path`)
+- `effect` (`FileSystem`, `Path`, `Clock`, `DateTime`)
 
 ## Not here
 
 - Parsing and text edits: see [`markdown`](../markdown).
-- Readiness and validation: see [`core`](../core).
+- Readiness and validation queries: see [`core`](../core).

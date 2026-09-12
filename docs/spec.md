@@ -430,7 +430,8 @@ YAML between `---` lines at the start of the file.
   `105`). Parsers ignore leading zeros.
 - **Next ID.** A new ID is one more than the largest ID found in:
   - items in `TODO.md`,
-  - `<digits>-*.md` file names under `tasks_dir`,
+  - `<digits>-*.md` file names directly in `tasks_dir` and its group
+    directories,
   - `<digits>-*.md` file names under `done_dir`.
 
   No counter is stored.
@@ -463,8 +464,9 @@ YAML between `---` lines at the start of the file.
     file name), and its full name when a task is completed.
 - **Done files** MUST be named `<id>-<slug>.md`, because that is where their
   ID comes from.
-- **Orphan files.** A `<digits>-*.md` file under `tasks_dir` (outside
-  `done_dir`) that no item links to is an `orphan-file` diagnostic (warning).
+- **Orphan files.** A `<digits>-*.md` file directly in `tasks_dir` or in one
+  of its group directories (outside `done_dir`) that no item links to is an
+  `orphan-file` diagnostic (warning). Other directories are not scanned.
 
 ## 2.9 Inline and file-backed tasks
 
