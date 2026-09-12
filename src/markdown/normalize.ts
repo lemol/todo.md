@@ -54,8 +54,6 @@ export const normalize = (todo: TodoFile, context: NormalizeContext): Normalized
   return { text: joinLines(text), assigned, checked }
 }
 
-export const normalizeTodo = normalize
-
 /** A `stale-link-text` diagnostic when a linked item's text differs from its file's title. */
 export const staleLinkText = (item: TodoItem, title: string): Diagnostic | undefined =>
   item.linked && item.id !== undefined && item.title !== title
