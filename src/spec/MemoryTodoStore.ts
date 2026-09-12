@@ -3,8 +3,8 @@
  * simplest executable statement of the operation semantics in spec §1.4.
  */
 
-import { Effect, Layer, SynchronizedRef } from "effect"
-import { TaskNotFound, ValidationError } from "./errors.ts"
+import { DateTime, Effect, Layer, SynchronizedRef } from "effect"
+import { InvalidTransition, TaskNotFound, ValidationError } from "./errors.ts"
 import { Placement, type Task, type TaskId, TaskInput, type TodoList } from "./model.ts"
 import { allCapabilities, TodoStore } from "./TodoStore.ts"
 import { ensureAcyclic, unique, validate } from "./validation.ts"
@@ -45,10 +45,33 @@ const findTask = (state: State, id: TaskId): Effect.Effect<Task, TaskNotFound> =
   return task === undefined ? Effect.fail(new TaskNotFound({ id })) : Effect.succeed(task)
 }
 
+const findOpen = (
+  state: State,
+  id: TaskId,
+  operation: string,
+): Effect.Effect<Located, TaskNotFound | InvalidTransition> => {
+  const located = locateOpen(state, id)
+  if (located !== undefined) return Effect.succeed(located)
+  return Effect.fail(
+    state.done.some((task) => task.id === id)
+      ? new InvalidTransition({ id, status: "done", operation })
+      : new TaskNotFound({ id }),
+  )
+}
+
 const allTasks = (state: State): ReadonlyArray<Task> => [
   ...state.sections.flatMap((section) => section.tasks),
   ...state.done,
 ]
+
+const withoutTask = (state: State, id: TaskId): State => ({
+  ...state,
+  sections: state.sections.map((section) => ({
+    ...section,
+    tasks: section.tasks.filter((task) => task.id !== id),
+  })),
+  done: state.done.filter((task) => task.id !== id),
+})
 
 /** The index just past the last task of `group`, or 0 if the group does not exist. */
 const endOf = (state: State, group: string | undefined): number =>
@@ -186,9 +209,45 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
 
         update: notYet("update"),
         move: notYet("move"),
-        complete: notYet("complete"),
-        reopen: notYet("reopen"),
-        remove: notYet("remove"),
+        complete: (id) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              const { task } = yield* findOpen(state, id, "complete")
+              const done: Task = { ...task, status: "done", completedAt: yield* DateTime.now }
+              const rest = withoutTask(state, id)
+              return [done, { ...rest, done: [done, ...rest.done] }] as const
+            }),
+          ),
+
+        reopen: (id) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              const task = state.done.find((done) => done.id === id)
+              if (task === undefined) {
+                return yield* Effect.fail(
+                  locateOpen(state, id) === undefined
+                    ? new TaskNotFound({ id })
+                    : new InvalidTransition({ id, status: "open", operation: "reopen" }),
+                )
+              }
+              const group = state.sections.some(
+                (section) => section.name !== undefined && section.name === task.group,
+              )
+                ? task.group
+                : undefined
+              const reopened: Task = { ...task, status: "open", completedAt: undefined, group }
+              const rest = withoutTask(state, id)
+              return [reopened, insert(rest, group, endOf(rest, group), reopened)] as const
+            }),
+          ),
+
+        remove: (id) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              yield* findTask(state, id)
+              return [undefined, withoutTask(state, id)] as const
+            }),
+          ),
         renameGroup: notYet("renameGroup"),
         comment: notYet("comment"),
 

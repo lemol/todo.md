@@ -4,10 +4,15 @@ import { TodoStore } from "../../TodoStore.ts"
 import { effectTest } from "../effectTest.ts"
 import { addingCases } from "./adding.ts"
 import type { ConformanceCase } from "./case.ts"
+import { lifecycleCases } from "./lifecycle.ts"
 import { readingCases } from "./reading.ts"
 
 /** Every conformance case, as runner-agnostic Effects. */
-export const conformanceCases: ReadonlyArray<ConformanceCase> = [...readingCases, ...addingCases]
+export const conformanceCases: ReadonlyArray<ConformanceCase> = [
+  ...readingCases,
+  ...addingCases,
+  ...lifecycleCases,
+]
 
 /**
  * Registers every conformance case with `bun:test`. `layer` must build a fresh,
