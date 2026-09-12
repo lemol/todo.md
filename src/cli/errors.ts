@@ -76,5 +76,5 @@ export const errorJson = (error: unknown): Record<string, unknown> => {
 }
 
 /** Exit codes: 0 success, 1 a failed operation or problems found, 2 a usage error. */
-export const exitCodeOf = (error: unknown): number =>
+export const exitCodeOf = (error: unknown): 1 | 2 =>
   isTagged(error) && (error._tag === "ShowHelp" || error._tag === "UsageError") ? 2 : 1
