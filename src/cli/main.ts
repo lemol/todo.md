@@ -1,15 +1,16 @@
 import { Console, Effect } from "effect"
 import { CliOutput, Command } from "effect/unstable/cli"
 import { fmt, init } from "./commands/lists.ts"
+import { check, list, next, show, showList } from "./commands/query.ts"
 import { CliContext, Dir, Json } from "./context.ts"
 import { describeError, errorJson, exitCodeOf } from "./errors.ts"
 
 /** Keep in step with package.json's version. */
 export const version = "0.0.0"
 
-export const todo = Command.make("todo").pipe(
+export const todo = Command.make("todo", {}, () => showList()).pipe(
   Command.withDescription("Manage a todo.md task list: plain Markdown for humans and agents"),
-  Command.withSubcommands([init, fmt]),
+  Command.withSubcommands([list, next, show, check, init, fmt]),
   Command.withGlobalFlags([Json, Dir]),
 )
 
@@ -26,7 +27,10 @@ export const main = (
     Effect.catch((error) =>
       Effect.gen(function* () {
         // Usage errors were printed with the help; check already printed its problems.
-        const tag: string = error._tag
+        const tag =
+          error && typeof error === "object" && "_tag" in error
+            ? String((error as { _tag: unknown })._tag)
+            : undefined
         if (tag !== "ShowHelp" && tag !== "ProblemsFound") {
           yield* Console.error(
             args.includes("--json")
