@@ -13,6 +13,12 @@ implementation and a `todo` CLI. It ships as one Bun + Effect 4 package,
   the reasons for them.
 - Each `src/<module>/README.md` covers that module's contents and limits.
 
+## Backlog
+
+This repository's own tasks live in [`todo/TODO.md`](todo/TODO.md), a todo.md
+list. Use the CLI from source to work with it: `bun src/cli/bin.ts next`,
+`bun src/cli/bin.ts done <id>`, `bun src/cli/bin.ts --help`.
+
 ## Layout
 
 ```
