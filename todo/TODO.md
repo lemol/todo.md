@@ -2,6 +2,8 @@
 
 - [ ] 07 - Create an agent skill for using todo.md lists
   Use the `skill-creator` skill to create a reusable skill that instructs agents how to work with todo.md task lists. Cover locating a list, using the source CLI to inspect and update tasks, and following the repository-specific task workflow.
+- [ ] 08 - Fix TypeScript check failure in conformance assertion
+  `bun run check` fails in `src/spec/testing/conformance/assert.ts:8`: TypeScript rejects the optional `message` argument passed to `node:assert/strict`'s `deepStrictEqual` overload.
 
 ## Release
 
