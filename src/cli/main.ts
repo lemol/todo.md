@@ -2,6 +2,7 @@ import { Console, Effect } from "effect"
 import { CliOutput, Command } from "effect/unstable/cli"
 import { fmt, init } from "./commands/lists.ts"
 import { check, list, next, show, showList } from "./commands/query.ts"
+import { add, comment, done, edit, mv, reopen, rm } from "./commands/tasks.ts"
 import { CliContext, Dir, Json } from "./context.ts"
 import { describeError, errorJson, exitCodeOf } from "./errors.ts"
 
@@ -10,7 +11,21 @@ export const version = "0.0.0"
 
 export const todo = Command.make("todo", {}, () => showList()).pipe(
   Command.withDescription("Manage a todo.md task list: plain Markdown for humans and agents"),
-  Command.withSubcommands([list, next, show, check, init, fmt]),
+  Command.withSubcommands([
+    list,
+    next,
+    show,
+    add,
+    edit,
+    done,
+    reopen,
+    mv,
+    rm,
+    comment,
+    check,
+    init,
+    fmt,
+  ]),
   Command.withGlobalFlags([Json, Dir]),
 )
 
