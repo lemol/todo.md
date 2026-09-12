@@ -56,6 +56,7 @@ export const makeFiles = (
         return makeParent(target).pipe(
           Effect.andThen(fs.writeFileString(temporary, text)),
           Effect.andThen(fs.rename(temporary, target)),
+          Effect.onError(() => Effect.ignore(fs.remove(temporary))),
           Effect.mapError(fail(`write ${relative}`)),
         )
       },

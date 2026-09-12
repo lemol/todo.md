@@ -1,9 +1,11 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import { TestClock } from "effect/testing"
-import { TodoStore } from "../../src/spec/index.ts"
+import { itemLinesFor } from "../../src/fs/writing.ts"
+import { defaultConfig } from "../../src/markdown/index.ts"
+import { type Task, TodoStore } from "../../src/spec/index.ts"
 import { effectTest } from "../../src/spec/testing.ts"
-import { Disk, listWith, md } from "./helpers.ts"
+import { Disk, diskWith, filesOnDisk, listWith, md } from "./helpers.ts"
 
 const todo = md(
   "# Acme API",
@@ -218,5 +220,75 @@ describe("FsTodoStore writes the todo.md format", () => {
       )
     }),
     list(),
+  )
+})
+
+describe("itemLinesFor", () => {
+  const baseTask: Task = {
+    id: "1",
+    title: "Inline task",
+    description: "",
+    status: "open",
+    tags: ["work"],
+    dependsOn: [],
+    comments: [],
+    extra: {},
+  }
+
+  effectTest(
+    "returns inline item lines without writing files when task fits inline",
+    Effect.gen(function* () {
+      const files = yield* filesOnDisk
+      const disk = yield* Disk
+      const lines = yield* itemLinesFor(files, defaultConfig, baseTask)
+      expect(lines).toEqual(["- [ ] 01 - Inline task", "  #work"])
+      expect(yield* disk.tree()).toEqual([])
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "writes a task file and returns linked item lines when task cannot fit inline",
+    Effect.gen(function* () {
+      const files = yield* filesOnDisk
+      const disk = yield* Disk
+      const lines = yield* itemLinesFor(files, defaultConfig, {
+        ...baseTask,
+        id: "2",
+        title: "Task with space in tag",
+        tags: ["multi word"],
+        group: "Backend",
+      })
+      expect(lines).toEqual([
+        "- [ ] [02 - Task with space in tag](./backend/02-task-with-space-in-tag.md)",
+      ])
+      expect(yield* disk.tree()).toEqual(["backend/02-task-with-space-in-tag.md"])
+      expect(yield* disk.read("backend/02-task-with-space-in-tag.md")).toContain(
+        "tags: [multi word]",
+      )
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "writes to the given path when path is specified",
+    Effect.gen(function* () {
+      const files = yield* filesOnDisk
+      const disk = yield* Disk
+      const lines = yield* itemLinesFor(
+        files,
+        defaultConfig,
+        {
+          ...baseTask,
+          id: "3",
+          title: "Explicit path task",
+          tags: [],
+        },
+        "custom/03-custom.md",
+      )
+      expect(lines).toEqual(["- [ ] [03 - Explicit path task](./custom/03-custom.md)"])
+      expect(yield* disk.tree()).toEqual(["custom/03-custom.md"])
+    }),
+    diskWith({}),
   )
 })

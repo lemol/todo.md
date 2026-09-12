@@ -72,4 +72,55 @@ describe("the list lock", () => {
         expect(yield* disk.exists(".todo.lock")).toBe(false)
       }),
     ))
+
+  test("writes a unique ownership token into the lock file", () =>
+    run(
+      Effect.gen(function* () {
+        const disk = yield* Disk
+        const lock = yield* lockFor()
+        let token = ""
+        yield* lock(
+          Effect.gen(function* () {
+            token = yield* disk.read(".todo.lock")
+          }),
+        )
+        expect(token.length).toBeGreaterThan(0)
+        expect(yield* disk.exists(".todo.lock")).toBe(false)
+      }),
+    ))
+
+  test("does not remove the lock on release if another process took it over", () =>
+    run(
+      Effect.gen(function* () {
+        const disk = yield* Disk
+        const lock = yield* lockFor()
+        yield* lock(
+          Effect.gen(function* () {
+            yield* disk.write(".todo.lock", "other-token")
+          }),
+        )
+        expect(yield* disk.exists(".todo.lock")).toBe(true)
+        expect(yield* disk.read(".todo.lock")).toBe("other-token")
+      }),
+    ))
+
+  test("handles lock file already removed when releasing", () =>
+    run(
+      Effect.gen(function* () {
+        const disk = yield* Disk
+        const files = yield* filesOnDisk
+        const lock = yield* lockFor()
+        yield* lock(files.remove(".todo.lock"))
+        expect(yield* disk.exists(".todo.lock")).toBe(false)
+      }),
+    ))
+
+  test("allows calling makeLock with no options and defaults them internally", () =>
+    run(
+      Effect.gen(function* () {
+        const { root } = yield* Disk
+        const lock = yield* makeLock(root).pipe(Effect.provide(BunServices.layer))
+        expect(yield* lock(Effect.succeed("ok"))).toBe("ok")
+      }),
+    ))
 })

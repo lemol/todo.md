@@ -10,10 +10,9 @@ test("concurrent changes from separate stores do not lose writes", () =>
   Effect.runPromise(
     Effect.gen(function* () {
       const store = yield* TodoStore
-      const other = yield* Effect.gen(function* () {
-        return yield* TodoStore
-      }).pipe(
-        Effect.provide(FsTodoStore.layer({ root: (yield* Disk).root })),
+      const { root } = yield* Disk
+      const other = yield* TodoStore.pipe(
+        Effect.provide(FsTodoStore.layer({ root })),
         Effect.provide(BunServices.layer),
       )
       yield* Effect.all(

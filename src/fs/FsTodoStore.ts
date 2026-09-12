@@ -50,7 +50,7 @@ import {
   validate,
 } from "../spec/index.ts"
 import { type Files, makeFiles } from "./files.ts"
-import { defaultLockOptions, type LockOptions, makeLock } from "./lock.ts"
+import { type LockOptions, makeLock } from "./lock.ts"
 import { type NormalizeReport, normalizeList } from "./normalization.ts"
 import {
   doneTask,
@@ -180,7 +180,7 @@ const byCompletion = (a: Task, b: Task) =>
 
 const makeStore = (files: Files, options: Options) =>
   Effect.gen(function* () {
-    const lock = yield* makeLock(files.root, { ...defaultLockOptions, ...options.lock })
+    const lock = yield* makeLock(files.root, options.lock)
     const read = readSnapshot(files)
     const writeTodo = (text: string) => files.write(todoPath, text)
 
@@ -453,6 +453,6 @@ export const normalize = (
 ): Effect.Effect<NormalizeReport, StoreError, FileSystem.FileSystem | Path.Path> =>
   Effect.gen(function* () {
     const files = yield* makeFiles(root)
-    const withLock = yield* makeLock(root, { ...defaultLockOptions, ...lock })
+    const withLock = yield* makeLock(root, lock)
     return yield* withLock(normalizeList(files))
   })

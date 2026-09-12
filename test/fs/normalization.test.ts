@@ -64,6 +64,35 @@ describe("normalizeList", () => {
   )
 
   effectTest(
+    "sweeps file-backed checked items to done and removes their task file",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      yield* TestClock.setTime(Date.parse("2026-09-12T10:31:00Z"))
+      expect(yield* normalizeDisk).toEqual({ assigned: [], finished: [], swept: ["2"] })
+      expect(yield* disk.read("TODO.md")).toBe(md("## Backend"))
+      expect(yield* disk.exists("backend/02-add-rate-limiting.md")).toBe(false)
+      expect(yield* disk.read("done/backend/02-add-rate-limiting.md")).toBe(
+        md(
+          "---",
+          "title: Add rate limiting",
+          "group: Backend",
+          "completed_at: 2026-09-12T10:31:00Z",
+          "---",
+          "Token bucket.",
+        ),
+      )
+    }),
+    diskWith({
+      "TODO.md": md(
+        "## Backend",
+        "",
+        "- [x] [02 - Add rate limiting](./backend/02-add-rate-limiting.md)",
+      ),
+      "backend/02-add-rate-limiting.md": rateLimiting,
+    }),
+  )
+
+  effectTest(
     "changes nothing in a normalized list",
     Effect.gen(function* () {
       const disk = yield* Disk

@@ -1,6 +1,6 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
-import { doneTask, entryTask, readSnapshot } from "../../src/fs/snapshot.ts"
+import { doneTask, entryTask, isInterrupted, readSnapshot } from "../../src/fs/snapshot.ts"
 import { effectTest } from "../../src/spec/testing.ts"
 import { diskWith, filesOnDisk, md } from "./helpers.ts"
 
@@ -113,6 +113,25 @@ describe("snapshot diagnostics", () => {
     diskWith({
       "TODO.md": md("- [ ] [01 - Old](./01-a.md)"),
       "01-a.md": md("---", "title: A", "---", "## Comments", "", "### a note"),
+    }),
+  )
+})
+
+describe("isInterrupted", () => {
+  effectTest(
+    "returns true when an entry has a matching done file, and false otherwise",
+    Effect.gen(function* () {
+      const s = yield* snapshot
+      const [first, second] = s.entries
+      expect(first && isInterrupted(s, first)).toBe(true)
+      expect(second && isInterrupted(s, second)).toBe(false)
+    }),
+    diskWith({
+      "TODO.md": md(
+        "- [ ] [02 - Add rate limiting](./02-add-rate-limiting.md)",
+        "- [ ] 03 - Still open",
+      ),
+      "done/02-add-rate-limiting.md": rateLimiting,
     }),
   )
 })

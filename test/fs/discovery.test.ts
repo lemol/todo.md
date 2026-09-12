@@ -3,7 +3,7 @@ import { BunServices } from "@effect/platform-bun"
 import { Effect, Option } from "effect"
 import { findListRoot, initList } from "../../src/fs/index.ts"
 import { effectTest } from "../../src/spec/testing.ts"
-import { Disk, listWith, md } from "./helpers.ts"
+import { Disk, diskWith, listWith, md } from "./helpers.ts"
 
 const find = (cwd: string) => findListRoot(cwd).pipe(Effect.provide(BunServices.layer))
 
@@ -25,6 +25,15 @@ describe("findListRoot", () => {
       expect(yield* find(`${root}/src`)).toEqual(Option.some(root))
     }),
     listWith({ "TODO.md": md("# Root"), "src/file.ts": "" }),
+  )
+
+  effectTest(
+    "returns Option.none() when no list exists",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      expect(yield* find(root)).toEqual(Option.none())
+    }),
+    diskWith({ "src/file.ts": "" }),
   )
 })
 

@@ -27,6 +27,22 @@ effectTest(
 )
 
 effectTest(
+  "write cleans up temporary files if rename fails and maps error to StoreError",
+  Effect.gen(function* () {
+    const files = yield* filesOnDisk
+    const disk = yield* Disk
+    yield* files.write("dir/file.txt", "content\n")
+    const error = yield* Effect.flip(files.write("dir", "fail\n"))
+    expect(error._tag).toBe("StoreError")
+    expect(error.message).toContain("could not write dir")
+    const tree = yield* disk.tree()
+    expect(tree).toEqual(["dir/file.txt"])
+    expect(tree.some((f) => f.endsWith(".tmp"))).toBe(false)
+  }),
+  diskWith({}),
+)
+
+effectTest(
   "remove ignores missing files, and move creates the target's directories",
   Effect.gen(function* () {
     const files = yield* filesOnDisk
