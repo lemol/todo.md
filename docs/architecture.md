@@ -135,17 +135,21 @@ export class TodoStore extends Context.Service<TodoStore, {
 
 `TodoService` is a layer that requires a `TodoStore` and provides:
 
-- **Queries:** filter by tag, assignee, group and status; `next()` returns the
-  ready tasks in priority order (spec §1.3); `show(id)` returns a task with
-  its dependency status.
+- **Queries with derived state:** every task comes back with its state
+  (`ready`, `blocked`, `done`) and what it is blocked by.
+  - `list(filter)` filters by tag, assignee, group, state and status.
+  - `next()` returns the ready tasks in priority order (spec §1.3).
+  - `show(id)` returns a task with its dependencies and the tasks it blocks.
 - **`check()`:** model validation (`duplicate-id`, `unknown-dependency`,
   `self-dependency`, `dependency-cycle`) merged with the store's
-  `diagnostics()`.
+  `diagnostics()`, without reporting the same problem twice.
 - **Guarded mutations:**
-  - `add` and `update` reject a `dependsOn` that creates a cycle.
   - `remove` refuses when open tasks depend on the task, unless forced.
   - Operations the store's capabilities don't include fail early with
-    `Unsupported`.
+    `Unsupported`, before the store is called.
+  - `complete` also reports the tasks it made ready.
+  - Rejecting new cycles is left to the stores, which must do it
+    (spec §1.6).
 
 `core` knows nothing about Markdown, files or the CLI. It is what a web app
 imports too.
