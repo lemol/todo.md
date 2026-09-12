@@ -4,6 +4,8 @@ import { TodoStore } from "../../TodoStore.ts"
 import { effectTest } from "../effectTest.ts"
 import { addingCases } from "./adding.ts"
 import type { ConformanceCase } from "./case.ts"
+import { commentCases } from "./comments.ts"
+import { groupCases } from "./groups.ts"
 import { lifecycleCases } from "./lifecycle.ts"
 import { movingCases } from "./moving.ts"
 import { readingCases } from "./reading.ts"
@@ -16,6 +18,8 @@ export const conformanceCases: ReadonlyArray<ConformanceCase> = [
   ...updatingCases,
   ...movingCases,
   ...lifecycleCases,
+  ...groupCases,
+  ...commentCases,
 ]
 
 /**

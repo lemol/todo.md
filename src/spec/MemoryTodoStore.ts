@@ -4,8 +4,18 @@
  */
 
 import { DateTime, Effect, Layer, SynchronizedRef } from "effect"
-import { InvalidTransition, TaskNotFound, ValidationError } from "./errors.ts"
-import { Placement, type Task, type TaskId, TaskInput, TaskPatch, type TodoList } from "./model.ts"
+import { GroupNotFound, InvalidTransition, TaskNotFound, ValidationError } from "./errors.ts"
+import {
+  type Comment,
+  CommentInput,
+  Label,
+  Placement,
+  type Task,
+  type TaskId,
+  TaskInput,
+  TaskPatch,
+  type TodoList,
+} from "./model.ts"
 import { allCapabilities, TodoStore } from "./TodoStore.ts"
 import { ensureAcyclic, unique, validate } from "./validation.ts"
 
@@ -137,10 +147,6 @@ const resolve = (
   return Effect.succeed({ group, index })
 }
 
-/** Stands in for an operation a later step implements. */
-const notYet = (operation: string) => () =>
-  Effect.die(new Error(`MemoryTodoStore.${operation} is not implemented yet`))
-
 export interface Options {
   readonly title?: string
   readonly description?: string
@@ -253,6 +259,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
               return [moved, insert(rest, target.group, target.index, moved)] as const
             }),
           ),
+
         complete: (id) =>
           transact((state) =>
             Effect.gen(function* () {
@@ -292,8 +299,46 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
               return [undefined, withoutTask(state, id)] as const
             }),
           ),
-        renameGroup: notYet("renameGroup"),
-        comment: notYet("comment"),
+
+        renameGroup: (from, to) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              if (!state.sections.some((section) => section.name === from)) {
+                return yield* new GroupNotFound({ name: from })
+              }
+              const name = yield* validate(Label, to)
+              if (name !== from && state.sections.some((section) => section.name === name)) {
+                return yield* new ValidationError({ issues: [`group ${name} already exists`] })
+              }
+              const sections = state.sections.map((section) =>
+                section.name === from
+                  ? {
+                      ...section,
+                      name,
+                      tasks: section.tasks.map((task) => ({ ...task, group: name })),
+                    }
+                  : section,
+              )
+              return [undefined, { ...state, sections }] as const
+            }),
+          ),
+
+        comment: (id, input) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              const valid = yield* validate(CommentInput, input)
+              const task = yield* findTask(state, id)
+              const comment: Comment = {
+                author: valid.author,
+                body: valid.body,
+                at: yield* DateTime.now,
+              }
+              return [
+                comment,
+                replaceTask(state, { ...task, comments: [comment, ...task.comments] }),
+              ] as const
+            }),
+          ),
 
         diagnostics: () => Effect.succeed([]),
       })
