@@ -57,9 +57,11 @@ export const updatingCases: ReadonlyArray<ConformanceCase> = [
     name: "update allows a dependency on a task that no longer exists",
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+      // Remove it after adding the other task: once no record of an ID remains,
+      // a store may reuse it (spec §1.2).
       const gone = yield* store.add({ title: "Gone" })
-      yield* store.remove(gone.id)
       const task = yield* store.add({ title: "Task" })
+      yield* store.remove(gone.id)
       yield* store.update(task.id, { dependsOn: [gone.id] })
       equal((yield* store.get(task.id)).dependsOn, [gone.id])
     }),

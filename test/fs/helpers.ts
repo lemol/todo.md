@@ -1,6 +1,8 @@
 import { BunServices } from "@effect/platform-bun"
 import { Context, Effect, FileSystem, Layer, Path } from "effect"
+import * as FsTodoStore from "../../src/fs/FsTodoStore.ts"
 import { type Files, makeFiles } from "../../src/fs/files.ts"
+import type { LockOptions } from "../../src/fs/lock.ts"
 
 export const md = (...lines: string[]) => `${lines.join("\n")}\n`
 
@@ -60,3 +62,12 @@ export const diskWith = (files: Readonly<Record<string, string>>): Layer.Layer<D
 export const filesOnDisk: Effect.Effect<Files, never, Disk> = Effect.gen(function* () {
   return yield* makeFiles((yield* Disk).root).pipe(Effect.provide(BunServices.layer))
 })
+
+/** A temporary list holding `files`, with an `FsTodoStore` over it and `Disk` to inspect it. */
+export const listWith = (files: Readonly<Record<string, string>>, lock?: Partial<LockOptions>) =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      return FsTodoStore.layer({ root, ...(lock === undefined ? {} : { lock }) })
+    }),
+  ).pipe(Layer.provideMerge(diskWith(files)), Layer.provide(BunServices.layer))
