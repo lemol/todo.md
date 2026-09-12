@@ -1,5 +1,8 @@
 # todo.md
 
+- [ ] 07 - Create an agent skill for using todo.md lists
+  Use the `skill-creator` skill to create a reusable skill that instructs agents how to work with todo.md task lists. Cover locating a list, using the source CLI to inspect and update tasks, and following the repository-specific task workflow.
+
 ## Release
 
 - [ ] 01 - Bump the version to 0.1.0 and tag todo-md@0.1.0
