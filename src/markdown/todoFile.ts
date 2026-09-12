@@ -3,8 +3,8 @@ import type { Diagnostic, TaskId } from "../spec/index.ts"
 import { headingText, lineSpan, parseAst } from "./ast.ts"
 import { readFrontmatter } from "./frontmatter.ts"
 import { parseId } from "./ids.ts"
-import { parseHead, unescapeLinkText } from "./items.ts"
-import { isBlank, type Lines, splitLines, trimBlock } from "./lines.ts"
+import { escapeLinkText, formatHead, parseHead, unescapeLinkText } from "./items.ts"
+import { isBlank, joinLines, type Lines, spliceLines, splitLines, trimBlock } from "./lines.ts"
 import { type InlineFields, noFields, parseMetadataLine } from "./metadata.ts"
 import { basename, groupSlug, normalizePath, resolveLink } from "./paths.ts"
 
@@ -299,3 +299,83 @@ export const findItem = (todo: TodoFile, id: TaskId): TodoItem | undefined =>
 /** The section an item belongs to. */
 export const sectionOf = (todo: TodoFile, item: TodoItem): TodoSection | undefined =>
   todo.sections.find((section) => section.items.includes(item))
+
+const lastContentLine = (lines: ReadonlyArray<string>, before: number): number => {
+  let line = before - 1
+  while (line >= 0 && isBlank(lines[line])) line--
+  return line
+}
+
+/**
+ * Inserts an item's lines as the `index`-th task of `group` (spec §2.10, add).
+ * A missing group is appended as a `##` heading at the end of the file.
+ */
+export const insertItem = (
+  todo: TodoFile,
+  group: string | undefined,
+  index: number,
+  item: ReadonlyArray<string>,
+): string => {
+  const { lines } = todo.text
+  const section = todo.sections.find((candidate) => candidate.name === group)
+  if (section === undefined) {
+    const last = lastContentLine(lines, lines.length)
+    const insert = [...(last >= 0 ? [""] : []), `## ${group}`, "", ...item]
+    return joinLines(spliceLines(todo.text, last + 1, lines.length - last - 1, insert))
+  }
+  if (section.items.length === 0) {
+    const at = lastContentLine(lines, section.end) + 1
+    const before = at > 0 ? [""] : []
+    const after = at < lines.length && !isBlank(lines[at]) ? [""] : []
+    return joinLines(spliceLines(todo.text, at, 0, [...before, ...item, ...after]))
+  }
+  const target = section.items[Math.max(0, index)]
+  const at = target?.start ?? section.items.at(-1)?.end ?? section.end
+  return joinLines(spliceLines(todo.text, at, 0, item))
+}
+
+/** Removes an item and its body, without leaving a doubled blank line behind. */
+export const removeItem = (todo: TodoFile, item: TodoItem): string => {
+  let text = spliceLines(todo.text, item.start, item.end - item.start, [])
+  const at = item.start
+  const blankBefore = at > 0 && isBlank(text.lines[at - 1])
+  if (blankBefore && isBlank(text.lines[at])) text = spliceLines(text, at, 1, [])
+  else if (blankBefore && at === text.lines.length) text = spliceLines(text, at - 1, 1, [])
+  return joinLines(text)
+}
+
+/** Replaces an item and its body with new lines. */
+export const replaceItem = (todo: TodoFile, item: TodoItem, lines: ReadonlyArray<string>): string =>
+  joinLines(spliceLines(todo.text, item.start, item.end - item.start, lines))
+
+/** Rewrites only an item's head (`<id> - <title>`), keeping its bullet, checkbox and link target. */
+export const withHead = (text: Lines, item: TodoItem, id: TaskId, title: string): Lines => {
+  const line = text.lines[item.start] ?? ""
+  const head = formatHead(id, title)
+  const rewritten =
+    item.linkText === undefined
+      ? line.slice(0, item.headColumn) + head
+      : line.slice(0, item.linkText[0]) + escapeLinkText(head) + line.slice(item.linkText[1])
+  return spliceLines(text, item.start, 1, [rewritten])
+}
+
+export const setItemHead = (todo: TodoFile, item: TodoItem, id: TaskId, title: string): string =>
+  joinLines(withHead(todo.text, item, id, title))
+
+/** Renames a group's heading in place (spec §2.10, renameGroup). */
+export const renameSection = (todo: TodoFile, from: string, to: string): string => {
+  const heading = todo.sections.find((section) => section.name === from)?.heading
+  if (heading === undefined) return joinLines(todo.text)
+  const line = todo.text.lines[heading.line] ?? ""
+  return joinLines(
+    spliceLines(todo.text, heading.line, 1, [
+      line.slice(0, heading.from) + to + line.slice(heading.to),
+    ]),
+  )
+}
+
+/** A new `TODO.md` with a title and optional description. */
+export const formatTodoFile = (options: {
+  readonly title: string
+  readonly description?: string
+}): string => `# ${options.title}\n${options.description ? `\n${options.description}\n` : ""}`
