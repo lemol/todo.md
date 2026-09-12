@@ -41,7 +41,7 @@ the package. Each module is a directory under `src/` and a subpath export:
 | Module                          | Import path                    | May import                               | Responsibility                                                                  |
 | ------------------------------- | ------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------- |
 | [`src/spec`](../src/spec)         | `@lemol/todo-md/spec`          | `effect`                                 | Model schemas, errors, the `TodoStore` contract, reference in-memory store      |
-|                                 | `@lemol/todo-md/spec/testing`  | spec, `bun:test`                         | Test helpers and the conformance suite, for tests only                          |
+|                                 | `@lemol/todo-md/spec/testing`  | spec, `bun:test`, `node:assert`          | Test helpers and the conformance suite, for tests only                          |
 | [`src/markdown`](../src/markdown) | `@lemol/todo-md/markdown`      | spec, `effect`, mdast/micromark, `yaml`  | Pure parse/serialize of `TODO.md` and task files; normalization; slugs          |
 | [`src/core`](../src/core)         | `@lemol/todo-md/core`          | spec, `effect`                           | Adapter-agnostic logic: queries, ready/blocked, validation, mutation guards     |
 | [`src/fs`](../src/fs)             | `@lemol/todo-md/fs`            | spec, markdown, `effect`                 | `TodoStore` over a list directory; discovery; safe writes                       |
@@ -95,9 +95,9 @@ export class TodoStore extends Context.Service<TodoStore, {
   load(): Effect<TodoList, StoreError>
   get(id: TaskId): Effect<Task, TaskNotFound | StoreError>
   listDone(): Effect<ReadonlyArray<Task>, StoreError>
-  add(input: TaskInput, placement?: Placement): Effect<Task, ValidationError | TaskNotFound | StoreError>
+  add(input: TaskInput, placement?: Placement): Effect<Task, ValidationError | TaskNotFound | Unsupported | StoreError>
   update(id: TaskId, patch: TaskPatch): Effect<Task, TaskNotFound | ValidationError | StoreError>
-  move(id: TaskId, placement: Placement): Effect<Task, TaskNotFound | InvalidTransition | Unsupported | StoreError>
+  move(id: TaskId, placement: Placement): Effect<Task, TaskNotFound | InvalidTransition | ValidationError | Unsupported | StoreError>
   complete(id: TaskId): Effect<Task, TaskNotFound | InvalidTransition | StoreError>
   reopen(id: TaskId): Effect<Task, TaskNotFound | InvalidTransition | StoreError>
   remove(id: TaskId): Effect<void, TaskNotFound | StoreError>
@@ -107,15 +107,18 @@ export class TodoStore extends Context.Service<TodoStore, {
 }>()("@lemol/todo-md/spec/TodoStore") {}
 ```
 
-(The sketch shows the shape; exact signatures are settled during
-implementation.)
+(Abridged: `Effect<…>` stands for `Effect.Effect<…>`. The source of truth is
+[`src/spec/TodoStore.ts`](../src/spec/TodoStore.ts).)
 
 - **Operations are fine-grained.** A Jira adapter maps each one to an API
   call, and a file adapter maps each one to a read-modify-write.
 - **`diagnostics()`** returns format-level issues found while reading, such as
   broken links. An adapter with nothing to report returns an empty array.
-- **Model-level checks** (cycles, unknown dependencies) live in `core`, so
-  they aren't duplicated per adapter.
+- **Model-level checks are shared, not duplicated per adapter.** Stores must
+  reject self-dependencies and cycles on `add`/`update` (spec §1.6), and all
+  of them use `ensureAcyclic` from `spec` to do it. Reporting existing
+  problems (`check`: unknown dependencies, duplicate IDs, cycles introduced by
+  hand edits) lives in `core`.
 
 ### Reference implementation and conformance
 
