@@ -33,6 +33,7 @@ bun install
 bun run check         # lint + typecheck + tests: the gate for every change
 bun test              # tests only
 bun run fix           # apply Biome fixes
+bun src/cli/bin.ts    # run the todo CLI from source
 ```
 
 ## Rules
@@ -53,6 +54,9 @@ bun run fix           # apply Biome fixes
   `@effect/platform-node-shared` (pinned and overridden) on the same version.
 - **This repo stands alone.** It must not depend on other lemol
   repositories. `lemol-workspace` composes it as `repos/todo-md`.
+- **CLI help.** Every command needs a description, a description for each
+  flag and argument, and examples; `test/cli/help.test.ts` checks every
+  command.
 - **Docs.** Keep them short and local. Module-specific details go in that
   module's README, not here.
 

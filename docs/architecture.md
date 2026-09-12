@@ -233,25 +233,42 @@ the lock and never write.
 
 ## cli
 
-The CLI is built with `effect/unstable/cli` (`Command`, `Flag`, `Argument`)
-and runs on `BunRuntime`. It is the composition root:
+The CLI is built with `effect/unstable/cli` (`Command`, `Flag`, `Argument`,
+`GlobalFlag`) and runs on `BunRuntime`. It is the composition root. Each
+command resolves the list root (from `--dir`, or `findListRoot`) and runs
+against `TodoService` over `FsTodoStore`:
 
 ```ts
-todo.pipe(
-  Command.run({ version }),
-  Effect.provide(TodoService.layer),
-  Effect.provide(FsTodoStore.layer({ root })),  // root from --dir or findListRoot
+// context.ts
+const withTodo = (f) =>
+  Effect.gen(function* () {
+    const root = yield* listRoot
+    return yield* f(yield* TodoService).pipe(
+      Effect.provide(TodoService.layer),
+      Effect.provide(FsTodoStore.layer({ root })),
+    )
+  })
+
+// bin.ts
+main(process.argv.slice(2), { cwd, env, username, color }).pipe(
+  Effect.tap((code) => Effect.sync(() => { process.exitCode = code })),
   Effect.provide(BunServices.layer),
-  BunRuntime.runMain
+  BunRuntime.runMain,
 )
 ```
 
-- **Commands:** `init`, `list`/`ls` (the default), `show`, `add`, `edit`,
-  `done`, `reopen`, `mv`, `rm`, `comment`, `next`, `check`, `fmt`. The full
-  surface is in the [cli README](../src/cli/README.md).
-- **Output:** human-readable by default; `--json` on every command prints one
-  JSON document to stdout, and diagnostics go to stderr.
-- **Non-interactive:** the CLI never prompts when stdin is not a TTY.
+- **Testable entry point.** `main(args, context)` runs the command tree with
+  `Command.runWith` and returns the exit code. Tests pass their own working
+  directory, environment and color setting.
+- **Commands:** `list`/`ls` (also plain `todo`), `next`, `show`, `add`,
+  `edit`, `done`, `reopen`, `mv`, `rm`, `comment`, `check`, `init`, `fmt`.
+  The full surface is in the [cli README](../src/cli/README.md).
+- **Help:** every command has `--help` with a description, every flag, and
+  examples. A test walks the command tree to keep it that way.
+- **Output:** human output mirrors `TODO.md`. `--json` (a global flag,
+  accepted anywhere) prints the result exactly on stdout, and failures as JSON
+  on stderr.
+- **Non-interactive:** the CLI never prompts.
 - **Exit codes:** `0` success, `1` domain error (not found, validation,
   `check` found errors), `2` usage error.
 - **Comment author:** `--author`, then `$TODO_MD_AUTHOR`, then the OS user

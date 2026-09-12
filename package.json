@@ -12,6 +12,9 @@
     "./fs": "./src/fs/index.ts",
     "./cli": "./src/cli/index.ts"
   },
+  "bin": {
+    "todo": "./src/cli/bin.ts"
+  },
   "scripts": {
     "check": "bun run lint && bun run typecheck && bun run test",
     "lint": "biome check .",

@@ -11,6 +11,13 @@ export const version = "0.0.0"
 
 export const todo = Command.make("todo", {}, () => showList()).pipe(
   Command.withDescription("Manage a todo.md task list: plain Markdown for humans and agents"),
+  Command.withExamples([
+    { command: "todo", description: "Show the open tasks (same as `todo list`)" },
+    { command: "todo add Fix the login redirect --group Backend", description: "Add a task" },
+    { command: "todo next --json", description: "What to work on next, as JSON" },
+    { command: "todo done 3", description: "Complete task 03" },
+    { command: "todo <command> --help", description: "Help for any command" },
+  ]),
   Command.withSubcommands([
     list,
     next,

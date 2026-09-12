@@ -63,6 +63,21 @@ out at `repos/todo-md` and consumers resolve it through the override
 - [Specification](docs/spec.md): the model, operations and file format.
 - [Architecture](docs/architecture.md): how the modules fit together and why.
 
+## Using the CLI
+
+```sh
+todo init                              # create ./todo/TODO.md
+todo add Fix the login redirect --group Backend --tag bug
+todo                                   # show the open tasks
+todo next --json                       # what to work on next, as JSON
+todo done 1
+todo --help                            # every command has --help
+```
+
+Run it with `bun src/cli/bin.ts` from a checkout, `bun link` it, or get
+`todo` from `node_modules/.bin` when `@lemol/todo-md` is a dependency. See
+the [cli README](src/cli/README.md).
+
 ## Development
 
 Requires [Bun](https://bun.sh) 1.4+.
