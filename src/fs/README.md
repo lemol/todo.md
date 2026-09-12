@@ -1,4 +1,4 @@
-# @lemol/todo-md-fs
+# @lemol/todo-md/fs
 
 The reference `TodoStore` adapter. It stores a todo.md list as a directory of
 Markdown files, exactly as described in
@@ -41,7 +41,7 @@ lock → read → parse → normalize → edit → write (crash-safe order) → 
 - Scenario tests: hand edits between operations, interrupted completion,
   concurrent mutations and the lock.
 
-## Depends on
+## May import (enforced by `test/boundaries.test.ts`)
 
 - [`spec`](../spec)
 - [`markdown`](../markdown)

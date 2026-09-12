@@ -1,4 +1,4 @@
-# @lemol/todo-md-cli
+# @lemol/todo-md/cli
 
 The `todo` command: manage a todo.md list from the terminal or from an agent.
 Built with `effect/unstable/cli` on `@effect/platform-bun`.
@@ -40,7 +40,7 @@ Built with `effect/unstable/cli` on `@effect/platform-bun`.
 - **Hand edits are safe:** agents may edit `TODO.md` and task files directly.
   The next command normalizes them.
 
-## Depends on
+## May import (enforced by `test/boundaries.test.ts`)
 
 - [`core`](../core)
 - [`fs`](../fs)

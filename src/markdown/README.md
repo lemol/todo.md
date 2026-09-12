@@ -1,4 +1,4 @@
-# @lemol/todo-md-markdown
+# @lemol/todo-md/markdown
 
 Pure parser and writer for the
 [todo.md file format](../../docs/spec.md#part-2-the-todomd-format): `TODO.md`
@@ -33,7 +33,7 @@ It runs anywhere JavaScript runs (Bun, Node, browsers).
 Golden fixtures: `test/fixtures/<case>/input.md` + an operation →
 `expected.md`. Each case asserts that only the expected lines changed.
 
-## Depends on
+## May import (enforced by `test/boundaries.test.ts`)
 
 - [`spec`](../spec)
 - `effect`

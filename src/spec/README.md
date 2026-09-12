@@ -1,8 +1,8 @@
-# @lemol/todo-md-spec
+# @lemol/todo-md/spec
 
-The todo.md model and contract as code. It is the Part 1 of the
+The todo.md model and contract as code: Part 1 of the
 [spec](../../docs/spec.md#part-1-model-and-operations) that every other
-package depends on.
+module depends on.
 
 > Status: scaffolded, not implemented yet.
 
@@ -17,7 +17,7 @@ package depends on.
 | `TodoStore`         | The adapter contract: a `Context.Service` with one method per spec operation.           |
 | `MemoryTodoStore`   | The in-memory reference implementation of `TodoStore`.                                  |
 
-The `@lemol/todo-md-spec/testing` entry point is for tests only:
+The `@lemol/todo-md/spec/testing` entry point is for tests only:
 
 | Export                          | What it is                                                              |
 | ------------------------------- | ----------------------------------------------------------------------- |
@@ -32,7 +32,7 @@ The `@lemol/todo-md-spec/testing` entry point is for tests only:
    `Unsupported`.
 3. In your tests, call `runConformance(YourStore.layer)`.
 
-## Depends on
+## May import (enforced by `test/boundaries.test.ts`)
 
 `effect` only.
 

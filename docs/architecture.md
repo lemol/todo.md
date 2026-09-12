@@ -1,12 +1,12 @@
 # Architecture
 
-This document describes how the todo.md packages fit together and why they are
+This document describes how the todo.md modules fit together and why they are
 split the way they are. For what a task *is* and how the files look, see
 [spec.md](./spec.md).
 
 ## Goals
 
-- **The spec is the center.** Every package depends on the spec's model and
+- **The spec is the center.** Every module depends on the spec's model and
   contract, and nothing depends on a particular backend except the app that
   chooses it.
 - **Backends are adapters.** The file system is the reference adapter. Jira, a
@@ -18,7 +18,10 @@ split the way they are. For what a task *is* and how the files look, see
   The CLI is scriptable (`--json`, no prompts without a TTY, stable exit
   codes).
 
-## Packages
+## Modules
+
+todo.md ships as **one package**, `@lemol/todo-md`, whose repository root is
+the package. Each module is a directory under `src/` and a subpath export:
 
 ```
                 ┌───────── cli (`todo`) ─────────┐        web (later)
@@ -35,19 +38,51 @@ split the way they are. For what a task *is* and how the files look, see
                         MemoryTodoStore, conformance suite)
 ```
 
-| Directory                             | Package                     | Depends on                   | Responsibility                                                                  |
-| ------------------------------------- | --------------------------- | ---------------------------- | ------------------------------------------------------------------------------- |
-| [`packages/spec`](../packages/spec)         | `@lemol/todo-md-spec`       | `effect`                     | Model schemas, errors, the `TodoStore` contract, reference in-memory store, conformance suite |
-| [`packages/markdown`](../packages/markdown) | `@lemol/todo-md-markdown`   | spec                         | Pure parse/serialize of `TODO.md` and task files; normalization; slugs          |
-| [`packages/core`](../packages/core)         | `@lemol/todo-md-core`       | spec                         | Adapter-agnostic logic: queries, ready/blocked, validation, mutation guards     |
-| [`packages/fs`](../packages/fs)             | `@lemol/todo-md-fs`         | spec, markdown               | `TodoStore` over a list directory; discovery; safe writes                       |
-| [`packages/cli`](../packages/cli)           | `@lemol/todo-md-cli`        | core, fs, `@effect/platform-bun` | The `todo` binary                                                           |
+| Module                          | Import path                    | May import                               | Responsibility                                                                  |
+| ------------------------------- | ------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| [`src/spec`](../src/spec)         | `@lemol/todo-md/spec`          | `effect`                                 | Model schemas, errors, the `TodoStore` contract, reference in-memory store      |
+|                                 | `@lemol/todo-md/spec/testing`  | spec, `bun:test`                         | Test helpers and the conformance suite, for tests only                          |
+| [`src/markdown`](../src/markdown) | `@lemol/todo-md/markdown`      | spec, `effect`, mdast/micromark, `yaml`  | Pure parse/serialize of `TODO.md` and task files; normalization; slugs          |
+| [`src/core`](../src/core)         | `@lemol/todo-md/core`          | spec, `effect`                           | Adapter-agnostic logic: queries, ready/blocked, validation, mutation guards     |
+| [`src/fs`](../src/fs)             | `@lemol/todo-md/fs`            | spec, markdown, `effect`                 | `TodoStore` over a list directory; discovery; safe writes                       |
+| [`src/cli`](../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                                      |
 
-**Dependency rules:**
+**Dependency rules** (enforced by
+[`test/boundaries.test.ts`](../test/boundaries.test.ts), which reads every
+import in `src/` and checks it against the table above):
 
+- Modules import each other with relative paths, never through the package
+  name.
 - `core` never imports an adapter.
-- `markdown` never does I/O.
-- Only apps (`cli`, later `web`) choose and wire adapters.
+- `markdown` does no I/O.
+- Only apps (`cli`, later `web`) choose and wire adapters, and only `cli`
+  touches Bun or Node APIs directly.
+- Runtime code never imports `spec/testing`.
+
+### Why one package
+
+todo.md is consumed the way the other lemol repositories are: as a git
+dependency pinned to a tag, which a composition root such as
+`lemol-workspace` overrides with a local checkout:
+
+```jsonc
+// consumer
+"@lemol/todo-md": "git+ssh://git@github.com/lemol/todo.md.git#todo-md@0.1.0"
+// composition root
+"overrides": { "@lemol/todo-md": "file:./repos/todo-md" }
+```
+
+Git dependencies install only the repository's root package. We checked the
+alternative: an umbrella root package that re-exports inner workspace
+packages fails at runtime, because the inner packages' imports of each other
+(`@lemol/todo-md-spec`) and their own dependencies are never installed. One
+package with subpath exports works, and the boundaries test keeps the modules
+honest the way separate manifests would.
+
+`effect` is a **peer dependency pinned to the exact version the other lemol
+repositories use**. Two copies of `effect` in one process break schema and
+error class identity and Effect's runtime internals, so consumers, framework
+and todo.md must share a single copy.
 
 ## The contract: `TodoStore`
 
@@ -69,7 +104,7 @@ export class TodoStore extends Context.Service<TodoStore, {
   renameGroup(from: string, to: string): Effect<void, GroupNotFound | ValidationError | Unsupported | StoreError>
   comment(id: TaskId, input: CommentInput): Effect<Comment, TaskNotFound | ValidationError | Unsupported | StoreError>
   diagnostics(): Effect<ReadonlyArray<Diagnostic>, StoreError>
-}>()("@lemol/todo-md-spec/TodoStore") {}
+}>()("@lemol/todo-md/spec/TodoStore") {}
 ```
 
 (The sketch shows the shape; exact signatures are settled during
@@ -195,7 +230,7 @@ todo.pipe(
 
 - **Commands:** `init`, `list`/`ls` (the default), `show`, `add`, `edit`,
   `done`, `reopen`, `mv`, `rm`, `comment`, `next`, `check`, `fmt`. The full
-  surface is in the [cli README](../packages/cli/README.md).
+  surface is in the [cli README](../src/cli/README.md).
 - **Output:** human-readable by default; `--json` on every command prints one
   JSON document to stdout, and diagnostics go to stderr.
 - **Non-interactive:** the CLI never prompts when stdin is not a TTY.
@@ -208,12 +243,14 @@ todo.pipe(
 
 - **Runner:** `bun test` everywhere. `@effect/vitest` is not used because it
   depends on vitest internals.
-- **Effect helper:** `@lemol/todo-md-spec/testing` exports
+- **Effect helper:** `@lemol/todo-md/spec/testing` exports
   `effectTest(name, effect, layer?)`, which runs an Effect in a `bun:test`
   test with a scope and Effect's `TestClock`/`TestConsole` (`effect/testing`).
   This entry point is never imported by runtime code.
+- **Boundaries:** `test/boundaries.test.ts` enforces the module graph.
+- **Layout:** tests live in `test/<module>/`, mirroring `src/`.
 
-| Package    | Strategy                                                                   |
+| Module     | Strategy                                                                   |
 | ---------- | -------------------------------------------------------------------------- |
 | `spec`     | `MemoryTodoStore` passes the conformance suite.                            |
 | `markdown` | Golden fixtures for parsing, every edit and normalization; minimal diffs asserted. |
@@ -223,24 +260,32 @@ todo.pipe(
 
 ## Tooling
 
-- **Bun workspaces** (`packages/*`), with Effect versions pinned once in the
-  root `catalog`.
-- **Effect 4** (`effect@rc`) and `@effect/platform-bun`.
+- **Bun 1.4** with a single `package.json` at the repository root.
+- **Effect 4 RC.** `effect` is a pinned peer dependency (plus the same
+  version as a dev dependency), and `@effect/platform-bun` uses the same
+  version. Upgrade both together with the other lemol repositories.
 - **TypeScript**, strict, with `exactOptionalPropertyTypes` and
-  `noUncheckedIndexedAccess`. `bun run typecheck` checks the whole repo.
+  `noUncheckedIndexedAccess`.
 - **Biome** for linting and formatting.
-- **No build step yet.** Packages export `src/index.ts` directly inside the
-  workspace. A build and publish pipeline (and a standalone binary via
-  `bun build --compile`) comes when we release.
+- **One gate for CI and `lemol-workspace`:** `bun run check` runs lint,
+  typecheck and tests.
+- **No build step.** Subpath exports point at TypeScript sources, which Bun
+  runs directly, the same as `@lemol/framework`.
+- **Releases** are git tags named `todo-md@<version>`. A standalone binary via
+  `bun build --compile` can come later.
 
 ## Extension points
 
-- **A new adapter** (for example `packages/jira`) implements `TodoStore`,
-  declares its capabilities, and runs `runConformance`. Apps choose it at the
+- **A new adapter** implements `TodoStore` from `@lemol/todo-md/spec`,
+  declares its capabilities, and runs `runConformance` from
+  `@lemol/todo-md/spec/testing`. It can be a new module here (for example
+  `src/jira`) or live in another repository. Apps choose it at the
   composition root.
-- **The web app** (`packages/web`) imports `core` and an adapter, the same as
+- **The web app** imports `@lemol/todo-md/core` and an adapter, the same as
   the CLI. In the browser, a GitHub-backed or File System Access adapter can
-  reuse `markdown` unchanged.
+  reuse `@lemol/todo-md/markdown` unchanged. If it lives in this repository,
+  it goes in `apps/web` as a private workspace member, outside the published
+  package.
 
 ## Decision log
 
@@ -253,6 +298,9 @@ todo.pipe(
 | Groups map to directories by convention    | The folder layout mirrors `TODO.md`; parsers stay lenient about hand-placed files.   |
 | Comments as `###` headings in task files   | Comments are free-form Markdown; headings avoid the indentation traps of list items. |
 | mdast for reading, splicing for writing    | A well-tested parser, plus minimal diffs that re-serialization can't give.           |
-| Separate pure `markdown` package           | Reusable in the browser and by other file-based adapters.                            |
+| Separate pure `markdown` module            | Reusable in the browser and by other file-based adapters.                            |
+| One package with subpath exports           | Git dependencies install only the root package; an umbrella over workspace packages fails at runtime. |
+| Boundaries enforced by a test              | Keeps the module graph as strict as separate package manifests would.                |
+| `effect` as an exact peer dependency       | One shared copy of `effect` across all lemol repositories.                           |
 | `bun test` instead of vitest               | Zero config; the helper we lose is about 20 lines.                                   |
 | Fine-grained contract, no cache            | Maps to remote APIs; always sees hand edits.                                         |

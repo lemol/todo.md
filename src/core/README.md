@@ -1,4 +1,4 @@
-# @lemol/todo-md-core
+# @lemol/todo-md/core
 
 Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 `core`; `core` uses whatever `TodoStore` it is given.
@@ -38,7 +38,7 @@ program.pipe(
 
 Unit tests run against `MemoryTodoStore` from [`spec`](../spec).
 
-## Depends on
+## May import (enforced by `test/boundaries.test.ts`)
 
 - [`spec`](../spec)
 - `effect`

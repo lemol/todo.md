@@ -1,26 +1,42 @@
 {
-  "name": "todo-md",
+  "name": "@lemol/todo-md",
+  "version": "0.0.0",
   "private": true,
+  "description": "todo.md: a standard for Markdown task lists, its file-system implementation and the `todo` CLI",
   "type": "module",
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ],
-    "catalog": {
-      "effect": "4.0.0-rc.115",
-      "@effect/platform-bun": "4.0.0-rc.115"
-    }
+  "exports": {
+    "./spec": "./src/spec/index.ts",
+    "./spec/testing": "./src/spec/testing.ts",
+    "./markdown": "./src/markdown/index.ts",
+    "./core": "./src/core/index.ts",
+    "./fs": "./src/fs/index.ts",
+    "./cli": "./src/cli/index.ts"
   },
   "scripts": {
-    "test": "bun test",
-    "typecheck": "tsc -p tsconfig.json",
+    "check": "bun run lint && bun run typecheck && bun run test",
     "lint": "biome check .",
-    "fix": "biome check --write ."
+    "fix": "biome check --write .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun test",
+    "test:boundaries": "bun test test/boundaries.test.ts"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-rc.108"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.0-rc.108",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-frontmatter": "^2.0.1",
+    "mdast-util-gfm-task-list-item": "^2.0.0",
+    "micromark-extension-frontmatter": "^2.0.0",
+    "micromark-extension-gfm-task-list-item": "^2.1.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
     "@types/bun": "^1.4.2",
-    "effect": "catalog:",
+    "@types/mdast": "^4.0.4",
+    "effect": "4.0.0-rc.108",
     "typescript": "^7.0.2"
   }
 }
