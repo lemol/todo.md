@@ -72,4 +72,26 @@ describe("setFrontmatterFields", () => {
   test("adds keys to empty frontmatter", () => {
     expect(setFrontmatterFields("", { title: "X" })).toEqual(["title: X"])
   })
+
+  test("falls back to formatFrontmatter on invalid or flow-style YAML", () => {
+    expect(setFrontmatterFields("unclosed: [a, b", { title: "New" })).toEqual(["title: New"])
+    expect(setFrontmatterFields("{ a: 1, b: 2 }", { b: 3, c: 4 })).toEqual(["a: 1", "b: 3", "c: 4"])
+  })
+
+  test("replaces multiple simultaneous non-contiguous keys", () => {
+    const input = [
+      "key1: old1",
+      "keep1: unchanged",
+      "key2: old2",
+      "keep2: unchanged",
+      "key3: old3",
+    ].join("\n")
+    expect(setFrontmatterFields(input, { key1: "new1", key3: "new3" })).toEqual([
+      "key1: new1",
+      "keep1: unchanged",
+      "key2: old2",
+      "keep2: unchanged",
+      "key3: new3",
+    ])
+  })
 })

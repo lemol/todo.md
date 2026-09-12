@@ -84,6 +84,9 @@ describe("fitsMetadataLine", () => {
     ["a nested value", { ...noFields, extra: { links: ["a", "b"] } }],
     ["a value starting with /", { ...noFields, extra: { path: "/docs" } }],
     ["a reserved key", { ...noFields, extra: { group: "x" } }],
+    ["a standard key tags in extra", { ...noFields, extra: { tags: "x" } }],
+    ["a standard key assignee in extra", { ...noFields, extra: { assignee: "x" } }],
+    ["a standard key depends_on in extra", { ...noFields, extra: { depends_on: "1" } }],
   ])("rejects %s", (_label, fields) => {
     expect(fitsMetadataLine(fields)).toBe(false)
   })

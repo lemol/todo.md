@@ -1,12 +1,20 @@
 import { describe, expect, test } from "bun:test"
 import {
   escapeLinkText,
+  formatHead,
   formatInlineItem,
   formatLinkedItem,
   parseHead,
   unescapeLinkText,
 } from "../../src/markdown/items.ts"
 import { noFields } from "../../src/markdown/metadata.ts"
+
+describe("formatHead", () => {
+  test("formats ID with zero-padding and title", () => {
+    expect(formatHead("7", "Add rate limiting")).toBe("07 - Add rate limiting")
+    expect(formatHead("123", "Large ID")).toBe("123 - Large ID")
+  })
+})
 
 describe("parseHead", () => {
   test("splits at the first ' - ' after the ID", () => {
@@ -58,6 +66,17 @@ describe("formatLinkedItem", () => {
     expect(
       formatLinkedItem({ id: "7", title: "Fix [x] bug", path: "backend/07-fix-x-bug.md" }),
     ).toEqual(["- [ ] [07 - Fix \\[x\\] bug](./backend/07-fix-x-bug.md)"])
+  })
+
+  test("writes a checked box when checked is true", () => {
+    expect(
+      formatLinkedItem({
+        id: "7",
+        title: "Done task",
+        path: "backend/07-done.md",
+        checked: true,
+      }),
+    ).toEqual(["- [x] [07 - Done task](./backend/07-done.md)"])
   })
 })
 

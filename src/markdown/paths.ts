@@ -21,8 +21,10 @@ export const normalizePath = (path: string): string | undefined => {
   return segments.join("/")
 }
 
-export const joinPath = (...parts: ReadonlyArray<string>): string =>
-  normalizePath(parts.join("/")) ?? parts.join("/")
+export const joinPath = (...parts: ReadonlyArray<string>): string => {
+  const joined = parts.filter((p) => p !== "").join("/")
+  return normalizePath(joined) ?? joined
+}
 
 /** The root-relative path a link in `TODO.md` points to, or `undefined` if it leaves the root. */
 export const resolveLink = (url: string): string | undefined => {

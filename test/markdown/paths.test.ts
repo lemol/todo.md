@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
   basename,
   dirname,
+  groupSlug,
   joinPath,
   linkTarget,
   normalizePath,
@@ -37,9 +38,19 @@ describe("links", () => {
 
   test("joinPath, basename and dirname", () => {
     expect(joinPath(".", "backend", "07-x.md")).toBe("backend/07-x.md")
+    expect(joinPath("", "backend")).toBe("backend")
     expect(basename("backend/07-x.md")).toBe("07-x.md")
     expect(dirname("backend/07-x.md")).toBe("backend")
     expect(dirname("07-x.md")).toBe("")
+  })
+})
+
+describe("groupSlug", () => {
+  test("slugs a group name with fallback to group", () => {
+    expect(groupSlug("Backend")).toBe("backend")
+    expect(groupSlug("API & Auth")).toBe("api-auth")
+    expect(groupSlug("")).toBe("group")
+    expect(groupSlug("!!!")).toBe("group")
   })
 })
 

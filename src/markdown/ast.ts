@@ -26,9 +26,14 @@ export const headingText = (
   const first = heading.children[0]?.position
   const last = heading.children.at(-1)?.position
   if (first === undefined || last === undefined) return { text: "", from: 0, to: 0 }
-  return {
-    text: source.slice(first.start.offset, last.end.offset).trim(),
-    from: first.start.column - 1,
-    to: first.start.line === last.end.line ? last.end.column - 1 : first.start.column - 1,
+  const raw = source.slice(first.start.offset, last.end.offset)
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) {
+    return { text: "", from: first.start.column - 1, to: first.start.column - 1 }
   }
+  const leading = raw.length - raw.trimStart().length
+  const trailing = raw.length - raw.trimEnd().length
+  const from = first.start.column - 1 + leading
+  const to = first.start.line === last.end.line ? last.end.column - 1 - trailing : from
+  return { text: trimmed, from, to }
 }

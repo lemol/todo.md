@@ -1,5 +1,5 @@
 import type { Diagnostic, TaskId } from "../spec/index.ts"
-import { nextId } from "./ids.ts"
+import { isId } from "./ids.ts"
 import { joinLines } from "./lines.ts"
 import { allItems, type TodoFile, type TodoItem, withHead } from "./todoFile.ts"
 
@@ -27,16 +27,25 @@ export interface Normalized {
  */
 export const normalize = (todo: TodoFile, context: NormalizeContext): Normalized => {
   const items = allItems(todo)
-  const used = [
-    ...context.usedIds,
-    ...items.flatMap((item) => (item.id === undefined ? [] : [item.id])),
-  ]
+  let currentId = 0n
+  for (const id of context.usedIds) {
+    if (isId(id) && BigInt(id) > currentId) currentId = BigInt(id)
+  }
+  for (const item of items) {
+    if (item.id !== undefined && isId(item.id) && BigInt(item.id) > currentId) {
+      currentId = BigInt(item.id)
+    }
+  }
   const assigned: TaskId[] = []
   const checked: TaskId[] = []
   let text = todo.text
   for (const item of items) {
-    const id = item.id ?? nextId([...used, ...assigned])
-    if (item.id === undefined) assigned.push(id)
+    let id = item.id
+    if (id === undefined) {
+      currentId += 1n
+      id = String(currentId)
+      assigned.push(id)
+    }
     const title =
       (item.path === undefined ? undefined : context.titles.get(item.path)) ?? item.title
     if (id !== item.id || title !== item.title) text = withHead(text, item, id, title)

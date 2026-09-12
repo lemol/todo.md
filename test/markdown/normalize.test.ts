@@ -33,6 +33,13 @@ describe("normalize", () => {
     expect(result.checked).toEqual(["3"])
   })
 
+  test("assigns sequential IDs from 1 when there are no used IDs", () => {
+    const todo = parseTodoFile(md("- [ ] First", "- [ ] Second", "- [ ] Third"))
+    const result = normalize(todo, { usedIds: [], titles: new Map() })
+    expect(result.assigned).toEqual(["1", "2", "3"])
+    expect(result.text).toBe(md("- [ ] 01 - First", "- [ ] 02 - Second", "- [ ] 03 - Third"))
+  })
+
   test("syncs link text with task file titles", () => {
     const todo = parseTodoFile(md("- [ ] [07 - Old title](./07-add-rate-limiting.md)"))
     const titles = new Map([["07-add-rate-limiting.md", "Add rate limiting"]])
