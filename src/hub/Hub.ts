@@ -9,8 +9,10 @@ import {
   type PlatformError,
 } from "effect"
 import { TodoService } from "../core/index.ts"
+import type { StoreError } from "../spec/index.ts"
 import {
   type InvalidProjectConfig,
+  type NoListFound,
   ProjectNotFound,
   RegistryError,
   type SourceError,
@@ -27,6 +29,7 @@ import {
   sourceProjectOf,
 } from "./projects.ts"
 import { makeRegistry } from "./registry.ts"
+import { makeUnregistered, type ResolveInput, resolveProject } from "./resolve.ts"
 import type { AnySource, ProjectInfo, SourceEnv } from "./Source.ts"
 
 export interface HubOptions {
@@ -45,7 +48,7 @@ export interface HubOptions {
 export class Hub extends Context.Service<
   Hub,
   {
-    /** Registered projects, in registry order. */
+    /** Registered projects in registry order, then unregistered ones opened in this hub. */
     projects(): Effect.Effect<ReadonlyArray<ProjectInfo>, RegistryError>
     add(
       input: AddInput,
@@ -58,6 +61,9 @@ export class Hub extends Context.Service<
       options?: { readonly force?: boolean },
     ): Effect.Effect<void, ProjectNotFound | RegistryError | SourceError>
     rename(from: string, to: string): Effect.Effect<ProjectInfo, ProjectNotFound | RegistryError>
+    resolve(
+      at: ResolveInput,
+    ): Effect.Effect<ProjectInfo, ProjectNotFound | NoListFound | RegistryError | StoreError>
     todo(
       name: string,
     ): Effect.Effect<
@@ -85,6 +91,7 @@ const make = (options: HubOptions) =>
       sources.set(source.kind, source)
     }
     const registry = yield* makeRegistry(options.home)
+    const unregistered = makeUnregistered()
     const dirOf = (name: string) => path.join(options.home, "projects", name)
     const inEnv = <A, E>(effect: Effect.Effect<A, E, SourceEnv>) =>
       Effect.provideContext(effect, env)
@@ -105,8 +112,11 @@ const make = (options: HubOptions) =>
       ),
     )
 
-    const find = (name: string): Effect.Effect<Project, ProjectNotFound | RegistryError> =>
-      registered.pipe(
+    // Unregistered names never collide with registered ones when opened, so they are checked first.
+    const find = (name: string): Effect.Effect<Project, ProjectNotFound | RegistryError> => {
+      const open = unregistered.get(name)
+      if (open !== undefined) return Effect.succeed(open)
+      return registered.pipe(
         Effect.flatMap((projects) => {
           const found = projects.find((project) => project.name === name)
           return found === undefined
@@ -114,6 +124,7 @@ const make = (options: HubOptions) =>
             : Effect.succeed(found)
         }),
       )
+    }
 
     const services = yield* LayerMap.make(
       (name: string) =>
@@ -130,7 +141,8 @@ const make = (options: HubOptions) =>
     )
 
     return Hub.of({
-      projects: () => Effect.map(registered, (projects) => projects.map(infoOf)),
+      projects: () =>
+        Effect.map(registered, (projects) => [...projects, ...unregistered.all()].map(infoOf)),
 
       add: (input) =>
         Effect.gen(function* () {
@@ -172,6 +184,7 @@ const make = (options: HubOptions) =>
                 : Effect.sync(() => edit.add(name, { source: source.kind, ...fields })),
             )
           }).pipe(Effect.onError(() => Effect.ignore(fs.remove(dir, { recursive: true }))))
+          unregistered.forget(name)
           yield* services.invalidate(name)
           return infoOf({
             name,
@@ -231,10 +244,14 @@ const make = (options: HubOptions) =>
                 moved ? Effect.ignore(fs.rename(newDir, oldDir)) : Effect.void,
               ),
             )
+          unregistered.forget(to)
           yield* services.invalidate(from)
           yield* services.invalidate(to)
           return infoOf(yield* find(to))
         }),
+
+      resolve: (at) =>
+        inEnv(resolveProject(at, { registered, find, unregistered })).pipe(Effect.map(infoOf)),
 
       todo: (name) =>
         Effect.scoped(services.contextEffect(name)).pipe(
