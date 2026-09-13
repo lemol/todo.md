@@ -28,6 +28,11 @@ fails only in `todo()`. `--dir` goes through `fsSource`, which prefers
 symlinks (`/tmp` vs `/private/tmp`) don't match. `projectInput` leaves
 `~alice/app` relative to `cwd` and treats `HTTPS://…` as fs.
 
+From task 15: `syncAll` returns `(SyncResult | SyncFailure)[]` where
+`SyncFailure` is `{ project, error: string }` (told apart with `"error" in
+outcome`) and fails only with `RegistryError` if the registry cannot be
+read.
+
 ## Design
 
 **Composition.** `CliContext` gains `home` (from `$TODO_MD_HOME`, else

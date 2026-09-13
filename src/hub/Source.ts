@@ -21,7 +21,7 @@ export interface SyncOutcome {
   readonly behind?: number
 }
 
-/** A project's sync status. Until task 15 it is `{ result: "never" }`, or `"error"` for a broken entry. */
+/** A project's status: its last sync (`state.json`) overlaid with the source's live fields; `error` for a broken entry. */
 export interface ProjectStatus {
   readonly lastSync?: DateTime.Utc
   readonly result: "ok" | "error" | "never"
@@ -66,11 +66,11 @@ export interface Source<C> {
   prepare?(project: SourceProject<C>): Effect.Effect<void, SourceError, SourceEnv>
   /** The project's store. */
   open(project: SourceProject<C>): Layer.Layer<TodoStore, SourceError, SourceEnv>
-  /** Refreshes the local replica. The hub calls it from task 15. */
+  /** Refreshes the local replica. The hub serializes syncs per project and records the outcome. */
   sync?(project: SourceProject<C>): Effect.Effect<SyncOutcome, SyncError, SourceEnv>
-  /** Emits when the local replica changes. The hub consumes it from task 15. */
+  /** Emits when the local replica changes. Runs only while `hub.changes` has subscribers; ends the stream (never fails) when it cannot watch. */
   changes?(project: SourceProject<C>): Stream.Stream<void, never, SourceEnv>
-  /** Live status fields, such as git's `ahead`. The hub reads it from task 15. */
+  /** Live status fields, such as git's `ahead`; they override `state.json`'s. A defect here is logged and ignored. */
   status?(project: SourceProject<C>): Effect.Effect<Partial<ProjectStatus>, never, SourceEnv>
   /** Runs on `remove`, before anything is deleted; fails to refuse. */
   beforeRemove?(

@@ -2,6 +2,8 @@
 title: Add sync, status, changes and overview to the hub
 tags: [hub]
 depends_on: [14]
+group: Hub and sources
+completed_at: 2026-09-13T18:16:10Z
 ---
 ## Goal
 

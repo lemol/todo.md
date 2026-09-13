@@ -1,6 +1,6 @@
 # Sources
 
-> **Status: fs built (task 14).** git (task 19) and jira (task 06) are
+> **Status: fs built (tasks 14 and 15).** git (task 19) and jira (task 06) are
 > planned; each updates this page. The full design is in the
 > [hub design](../superpowers/specs/2026-09-13-hub-design.md#4-sources).
 
@@ -56,8 +56,10 @@ interface SourceProject<C> {
 
 ## Key behaviors
 
-- **fs** watches its list directory (debounced, ignoring `.todo.lock` and
-  `*.tmp`) for live changes.
+- **fs** watches its list directory via `watchList(root)` (debounced 100 ms,
+  ignoring `.todo.lock` and `*.tmp`) for live changes; `watchList` is also
+  exported for the git source. Its `changes` stream runs only while the hub's
+  `changes` stream has subscribers.
 - **git** never fails a mutation because of the network. A rejected push is
   rebased and retried once; otherwise the commit stays local (`ahead`). A
   rebase conflict is aborted and the project marked `diverged`. Credentials

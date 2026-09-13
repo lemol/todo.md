@@ -261,6 +261,8 @@ interface Overview {
 
 `SyncFailure` is `{ project, error: SyncError }`, used by `syncAll`.
 
+The built error unions are wider; see `src/hub/README.md`.
+
 ## 4. Sources
 
 ### The interface

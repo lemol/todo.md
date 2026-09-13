@@ -51,7 +51,7 @@ export class RegistryError extends Schema.TaggedError<RegistryError>()("Registry
   cause: Schema.optional(Schema.Defect()),
 }) {}
 
-/** A sync failed. Declared here for `Source.sync`; the hub runs syncs from task 15. */
+/** A sync failed: `offline`, `auth`, `rejected`, `diverged` (a rebase conflicted) or `remote`. */
 export class SyncError extends Schema.TaggedError<SyncError>()("SyncError", {
   project: Schema.String,
   reason: Schema.Literals(["offline", "auth", "rejected", "diverged", "remote"]),

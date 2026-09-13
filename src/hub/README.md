@@ -5,18 +5,22 @@ registered in `~/.todo-md/projects.yaml`, or found from the working
 directory, each backed by a **source**. It is an SDK, not a server: every
 process builds its own `Hub` over the shared home.
 
-> Status: registry, resolution and per-project services (task 14). Sync,
-> status, changes, `overview` and qualified references come in task 15.
+> Status: built (tasks 14 and 15). The git and jira sources come in tasks 19 and 06; frontends move onto the hub in tasks 16–18.
 
 ## Contents
 
 | Export | What it is |
 | --- | --- |
-| `Hub` | A `Context.Service`: `projects`, `add`, `remove`, `rename`, `resolve`, `todo`. |
-| `Hub.layer({ home, userHome, sources })` | Builds the hub. Requires Effect's `FileSystem` and `Path`. Apps pass `home` as `$TODO_MD_HOME`, else `<userHome>/.todo-md`; `userHome` expands `~` in registry values. Dies if two sources share a kind. |
+| `Hub` | A `Context.Service`: `projects`, `add`, `remove`, `rename`, `resolve`, `todo`, `status`, `sync`, `syncAll`, `overview`, `changes`. |
+| `Hub.layer({ home, userHome, sources, autoSync? })` | Builds the hub. Requires Effect's `FileSystem` and `Path`. Apps pass `home` as `$TODO_MD_HOME`, else `<userHome>/.todo-md`; `userHome` expands `~` in registry values. `autoSync` optionally runs `syncAll` periodically. Dies if two sources share a kind. |
 | `Source<C>`, `AnySource`, `SourceProject<C>`, `SourceEnv` | The source interface (below). |
-| `ProjectInfo`, `ProjectStatus`, `SyncOutcome` | What frontends see. `status` is `{ result: "never" }` until task 15, or `{ result: "error", error }` for a broken entry. |
+| `ProjectInfo`, `ProjectStatus`, `SyncOutcome` | What frontends see. `status` is its last sync (`state.json`) overlaid with the source's live fields, or `{ result: "error", error }` for a broken entry. |
+| `SyncResult`, `SyncFailure` | The outcome of a sync operation; `SyncFailure` is `{ project, error }` (told apart with `"error" in outcome`). |
+| `HubChange` | Events emitted by `hub.changes`: `changed`, `synced`, `registry`. |
+| `Overview`, `OverviewQuery`, `OverviewEntry`, `OverviewTask`, `OverviewError` | Cross-project query types. |
+| `formatRef`, `parseRef`, `TaskRef` | Qualified task reference helpers (`<project>:<id>`). |
 | `fsSource`, `FsConfig` | Local lists: `{ path }`, an absolute path (or `~/…`). |
+| `watchList(root)` | Watches a list directory recursively (debounced 100 ms, ignoring locks and tmp files). |
 | `projectInput(target, { cwd, source?, name? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`; anything else is `fs` with `{ path }` resolved against `cwd`. An explicit `source` other than `fs` or `git` gets an empty config. |
 | `isValidName` | The name rule, `[a-z0-9][a-z0-9-]*`. |
 | Errors | `ProjectNotFound`, `NoListFound`, `InvalidProjectConfig`, `SourceUnavailable`, `SourceError`, `RegistryError`, and `SyncError` (for `Source.sync`). Each has a readable `message`. |
@@ -31,11 +35,19 @@ process builds its own `Hub` over the shared home.
 | `remove(name, { force? })` | Runs `beforeRemove` (which may refuse), then deletes the entry and, under the lock, moves the data directory aside to `projects/.removed-<name>-<token>`; after the write it deletes that. Works on broken entries too, but `beforeRemove` cannot run for an unknown source or a rejected config, and an entry with an invalid name has no data directory to delete. |
 | `rename(from, to)` | Renames the entry in place, keeping its comments, and moves the data directory. An existing `projects/<to>` directory is refused, like in `add`. An entry with an invalid name can be renamed, to repair it. |
 | `resolve({ project?, dir?, cwd })` | The current project (below). |
-| `todo(name)` | `core`'s `TodoService` over the project's store, built on first use and cached per name (`LayerMap`). Registry changes made through this hub drop the cached service; a failed open is not cached, so the next call retries. |
+| `todo(name)` | looks the project up on every call and rebuilds the cached service when its entry changed, even from another process. Call `todo` per operation rather than holding a service across registry changes: a rebuild closes the old service's scope. |
+| `status(name)` | Persisted `state.json` overlaid with the source's live status fields (such as git's `ahead`); missing state is `{ result: "never" }`, unreadable is `{ result: "error" }`. A defect in `source.status` is logged and left out. |
+| `sync(name)` | Runs `source.sync` behind a per-project semaphore, writes `state.json`, and publishes `synced`. A source without `sync` returns `{ summary: "nothing to sync" }` and writes/publishes nothing. |
+| `syncAll()` | Runs `sync` across every registered, syncable project at concurrency 4, returning an array of `SyncResult \| SyncFailure` in registry order. Fails only for an unreadable registry. |
+| `overview(query?)` | Cross-project query across projects (default: all registered projects) at concurrency 4. Isolates failures per project and returns flattened `tasks` with qualified refs. |
+| `changes` | Lazy, reference-counted `Stream<HubChange>` combining replica watches, registry edits, sync completions, and mutations on sources without native change streams. |
 
-Error unions are wider than the design's sketch: `todo` can also fail with
-`InvalidProjectConfig` or `RegistryError`, and `resolve` with `RegistryError`
-or `StoreError` (discovery I/O).
+Error unions are wider than the design's sketch, like task 14's: `todo` can fail
+with `InvalidProjectConfig` or `RegistryError`; `resolve` with `RegistryError`
+or `StoreError` (discovery I/O); `status` can fail with `RegistryError`; `sync`
+with `InvalidProjectConfig`, `SourceUnavailable` and `RegistryError`; `syncAll`
+fails only with `RegistryError` (an unreadable registry), never for a project.
+`overview`'s query is optional.
 
 ## The registry
 
@@ -82,6 +94,52 @@ projects:
   `<dir>/TODO.md`. Today's CLI `--dir` opens `<dir>/TODO.md`; the two differ
   only for a directory holding both (task 16 decides).
 
+## Status and sync
+
+- **`state.json`:** located at `<home>/projects/<name>/state.json`, shaped `{ version: 1, lastSync?, result, error?, diverged? }`. Written atomically via a temporary file and rename; created with the data directory if missing.
+- **State reads:** a missing `state.json` yields `{ result: "never" }`; an unreadable or invalid file yields `{ result: "error", error }`.
+- **Live status overlay:** fields from `source.status` (such as `ahead`, `behind`) override `state.json`. A defect in `source.status` is logged at debug level and ignored.
+- **`sync` execution:**
+  - When the source has no `sync`, returns `{ summary: "nothing to sync" }`; nothing is written to state and no event is published.
+  - Syncs are serialized per project with a `Semaphore`.
+  - On success, writes `{ lastSync: now, result: "ok", diverged: false }`.
+  - On `SyncError`, writes `{ lastSync: now, result: "error", error: message, diverged: reason === "diverged" }`, then fails with the `SyncError`.
+  - State file write failures are logged and do not alter the sync result.
+  - `{ kind: "synced", project }` is published after either success or failure.
+- **`syncAll`:** runs `sync` over all registered, syncable projects at concurrency 4. Returns an array of `SyncResult | SyncFailure` in registry order; fails only if the registry cannot be read (`RegistryError`).
+- **`autoSync`:** optional `Duration` passed to `Hub.layer`. When set, a scoped fiber runs `syncAll` periodically in the background.
+
+## Changes
+
+- **Lazy and reference-counted:** watchers start only when the first subscriber opens `hub.changes` and stop when the last subscriber leaves.
+- **What is watched:** every registered project whose source implements `changes`, plus unregistered projects opened via `resolve`. Watchers are re-evaluated on registry changes and resolutions; updating a project's entry restarts its watcher.
+- **Registry watch:** watches `<home>/projects.yaml` (debounced 100 ms; creates `<home>` on startup if missing). In addition to emitting `{ kind: "registry" }`, it invalidates cached services for any entries that were modified or removed.
+- **Own mutations:** publishing `{ kind: "changed", project }` occurs after successful mutations through `hub.todo` for sources without a native `changes` stream.
+- **Registry events:** published immediately after this hub's own registry writes, and may be repeated when the file watch detects the write.
+- **Watcher resilience:** if a project watcher fails (for example, if a list directory is deleted), that watcher ends with a warning log while the overall `changes` stream continues.
+
+## Overview
+
+- **Target projects:** defaults to all registered projects in registry order. Explicit `projects` list preserves given order, allows unregistered projects opened in the hub, and treats unknown names as placeholder `ProjectInfo` (`source: ""`, `location: ""`, `registered: false`, error status) paired with `ProjectNotFound`.
+- **Filtering:** the `sources` option filters projects by source kind, but never drops unknown project names.
+- **Concurrency:** queries projects at concurrency 4 via `hub.todo(name)` followed by `list(filter)`.
+- **Tasks and refs:** returns flattened `tasks` in project order, ordered by priority within each project (open tasks by section, followed by completed tasks when included), with refs qualified as `formatRef(project, id)`.
+
+## References
+
+- **Format and parse:** `formatRef(project, id)` yields `<project>:<id>`. `parseRef(text)` splits at the first `:` if the left side is a valid project name (`isValidName`) and the right side is non-empty; otherwise the entire text is treated as an ID.
+- **Examples:**
+  - `formatRef("todo-md", "12")` → `"todo-md:12"`
+  - `formatRef("work", "PROJ-7")` → `"work:PROJ-7"`
+  - `parseRef("todo-md:12")` → `{ project: "todo-md", id: "12" }`
+  - `parseRef("work:PROJ-7")` → `{ project: "work", id: "PROJ-7" }`
+  - `parseRef("a:b:c")` → `{ project: "a", id: "b:c" }`
+  - `parseRef("12")` → `{ id: "12" }`
+  - `parseRef("007")` → `{ id: "007" }`
+  - `parseRef("My App:1")` → `{ id: "My App:1" }`
+  - `parseRef(":1")` → `{ id: ":1" }`
+  - `parseRef("work:")` → `{ id: "work:" }`
+
 ## Sources
 
 The interface is in [`Source.ts`](./Source.ts) and
@@ -95,17 +153,21 @@ The interface is in [`Source.ts`](./Source.ts) and
 - **fs:** `open` uses `<path>/todo` if it has a `TODO.md`, else `<path>`,
   without walking up (`SourceError` "no TODO.md at …" otherwise); `owns`
   compares that root with the discovered one; `defaultName` is the project
-  directory's basename. No `prepare`, no `sync`; `changes` comes in task 15.
+  directory's basename. No `prepare`, no `sync`. Its change stream uses
+  `watchList(root)` (recursive watch debounced 100 ms, ignoring `.todo.lock`
+  and `*.tmp`; a missing list ends the stream with a warning).
 
 ## Testing
 
-- `memorySource(hooks?)`: kind `memory`, config `{ title?, tasks? }`. Each
+- `memorySource(hooks?)`: kind `memory` (configurable via hook), config `{ title?, tasks? }`. Each
   project's `MemoryTodoStore` is seeded from `tasks` on first open and kept
-  by name for as long as the source value lives. `hooks` add `prepare`,
+  by name for as long as the source value lives. `hooks` add `kind`, `prepare`,
   `beforeRemove`, `sync`, `changes`, `status`, `owns` or `defaultName`.
 - `test/hub` runs hubs over temporary homes (`hubOn` in
   `test/hub/helpers.ts`); two hubs on one disk share a home like two
   processes. Tests that contend for the lock use the real clock.
+  `test/hub/helpers.ts` also provides `liveTest` (real clock), `takeWithin`,
+  `eventually` (repeats a change until a watch detects it), `makeWatchers` and `listen`.
 
 ## May import (enforced by `test/boundaries.test.ts`)
 
@@ -116,6 +178,5 @@ No Bun or Node APIs. `testing.ts` is for tests only.
 
 ## Not here
 
-- Sync, status, changes, `overview`, refs: task 15.
 - The git and jira sources: `src/git`, `src/jira` (tasks 19 and 06).
 - Frontend wiring: tasks 16–18.

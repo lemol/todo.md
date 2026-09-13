@@ -22,6 +22,10 @@ capabilities; SSE over `hub.changes`; deleting `watch.ts` and
 Out: the dashboard at `/`, `/projects`, sync buttons, the project switcher
 (task 18); git/jira wiring (19, 06).
 
+From task 15: `registry` events may repeat (published immediately on write
+and again by the file watch); consumers treat every event as a
+notification to re-read.
+
 ## Design
 
 **`server.ts`.** Parse `--project` in addition to `--dir`, `--port` and
