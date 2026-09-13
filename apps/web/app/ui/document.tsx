@@ -1,3 +1,7 @@
+/** @jsxImportSource remix/ui */
+import type { ScriptEntry } from "remix/assets"
+import type { Handle } from "remix/ui"
+import { ImportMap } from "remix/ui/server"
 import { routes } from "../routes.ts"
 
 export const escapeHtml = (value: unknown): string =>
@@ -10,23 +14,93 @@ export const escapeHtml = (value: unknown): string =>
 
 export interface DocumentOptions {
   readonly title: string
+  readonly pageTitle?: string
   readonly content: string
   readonly diagnostics?: { readonly error: number; readonly warning: number }
-  readonly flash?: string
+  readonly flash?: { readonly message: string; readonly tone: "info" | "warning" | "error" }
+  readonly scriptEntry?: ScriptEntry
 }
 
-export const renderDocument = (options: DocumentOptions): string => {
-  const errors = options.diagnostics?.error ?? 0
-  const warnings = options.diagnostics?.warning ?? 0
-  const badge = errors + warnings > 0 ? ` (${errors} errors, ${warnings} warnings)` : ""
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(options.title)}</title><link rel="stylesheet" href="${routes.assets.href({ path: "app/ui/styles.css" })}"><script type="module" src="${routes.assets.href({ path: "app/actions/public/entry.ts" })}"></script></head><body><header><span>${escapeHtml(options.title)}</span><nav><a href="${routes.board.href()}">Board</a><a href="${routes.done.href()}">Done</a><a href="${routes.check.href()}">Check <span aria-label="diagnostics">${escapeHtml(badge)}</span></a></nav></header>${options.flash === undefined ? "" : `<div role="status">${escapeHtml(options.flash)}</div>`}<main data-live-region>${options.content}</main></body></html>`
+export function Document(handle: Handle<DocumentOptions>) {
+  return () => {
+    const options = handle.props
+    const errors = options.diagnostics?.error ?? 0
+    const warnings = options.diagnostics?.warning ?? 0
+    const badge =
+      errors > 0 ? (
+        <span class="badge error" title={`${errors} errors`}>
+          {errors}
+        </span>
+      ) : warnings > 0 ? (
+        <span class="badge warning" title={`${warnings} warnings`}>
+          {warnings}
+        </span>
+      ) : null
+    return (
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>{options.pageTitle ?? options.title}</title>
+          <link rel="stylesheet" href={routes.assets.href({ path: "app/ui/styles.css" })} />
+          {options.scriptEntry === undefined ? null : (
+            <>
+              <ImportMap value={options.scriptEntry.importMap} />
+              {options.scriptEntry.preloads.map((preload) => (
+                <link rel="modulepreload" href={preload} key={preload} />
+              ))}
+              <script type="module" src={options.scriptEntry.href} />
+            </>
+          )}
+        </head>
+        <body>
+          <header>
+            <a class="list-name" href={routes.board.href()}>
+              {options.title}
+            </a>
+            <nav aria-label="Todo list">
+              <a href={routes.board.href()}>Board</a>
+              <a href={routes.done.href()}>Done</a>
+              <a class="diagnostic-link" href={routes.check.href()}>
+                Check {badge}
+              </a>
+            </nav>
+          </header>
+          {options.flash === undefined ? null : (
+            <div class={`flash ${options.flash.tone}`} role="status">
+              {options.flash.message}
+            </div>
+          )}
+          <div class="reload-notice info" data-reload-notice hidden>
+            The list changed. <a href={routes.board.href()}>Reload</a>
+          </div>
+          <main data-live-region innerHTML={options.content} />
+        </body>
+      </html>
+    )
+  }
 }
 
-export const Document = (options: DocumentOptions) => () => renderDocument(options)
+export interface ErrorPageOptions {
+  readonly status: number
+  readonly message: string
+  readonly scriptEntry?: ScriptEntry
+}
+
+export function ErrorPage(handle: Handle<ErrorPageOptions>) {
+  return () => {
+    const options = handle.props
+    return (
+      <Document
+        title="todo.md"
+        pageTitle={`${options.status} error`}
+        content={`<h1>${options.status}</h1><p>${escapeHtml(options.message)}</p><a href="${routes.board.href()}">Back to board</a>`}
+        {...(options.scriptEntry === undefined ? {} : { scriptEntry: options.scriptEntry })}
+      />
+    )
+  }
+}
+
 export const Page = Document
-export const ErrorPage = (status: number, message: string) =>
-  renderDocument({
-    title: `${status} error`,
-    content: `<h1>${status}</h1><p>${escapeHtml(message)}</p><a href="${routes.board.href()}">Back to board</a>`,
-  })
-export const Flash = (message: string) => `<div role="status">${escapeHtml(message)}</div>`
+export const Flash = (message: string) =>
+  `<div class="flash info" role="status">${escapeHtml(message)}</div>`

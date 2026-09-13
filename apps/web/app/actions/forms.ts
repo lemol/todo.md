@@ -46,13 +46,23 @@ export const parseEditForm = (form: FormData) => ({
   dependsOn: value(form, "dependsOn"),
 })
 
+export type EditValues = ReturnType<typeof parseEditForm>
+
 export const parseCommentForm = (form: FormData) => ({
   author: value(form, "author"),
   body: String(form.get("body") ?? "").trim(),
 })
 
 export const localBack = (value_: string | undefined): string =>
-  value_?.startsWith("/") && !value_.startsWith("//") ? value_ : routes.board.href()
+  value_?.startsWith("/") &&
+  !value_.startsWith("//") &&
+  !value_.includes("\\") &&
+  ![...value_].some((character) => {
+    const code = character.charCodeAt(0)
+    return code <= 31 || code === 127
+  })
+    ? value_
+    : routes.board.href()
 
 export const normalizeDependencies = (value_: string): ReadonlyArray<string> =>
   splitList(value_).map(taskId)

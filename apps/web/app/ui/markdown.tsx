@@ -6,7 +6,21 @@ export const markdownHtml = (source: string): string => {
   const withoutRawHtml = source
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<[^>]*>/g, "")
-  return toHtml(toHast(fromMarkdown(withoutRawHtml)) as Parameters<typeof toHtml>[0])
+  const tree = toHast(fromMarkdown(withoutRawHtml)) as Parameters<typeof toHtml>[0]
+  const sanitizeLinks = (node: unknown): void => {
+    if (typeof node !== "object" || node === null) return
+    const record = node as Record<string, unknown>
+    const properties = record.properties
+    if (typeof properties === "object" && properties !== null) {
+      const values = properties as Record<string, unknown>
+      const href = values.href
+      if (typeof href === "string" && !/^(?:https?:|mailto:|\/|#|\.\.?\/)/i.test(href))
+        delete values.href
+    }
+    if (Array.isArray(record.children)) for (const child of record.children) sanitizeLinks(child)
+  }
+  sanitizeLinks(tree)
+  return toHtml(tree)
 }
 
 export function Markdown({ source }: { readonly source: string }) {

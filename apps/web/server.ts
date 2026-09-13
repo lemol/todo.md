@@ -1,3 +1,4 @@
+import { userInfo } from "node:os"
 import { BunServices } from "@effect/platform-bun"
 import { TodoService } from "@lemol/todo-md/core"
 import { FsTodoStore, findListRoot } from "@lemol/todo-md/fs"
@@ -71,24 +72,44 @@ export const startServer = async (options: ServerOptions) => {
       Layer.provide(BunServices.layer),
     ),
   )
-  const changes = watchList(root)
-  const app = createAppRouter({
-    runtime,
-    capabilities: allCapabilities,
-    changes,
-    author: options.env.TODO_MD_AUTHOR ?? options.username,
-    hosts: ["localhost", "127.0.0.1", "::1", options.host],
-  })
+  let changes: ReturnType<typeof watchList>
+  try {
+    changes = watchList(root)
+  } catch (error) {
+    await runtime.dispose()
+    throw error
+  }
+  let app: ReturnType<typeof createAppRouter>
+  try {
+    app = createAppRouter({
+      runtime,
+      capabilities: allCapabilities,
+      changes,
+      author: options.env.TODO_MD_AUTHOR ?? options.username,
+      hosts: ["localhost", "127.0.0.1", "::1", options.host],
+    })
+  } catch (error) {
+    changes.close()
+    await runtime.dispose()
+    throw error
+  }
   let port = options.port
   let server: ReturnType<typeof Bun.serve>
-  while (true) {
-    try {
-      server = Bun.serve({ port, hostname: options.host, fetch: (request) => app.fetch(request) })
-      break
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EADDRINUSE") throw error
-      port += 1
+  try {
+    while (true) {
+      try {
+        server = Bun.serve({ port, hostname: options.host, fetch: (request) => app.fetch(request) })
+        break
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EADDRINUSE") throw error
+        port += 1
+      }
     }
+  } catch (error) {
+    await app.close()
+    await runtime.dispose()
+    changes.close()
+    throw error
   }
   let closed = false
   return {
@@ -105,13 +126,42 @@ export const startServer = async (options: ServerOptions) => {
   }
 }
 
+interface SignalSource {
+  once(signal: NodeJS.Signals, listener: () => void): unknown
+  off(signal: NodeJS.Signals, listener: () => void): unknown
+}
+
+export const installSignalHandlers = (
+  close: () => Promise<void>,
+  signals: SignalSource = process,
+): (() => void) => {
+  let closing = false
+  const remove = () => {
+    signals.off("SIGINT", shutdown)
+    signals.off("SIGTERM", shutdown)
+  }
+  const shutdown = () => {
+    if (closing) return
+    closing = true
+    remove()
+    void close().catch((error) => {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
+    })
+  }
+  signals.once("SIGINT", shutdown)
+  signals.once("SIGTERM", shutdown)
+  return remove
+}
+
 export const main = async (args = process.argv.slice(2)) => {
-  const options = parseServerOptions(args)
+  const options = parseServerOptions(args, { username: userInfo().username })
   if ("help" in options) {
     console.log(helpText)
     return
   }
   const started = await startServer(options)
+  installSignalHandlers(started.close)
   console.log(`http://${options.host}:${started.port}`)
   if (!["127.0.0.1", "localhost", "::1"].includes(options.host))
     console.log("Warning: anyone who can reach this address can edit the list.")

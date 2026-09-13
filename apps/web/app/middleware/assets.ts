@@ -1,8 +1,16 @@
-import type { Middleware } from "remix/router"
+import type { ScriptEntry } from "remix/assets"
+import { createContextKey, type Middleware } from "remix/router"
+import type { AppAssets } from "../assets.ts"
 
-export interface ScriptEntry {
-  readonly href: string
-}
+export const assetEntryContext = createContextKey<ScriptEntry>()
 
-export const assetEntryContext = new Map<object, ScriptEntry>()
-export const loadAssetEntry = (): Middleware => (_context, next) => next()
+export const loadAssetEntry =
+  (assets: AppAssets): Middleware =>
+  async (context, next) => {
+    context.set(assetEntryContext, await assets.getScriptEntry("app/actions/public/entry.ts"))
+    return next()
+  }
+
+export const assetEntryOf = (context: {
+  readonly get: (key: typeof assetEntryContext) => ScriptEntry
+}): ScriptEntry => context.get(assetEntryContext)

@@ -2,12 +2,14 @@ import type { Capabilities } from "@lemol/todo-md/spec"
 import { createCookie } from "remix/cookie"
 import { cop } from "remix/middleware/cop"
 import { formData } from "remix/middleware/form-data"
+import { render } from "remix/middleware/render"
 import { session } from "remix/middleware/session"
 import { createRouter } from "remix/router"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
 import rootController from "./actions/controller.tsx"
 import tasksController from "./actions/tasks/controller.tsx"
-import { createAssets, loadAssets } from "./assets.ts"
+import { type AppAssets, createAssets, loadAssets } from "./assets.ts"
+import { loadAssetEntry } from "./middleware/assets.ts"
 import type { ListChanges } from "./middleware/changes.ts"
 import { loadChanges } from "./middleware/changes.ts"
 import { localOnly } from "./middleware/local.ts"
@@ -21,10 +23,11 @@ export interface RouterOptions {
   readonly author: string
   readonly hosts: ReadonlyArray<string>
   readonly sessionSecret?: string
+  readonly assets?: AppAssets
 }
 
 export const createAppRouter = (options: RouterOptions) => {
-  const assets = createAssets()
+  const assets = options.assets ?? createAssets()
   const cookie = createCookie("todo-md-session", {
     httpOnly: true,
     sameSite: "Lax",
@@ -40,6 +43,8 @@ export const createAppRouter = (options: RouterOptions) => {
       session(cookie, createMemorySessionStorage()),
       loadTodo(options),
       loadChanges(options.changes),
+      loadAssetEntry(assets),
+      render({ assets }),
     ],
   })
   router.map(routes, rootController)

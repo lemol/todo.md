@@ -1,15 +1,12 @@
+/** @jsxImportSource remix/ui */
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
-import {
-  authorContext,
-  runTodo,
-  type TodoRuntime,
-  type todoRuntimeContext,
-} from "../../middleware/todo.ts"
+import { authorContext, runTodo } from "../../middleware/todo.ts"
 import { routes } from "../../routes.ts"
-import { escapeHtml, renderDocument } from "../../ui/document.tsx"
+import { Document } from "../../ui/document.tsx"
 import { showId } from "../../ui/format.ts"
-import { markdownHtml } from "../../ui/markdown.tsx"
+import { EditTaskPage, TaskPage, valuesOf } from "../../ui/task.tsx"
+import { renderBoard } from "../controller.tsx"
 import {
   localBack,
   normalizeDependencies,
@@ -17,114 +14,208 @@ import {
   parseCommentForm,
   parseEditForm,
 } from "../forms.ts"
+import {
+  capabilitiesOf,
+  loadChrome,
+  renderPage,
+  runtimeContext,
+  scriptEntryOf,
+  setFlash,
+  takeFlash,
+  type WebContext,
+} from "../page.ts"
+import { errorDescription, respond, respondDefect } from "../respond.tsx"
 
-const formOf = (context: { get: (key: typeof FormData) => FormData }): FormData =>
-  context.get(FormData)
+const formOf = (context: WebContext): FormData => context.get(FormData) as FormData
+const idOf = (context: WebContext): string =>
+  String(context.params.id ?? "").replace(/^0+(?=\d)/, "")
+const tagOf = (error: unknown): string | undefined =>
+  typeof error === "object" && error !== null && "_tag" in error ? String(error._tag) : undefined
+
+const renderTask = async (context: WebContext, id: string): Promise<Response> => {
+  const [detail, chrome] = await Promise.all([
+    runTodo(runtimeContext(context), (todo) => todo.show(id)),
+    loadChrome(context),
+  ])
+  if (!detail.ok) return respond(context, detail.error)
+  if (!chrome.ok) return respond(context, chrome.error)
+  const flash = takeFlash(context)
+  return renderPage(
+    context,
+    <Document
+      title={chrome.title}
+      pageTitle={`${showId(detail.value.view.task.id)} ${detail.value.view.task.title}`}
+      content={TaskPage({
+        detail: detail.value,
+        capabilities: capabilitiesOf(context),
+        author: String(context.get(authorContext)),
+      })}
+      diagnostics={chrome.diagnosticCounts}
+      scriptEntry={scriptEntryOf(context)}
+      {...(flash === undefined ? {} : { flash })}
+    />,
+  )
+}
+
+const renderEdit = async (
+  context: WebContext,
+  id: string,
+  values?: ReturnType<typeof parseEditForm>,
+  issues: ReadonlyArray<string> = [],
+  status = 200,
+): Promise<Response> => {
+  const [detail, chrome] = await Promise.all([
+    runTodo(runtimeContext(context), (todo) => todo.show(id)),
+    loadChrome(context),
+  ])
+  if (!detail.ok) return respond(context, detail.error)
+  if (!chrome.ok) return respond(context, chrome.error)
+  const task = detail.value.view.task
+  return renderPage(
+    context,
+    <Document
+      title={chrome.title}
+      pageTitle={`Edit ${showId(task.id)} · ${chrome.title}`}
+      content={EditTaskPage(task, values ?? valuesOf(task), issues)}
+      diagnostics={chrome.diagnosticCounts}
+      scriptEntry={scriptEntryOf(context)}
+    />,
+    { status },
+  )
+}
 
 export default createController(routes.tasks, {
   actions: {
     add: async (context) => {
-      const form = formOf(context as { get: (key: typeof FormData) => FormData })
-      const parsed = parseAddForm(form)
-      if (parsed.issues.length > 0)
-        return new Response(`<h1>422</h1><p>${parsed.issues.join(", ")}</p>`, { status: 422 })
-      const result = await runTodo(
-        context as { get: (key: typeof todoRuntimeContext) => TodoRuntime },
-        (todo) =>
+      try {
+        const form = formOf(context)
+        const parsed = parseAddForm(form)
+        const submitted = {
+          title: parsed.title,
+          group: String(form.get("group") ?? "").trim(),
+          newGroup: parsed.newGroup,
+        }
+        if (parsed.issues.length > 0) return renderBoard(context, 422, submitted, parsed.issues)
+        const result = await runTodo(runtimeContext(context), (todo) =>
           todo.add(
             { title: parsed.title },
             parsed.group === "" ? undefined : { group: parsed.group },
           ),
-      )
-      return result.ok
-        ? redirect(routes.tasks.show.href({ id: result.value.id }), 303)
-        : new Response("Bad request", { status: 400 })
+        )
+        if (result.ok) return redirect(routes.tasks.show.href({ id: result.value.id }), 303)
+        if (tagOf(result.error) === "ValidationError")
+          return renderBoard(
+            context,
+            422,
+            submitted,
+            (result.error as { readonly issues: ReadonlyArray<string> }).issues,
+          )
+        return respond(context, result.error)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
     },
+
     show: async (context) => {
-      const result = await runTodo(
-        context as { get: (key: typeof todoRuntimeContext) => TodoRuntime },
-        (todo) => todo.show(context.params.id.replace(/^0+(?=\d)/, "")),
-      )
-      if (!result.ok) return new Response("Not Found", { status: 404 })
-      const detail = result.value
-      const task = detail.view.task
-      const dependencies = detail.dependencies
-        .map(
-          (dependency) =>
-            `<li><a href="${routes.tasks.show.href({ id: dependency.id })}">${showId(dependency.id)} ${escapeHtml(dependency.title ?? "unknown")}</a> (${dependency.state})</li>`,
-        )
-        .join("")
-      const comments = [...task.comments]
-        .reverse()
-        .map(
-          (comment) =>
-            `<article><small>${escapeHtml(comment.author)}</small><div>${markdownHtml(comment.body)}</div></article>`,
-        )
-        .join("")
-      return new Response(
-        renderDocument({
-          title: task.title,
-          content: `<h1>${escapeHtml(task.title)}</h1><p>State: ${detail.view.state}</p><div>${markdownHtml(task.description)}</div><h2>Dependencies</h2><ul>${dependencies}</ul><h2>Comments</h2>${comments || "<p>No comments.</p>"}<a href="${routes.tasks.edit.href({ id: task.id })}">Edit</a>`,
-        }),
-        { headers: { "Content-Type": "text/html; charset=utf-8" } },
-      )
+      try {
+        return await renderTask(context, idOf(context))
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
     },
-    edit: async (context) =>
-      new Response(
-        `<h1>Edit</h1><form method="post" action="${routes.tasks.update.href({ id: context.params.id })}"><label>Title <input name="title"></label><label>Description <textarea name="description"></textarea></label><button>Save</button></form>`,
-        { headers: { "Content-Type": "text/html; charset=utf-8" } },
-      ),
+
+    edit: async (context) => {
+      try {
+        return await renderEdit(context, idOf(context))
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
+    },
+
     update: async (context) => {
-      const values = parseEditForm(formOf(context as { get: (key: typeof FormData) => FormData }))
-      const result = await runTodo(
-        context as { get: (key: typeof todoRuntimeContext) => TodoRuntime },
-        (todo) =>
-          todo.update(context.params.id.replace(/^0+(?=\d)/, ""), {
+      try {
+        const id = idOf(context)
+        const values = parseEditForm(formOf(context))
+        if (values.title === "") return renderEdit(context, id, values, ["Title is required"], 422)
+        const result = await runTodo(runtimeContext(context), (todo) =>
+          todo.update(id, {
             title: values.title,
             description: values.description,
             tags: [...(values.tags ? values.tags.split(/[\s,]+/).filter(Boolean) : [])],
             assignee: values.assignee === "" ? null : values.assignee,
             dependsOn: normalizeDependencies(values.dependsOn),
           }),
-      )
-      return result.ok
-        ? redirect(routes.tasks.show.href({ id: result.value.id }), 303)
-        : new Response("Invalid task", { status: 422 })
+        )
+        if (result.ok) return redirect(routes.tasks.show.href({ id: result.value.id }), 303)
+        if (tagOf(result.error) === "ValidationError")
+          return renderEdit(
+            context,
+            id,
+            values,
+            (result.error as { readonly issues: ReadonlyArray<string> }).issues,
+            422,
+          )
+        return respond(context, result.error)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
     },
+
     complete: async (context) => {
-      const back = localBack(
-        formOf(context as { get: (key: typeof FormData) => FormData })
-          .get("back")
-          ?.toString(),
-      )
-      const _result = await runTodo(
-        context as { get: (key: typeof todoRuntimeContext) => TodoRuntime },
-        (todo) => todo.complete(context.params.id.replace(/^0+(?=\d)/, "")),
-      )
-      return redirect(back, 303)
+      try {
+        const form = formOf(context)
+        const back = localBack(form.get("back")?.toString())
+        const result = await runTodo(runtimeContext(context), (todo) =>
+          todo.complete(idOf(context)),
+        )
+        if (!result.ok) {
+          if (tagOf(result.error) !== "InvalidTransition") return respond(context, result.error)
+          setFlash(context, { message: errorDescription(result.error), tone: "warning" })
+          return redirect(back, 303)
+        }
+        const unblocked = result.value.unblocked.map((view) => showId(view.task.id)).join(", ")
+        setFlash(context, {
+          message: `Completed ${showId(result.value.task.id)}.${
+            unblocked === "" ? "" : ` Now ready: ${unblocked}`
+          }`,
+          tone: "info",
+        })
+        return redirect(back, 303)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
     },
+
     reopen: async (context) => {
-      const result = await runTodo(
-        context as { get: (key: typeof todoRuntimeContext) => TodoRuntime },
-        (todo) => todo.reopen(context.params.id.replace(/^0+(?=\d)/, "")),
-      )
-      return result.ok
-        ? redirect(routes.tasks.show.href({ id: result.value.id }), 303)
-        : new Response("Invalid task", { status: 400 })
+      try {
+        const id = idOf(context)
+        const back = routes.tasks.show.href({ id })
+        const result = await runTodo(runtimeContext(context), (todo) => todo.reopen(id))
+        if (!result.ok) {
+          if (tagOf(result.error) !== "InvalidTransition") return respond(context, result.error)
+          setFlash(context, { message: errorDescription(result.error), tone: "warning" })
+          return redirect(back, 303)
+        }
+        return redirect(routes.tasks.show.href({ id: result.value.id }), 303)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
     },
+
     comments: async (context) => {
-      const values = parseCommentForm(
-        formOf(context as { get: (key: typeof FormData) => FormData }),
-      )
-      const author = values.author || String(context.get(authorContext) ?? "unknown")
-      const result = await runTodo(
-        context as { get: (key: typeof todoRuntimeContext) => TodoRuntime },
-        (todo) =>
-          todo.comment(context.params.id.replace(/^0+(?=\d)/, ""), { author, body: values.body }),
-      )
-      return result.ok
-        ? redirect(routes.tasks.show.href({ id: context.params.id }), 303)
-        : new Response("Invalid comment", { status: 400 })
+      try {
+        const id = idOf(context)
+        const values = parseCommentForm(formOf(context))
+        const author = values.author || String(context.get(authorContext) ?? "unknown")
+        const result = await runTodo(runtimeContext(context), (todo) =>
+          todo.comment(id, { author, body: values.body }),
+        )
+        return result.ok
+          ? redirect(routes.tasks.show.href({ id }), 303)
+          : respond(context, result.error)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
     },
   },
 })

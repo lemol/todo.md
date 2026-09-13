@@ -1,0 +1,69 @@
+import { afterEach, expect, test } from "bun:test"
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { BunServices } from "@effect/platform-bun"
+import { TodoService } from "@lemol/todo-md/core"
+import { FsTodoStore } from "@lemol/todo-md/fs"
+import { allCapabilities } from "@lemol/todo-md/spec"
+import { Layer, ManagedRuntime } from "effect"
+import { makeFakeChanges } from "../app/middleware/changes.ts"
+import { createAppRouter } from "../app/router.ts"
+import { routes } from "../app/routes.ts"
+import { makeFakeAssets } from "./harness.ts"
+
+const cleanup: Array<() => Promise<void>> = []
+afterEach(async () => {
+  await Promise.all(cleanup.splice(0).map((close) => close()))
+})
+
+test("adds and completes a task through the router over FsTodoStore", async () => {
+  const root = await mkdtemp(join(tmpdir(), "todo-md-web-e2e-"))
+  await writeFile(join(root, "TODO.md"), "# Disk list\n")
+  const runtime = ManagedRuntime.make(
+    TodoService.layer.pipe(
+      Layer.provide(FsTodoStore.layer({ root })),
+      Layer.provide(BunServices.layer),
+    ),
+  )
+  const router = createAppRouter({
+    runtime,
+    capabilities: allCapabilities,
+    changes: makeFakeChanges(),
+    author: "tester",
+    hosts: ["localhost"],
+    sessionSecret: "test-secret-at-least-32-characters",
+    assets: makeFakeAssets(),
+  })
+  cleanup.push(async () => {
+    await router.close()
+    await runtime.dispose()
+    await rm(root, { recursive: true, force: true })
+  })
+
+  const add = new FormData()
+  add.set("title", "Persist me")
+  const added = await router.fetch(
+    new Request(`http://localhost${routes.tasks.add.href()}`, {
+      method: "POST",
+      headers: { Host: "localhost" },
+      body: add,
+    }),
+  )
+  expect(added.status).toBe(303)
+  expect(await readFile(join(root, "TODO.md"), "utf8")).toContain("Persist me")
+
+  const complete = new FormData()
+  complete.set("back", routes.board.href())
+  const completed = await router.fetch(
+    new Request(`http://localhost${routes.tasks.complete.href({ id: "1" })}`, {
+      method: "POST",
+      headers: { Host: "localhost" },
+      body: complete,
+    }),
+  )
+  expect(completed.status).toBe(303)
+  expect(await readFile(join(root, "TODO.md"), "utf8")).not.toContain("Persist me")
+  const doneFiles = await readdir(join(root, "done"), { recursive: true })
+  expect(doneFiles.some((file) => file.endsWith("01-persist-me.md"))).toBe(true)
+})
