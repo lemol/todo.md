@@ -2,8 +2,6 @@
 
 ## Release
 
-- [ ] 02 - Add a CI workflow that runs bun run check
-  #ci
 - [ ] 03 - Push the lemol-workspace commit that registers todo-md
   #workspace
 - [ ] 04 - Pin @effect/platform-node-shared in Mionso
