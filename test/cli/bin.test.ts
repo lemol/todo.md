@@ -30,6 +30,6 @@ describe("the todo executable", () => {
     expect(run("next", "--json").stdout).toContain('"title":"Try it"')
     expect(run("done", "9")).toMatchObject({ code: 1, stdout: "", stderr: "error: no task 9\n" })
     expect(run("mv", "1").code).toBe(2)
-    expect(run("--version").stdout).toContain("0.0.0")
+    expect(run("--version").stdout).toContain("0.1.0")
   })
 })

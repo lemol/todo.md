@@ -7,7 +7,7 @@ import { CliContext, Dir, Json } from "./context.ts"
 import { describeError, errorJson, exitCodeOf } from "./errors.ts"
 
 /** Keep in step with package.json's version. */
-export const version = "0.0.0"
+export const version = "0.1.0"
 
 export const todo = Command.make("todo", {}, () => showList()).pipe(
   Command.withDescription("Manage a todo.md task list: plain Markdown for humans and agents"),

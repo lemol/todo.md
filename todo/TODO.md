@@ -2,8 +2,6 @@
 
 ## Release
 
-- [ ] 01 - Bump the version to 0.1.0 and tag todo-md@0.1.0
-  #release
 - [ ] 02 - Add a CI workflow that runs bun run check
   #ci
 - [ ] 03 - Push the lemol-workspace commit that registers todo-md
