@@ -1,8 +1,5 @@
 # todo.md
 
-- [ ] 08 - Fix TypeScript check failure in conformance assertion
-  `bun run check` fails in `src/spec/testing/conformance/assert.ts:8`: TypeScript rejects the optional `message` argument passed to `node:assert/strict`'s `deepStrictEqual` overload.
-
 ## Release
 
 - [ ] 01 - Bump the version to 0.1.0 and tag todo-md@0.1.0

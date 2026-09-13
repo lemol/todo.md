@@ -5,7 +5,9 @@ import { TodoStore } from "../../TodoStore.ts"
 
 /** Asserts deep equality; a mismatch fails the case as a defect. */
 export const equal = <A>(actual: A, expected: A, message?: string): void =>
-  deepStrictEqual(actual, expected, message)
+  message === undefined
+    ? deepStrictEqual(actual, expected)
+    : deepStrictEqual(actual, expected, message)
 
 /** Runs `effect`, asserting it fails with an error whose `_tag` is `tag`. */
 export const failsWith = <A, E extends { readonly _tag: string }, R>(
