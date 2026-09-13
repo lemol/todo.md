@@ -9,7 +9,7 @@ implementation and a `todo` CLI. It ships as one Bun + Effect 4 package,
 - [docs/spec.md](docs/spec.md) is the source of truth for behavior. If code
   and spec disagree, fix one of them deliberately. Never let them drift
   silently.
-- [docs/architecture.md](docs/architecture.md) covers module boundaries and
+- [docs/architecture/](docs/architecture/README.md) covers module boundaries and
   the reasons for them.
 - Each `src/<module>/README.md` covers that module's contents and limits.
 

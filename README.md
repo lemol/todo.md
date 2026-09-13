@@ -61,7 +61,7 @@ out at `repos/todo-md` and consumers resolve it through the override
 ## Docs
 
 - [Specification](docs/spec.md): the model, operations and file format.
-- [Architecture](docs/architecture.md): how the modules fit together and why.
+- [Architecture](docs/architecture/README.md): how the modules fit together and why.
 
 ## Using the CLI
 

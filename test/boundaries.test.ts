@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { dirname, join, relative, resolve, sep } from "node:path"
 import { Glob } from "bun"
 
-// The module graph from docs/architecture.md. Each module may import its own
+// The module graph from docs/architecture/README.md. Each module may import its own
 // files, the modules in `modules`, and the external packages in `packages`.
 // An entry ending in ":" allows a whole scheme (e.g. every `node:` builtin).
 const rules: Record<string, { modules: string[]; packages: string[] }> = {
