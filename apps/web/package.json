@@ -1,0 +1,23 @@
+{
+  "name": "@lemol/todo-md-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun server.ts",
+    "test": "bun test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.0-rc.108",
+    "@effect/platform-node-shared": "4.0.0-rc.108",
+    "@lemol/todo-md": "workspace:*",
+    "hast-util-to-html": "^9.0.5",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-to-hast": "^13.2.0",
+    "remix": "3.0.0-rc.2"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-rc.108"
+  }
+}

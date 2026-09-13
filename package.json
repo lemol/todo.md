@@ -2,6 +2,7 @@
   "name": "@lemol/todo-md",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["apps/*"],
   "description": "todo.md: a standard for Markdown task lists, its file-system implementation and the `todo` CLI",
   "type": "module",
   "exports": {
@@ -19,9 +20,10 @@
     "check": "bun run lint && bun run typecheck && bun run test",
     "lint": "biome check .",
     "fix": "biome check --write .",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
     "test": "bun test",
-    "test:boundaries": "bun test test/boundaries.test.ts"
+    "test:boundaries": "bun test test/boundaries.test.ts",
+    "web": "bun apps/web/server.ts"
   },
   "peerDependencies": {
     "effect": "4.0.0-rc.108"
