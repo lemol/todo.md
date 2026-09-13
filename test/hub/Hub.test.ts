@@ -350,16 +350,18 @@ describe("remove", () => {
       const disk = yield* Disk
       // Whether projects/x exists at each write of projects.yaml.
       const seen: Array<boolean> = []
-      const hub = yield* hubOn([memorySource()], (fs) => ({
-        ...fs,
-        rename: (from, to) =>
-          to.endsWith("/projects.yaml")
-            ? fs.exists(`${disk.root}/.todo-md/projects/x`).pipe(
-                Effect.tap((exists) => Effect.sync(() => seen.push(exists))),
-                Effect.andThen(fs.rename(from, to)),
-              )
-            : fs.rename(from, to),
-      }))
+      const hub = yield* hubOn([memorySource()], {
+        wrapFs: (fs) => ({
+          ...fs,
+          rename: (from, to) =>
+            to.endsWith("/projects.yaml")
+              ? fs.exists(`${disk.root}/.todo-md/projects/x`).pipe(
+                  Effect.tap((exists) => Effect.sync(() => seen.push(exists))),
+                  Effect.andThen(fs.rename(from, to)),
+                )
+              : fs.rename(from, to),
+        }),
+      })
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/x/marker", "x")
       yield* hub.remove("x")
@@ -373,20 +375,22 @@ describe("remove", () => {
     "a data directory that cannot be deleted is named, and the entry stays removed",
     Effect.gen(function* () {
       const disk = yield* Disk
-      const hub = yield* hubOn([memorySource()], (fs) => ({
-        ...fs,
-        remove: (path, options) =>
-          path.includes("/.removed-")
-            ? Effect.fail(
-                PlatformError.systemError({
-                  _tag: "PermissionDenied",
-                  module: "FileSystem",
-                  method: "remove",
-                  pathOrDescriptor: path,
-                }),
-              )
-            : fs.remove(path, options),
-      }))
+      const hub = yield* hubOn([memorySource()], {
+        wrapFs: (fs) => ({
+          ...fs,
+          remove: (path, options) =>
+            path.includes("/.removed-")
+              ? Effect.fail(
+                  PlatformError.systemError({
+                    _tag: "PermissionDenied",
+                    module: "FileSystem",
+                    method: "remove",
+                    pathOrDescriptor: path,
+                  }),
+                )
+              : fs.remove(path, options),
+        }),
+      })
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/x/marker", "x")
       const error = yield* Effect.flip(hub.remove("x"))

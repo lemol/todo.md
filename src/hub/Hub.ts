@@ -20,6 +20,7 @@ import {
   RegistryError,
   type SourceError,
   SourceUnavailable,
+  type SyncError,
 } from "./errors.ts"
 import type { AddInput } from "./input.ts"
 import { isValidName } from "./names.ts"
@@ -36,6 +37,7 @@ import { makeRegistry } from "./registry.ts"
 import { makeUnregistered, type ResolveInput, resolveProject } from "./resolve.ts"
 import type { AnySource, ProjectInfo, ProjectStatus, SourceEnv } from "./Source.ts"
 import { statusOf } from "./state.ts"
+import { makeSyncer, type SyncFailure, type SyncResult } from "./sync.ts"
 
 export interface HubOptions {
   /** The hub's directory: apps pass `$TODO_MD_HOME`, else `<userHome>/.todo-md`. */
@@ -44,6 +46,11 @@ export interface HubOptions {
   readonly userHome: string
   /** The sources this hub can open; kinds must be unique. */
   readonly sources: ReadonlyArray<AnySource>
+  /**
+   * Runs `syncAll` this often, starting one interval after the hub starts,
+   * until the layer's scope closes. Off by default; for long-running hosts.
+   */
+  readonly autoSync?: Duration.Input
 }
 
 /**
@@ -77,6 +84,15 @@ export class Hub extends Context.Service<
     >
     /** The last sync (`state.json`), overlaid with the source's live fields. Never fails for a found project. */
     status(name: string): Effect.Effect<ProjectStatus, ProjectNotFound | RegistryError>
+    /** Syncs one project; in this hub, one sync per project runs at a time. */
+    sync(
+      name: string,
+    ): Effect.Effect<
+      SyncResult,
+      ProjectNotFound | InvalidProjectConfig | SourceUnavailable | RegistryError | SyncError
+    >
+    /** Syncs every registered project whose source can sync, four at a time. Fails only for an unreadable registry. */
+    syncAll(): Effect.Effect<ReadonlyArray<SyncResult | SyncFailure>, RegistryError>
     /** Project, sync and registry changes. Watchers run only while something consumes it. */
     readonly changes: Stream.Stream<HubChange>
   }
@@ -219,6 +235,34 @@ const make = (options: HubOptions) =>
     }).pipe(
       Effect.catch((error) => Effect.logWarning(`could not refresh projects: ${error.message}`)),
     )
+
+    const runSync = makeSyncer(changes.publish)
+
+    const syncAll = Effect.gen(function* () {
+      const syncable = (yield* registered).flatMap((project) => {
+        const { config } = project
+        return config._tag === "Valid" && config.source.sync !== undefined
+          ? [{ project, source: config.source, value: config.value }]
+          : []
+      })
+      return yield* Effect.forEach(
+        syncable,
+        ({ project, source, value }) =>
+          inEnv(runSync(project, source, value)).pipe(
+            Effect.catch((error) => Effect.succeed<SyncFailure>({ project: project.name, error })),
+          ),
+        { concurrency: 4 },
+      )
+    })
+
+    if (options.autoSync !== undefined) {
+      yield* Effect.sleep(options.autoSync).pipe(
+        Effect.andThen(syncAll),
+        Effect.catch((error) => Effect.logWarning(`autoSync: ${error.message}`)),
+        Effect.forever,
+        Effect.forkScoped,
+      )
+    }
 
     return Hub.of({
       projects: () =>
@@ -392,6 +436,15 @@ const make = (options: HubOptions) =>
         ),
 
       status: (name) => Effect.flatMap(find(name), (project) => inEnv(statusOf(project))),
+      sync: (name) =>
+        Effect.gen(function* () {
+          const project = yield* find(name)
+          const { config } = project
+          if (config._tag === "Invalid") return yield* config.problem
+          return yield* inEnv(runSync(project, config.source, config.value))
+        }),
+
+      syncAll: () => syncAll,
       changes: changes.stream,
     })
   })

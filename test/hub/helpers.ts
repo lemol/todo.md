@@ -21,15 +21,25 @@ export { Disk, diskWith, md } from "../fs/helpers.ts"
 /**
  * A hub whose home is `<disk root>/.todo-md` and whose `~` is the disk root.
  * Several hubs on one disk share a home, like separate processes. `wrapFs`
- * replaces the hub's `FileSystem`, to observe or fail its calls.
+ * replaces the hub's `FileSystem`, to observe or fail its calls; `autoSync` is
+ * passed to `Hub.layer`.
  */
 export const hubOn = (
   sources: ReadonlyArray<AnySource>,
-  wrapFs?: (fs: FileSystem.FileSystem) => FileSystem.FileSystem,
+  options: {
+    readonly wrapFs?: (fs: FileSystem.FileSystem) => FileSystem.FileSystem
+    readonly autoSync?: Duration.Input
+  } = {},
 ): Effect.Effect<Hub["Service"], never, Disk | Scope.Scope> =>
   Effect.gen(function* () {
     const { root } = yield* Disk
-    const layer = Hub.layer({ home: `${root}/.todo-md`, userHome: root, sources })
+    const layer = Hub.layer({
+      home: `${root}/.todo-md`,
+      userHome: root,
+      sources,
+      ...(options.autoSync === undefined ? {} : { autoSync: options.autoSync }),
+    })
+    const { wrapFs } = options
     const wrapped =
       wrapFs === undefined
         ? layer

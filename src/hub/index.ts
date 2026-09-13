@@ -15,3 +15,4 @@ export type {
   SyncOutcome,
 } from "./Source.ts"
 export { FsConfig, fsSource, watchList } from "./sources/fs.ts"
+export type { SyncFailure, SyncResult } from "./sync.ts"
