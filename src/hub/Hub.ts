@@ -31,7 +31,8 @@ import {
 } from "./projects.ts"
 import { makeRegistry } from "./registry.ts"
 import { makeUnregistered, type ResolveInput, resolveProject } from "./resolve.ts"
-import type { AnySource, ProjectInfo, SourceEnv } from "./Source.ts"
+import type { AnySource, ProjectInfo, ProjectStatus, SourceEnv } from "./Source.ts"
+import { statusOf } from "./state.ts"
 
 export interface HubOptions {
   /** The hub's directory: apps pass `$TODO_MD_HOME`, else `<userHome>/.todo-md`. */
@@ -71,6 +72,8 @@ export class Hub extends Context.Service<
       TodoService["Service"],
       ProjectNotFound | InvalidProjectConfig | SourceUnavailable | SourceError | RegistryError
     >
+    /** The last sync (`state.json`), overlaid with the source's live fields. Never fails for a found project. */
+    status(name: string): Effect.Effect<ProjectStatus, ProjectNotFound | RegistryError>
   }
 >()("@lemol/todo-md/hub/Hub") {
   /** Requires `FileSystem` and `Path`. Dies if two sources share a kind. */
@@ -132,6 +135,9 @@ const make = (options: HubOptions) =>
       )
     }
 
+    const describe = (project: Project): Effect.Effect<ProjectInfo> =>
+      Effect.map(inEnv(statusOf(project)), (status) => infoOf(project, status))
+
     const services = yield* LayerMap.make(
       (name: string) =>
         Layer.unwrap(
@@ -148,7 +154,9 @@ const make = (options: HubOptions) =>
 
     return Hub.of({
       projects: () =>
-        Effect.map(registered, (projects) => [...projects, ...unregistered.all()].map(infoOf)),
+        Effect.flatMap(registered, (projects) =>
+          Effect.forEach([...projects, ...unregistered.all()], describe, { concurrency: 4 }),
+        ),
 
       add: (input) =>
         Effect.gen(function* () {
@@ -192,7 +200,7 @@ const make = (options: HubOptions) =>
           }).pipe(Effect.onError(() => Effect.ignore(fs.remove(dir, { recursive: true }))))
           unregistered.forget(name)
           yield* services.invalidate(name)
-          return infoOf({
+          return yield* describe({
             name,
             kind: source.kind,
             registered: true,
@@ -296,11 +304,13 @@ const make = (options: HubOptions) =>
           unregistered.forget(to)
           yield* services.invalidate(from)
           yield* services.invalidate(to)
-          return infoOf(yield* find(to))
+          return yield* describe(yield* find(to))
         }),
 
       resolve: (at) =>
-        inEnv(resolveProject(at, { registered, find, unregistered })).pipe(Effect.map(infoOf)),
+        inEnv(resolveProject(at, { registered, find, unregistered })).pipe(
+          Effect.flatMap(describe),
+        ),
 
       todo: (name) =>
         Effect.scoped(services.contextEffect(name)).pipe(
@@ -308,5 +318,7 @@ const make = (options: HubOptions) =>
           // A failed build is cached like a success; drop it so the next call retries.
           Effect.tapError(() => services.invalidate(name)),
         ),
+
+      status: (name) => Effect.flatMap(find(name), (project) => inEnv(statusOf(project))),
     })
   })

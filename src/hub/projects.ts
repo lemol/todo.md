@@ -2,7 +2,7 @@ import { Effect, Option, Predicate, Schema } from "effect"
 import { InvalidProjectConfig, SourceUnavailable } from "./errors.ts"
 import { isValidName } from "./names.ts"
 import type { RegistryEntry } from "./registry.ts"
-import type { AnySource, ProjectInfo, SourceProject } from "./Source.ts"
+import type { AnySource, ProjectInfo, ProjectStatus, SourceProject } from "./Source.ts"
 
 /** A project's config: decoded by its source, or why it cannot be used. */
 export type ProjectConfig =
@@ -122,7 +122,7 @@ export const sourceProjectOf = (project: Project, value: unknown): SourceProject
   dir: project.dir,
 })
 
-export const infoOf = (project: Project): ProjectInfo => {
+export const infoOf = (project: Project, status: ProjectStatus): ProjectInfo => {
   const { config } = project
   if (config._tag === "Invalid") {
     return {
@@ -131,7 +131,7 @@ export const infoOf = (project: Project): ProjectInfo => {
       location: "",
       registered: project.registered,
       syncable: false,
-      status: { result: "error", error: config.problem.message },
+      status,
     }
   }
   return {
@@ -140,6 +140,6 @@ export const infoOf = (project: Project): ProjectInfo => {
     location: config.source.location(config.value),
     registered: project.registered,
     syncable: config.source.sync !== undefined,
-    status: { result: "never" },
+    status,
   }
 }
