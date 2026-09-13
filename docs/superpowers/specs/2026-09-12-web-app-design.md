@@ -101,7 +101,7 @@ form that POSTs and redirects, so the app works without JavaScript.
 | `GET /tasks/:id` | **Task.** Title, state, group, tags, assignee, description; dependencies with title and state (`unknown` for missing IDs); the tasks it blocks; comments, newest first. **Complete** or **Reopen**, **Edit**, and a comment form. | `show(id)` |
 | `GET /tasks/:id/edit` | Edit form: title, description, tags, assignee, depends-on. | `show(id)` |
 | `POST /tasks/:id` | Update, then redirect to the task. A blank assignee clears it. | `update` |
-| `POST /tasks/:id/complete` | Complete, redirect back, flash "Completed 05. Now ready: 07, 08". | `complete` |
+| `POST /tasks/:id/complete` | Complete, from the board's checkbox or the task page. Redirect back to where the form was (a `back` field holding a local path; the board otherwise), flash "Completed 05. Now ready: 07, 08". | `complete` |
 | `POST /tasks/:id/reopen` | Reopen, redirect to the task. | `reopen` |
 | `POST /tasks/:id/comments` | Comment; the author field is prefilled with the default author. | `comment` |
 | `GET /done` | Done tasks, most recent first, with completion date, recorded group and **Reopen**. | `list({ status: "done" })` |
@@ -130,6 +130,64 @@ form that POSTs and redirects, so the app works without JavaScript.
 | `GroupNotFound`, `Unsupported` | 400 page with the message. The UI hides unsupported actions, so these mean a hand-crafted request. |
 | `StoreError`, defects | 500 page with the message. |
 | Invalid form input | 400, or 422 with the form where there is one. |
+
+## Visual design
+
+Minimal and document-like: the page reads like a well-typeset `TODO.md`.
+
+- **Principles.** One column, about 760px at most, generous whitespace.
+  Hairlines instead of cards. Color only where it carries meaning. No
+  gradients, heavy shadows, emoji or icon library. Everything is served by
+  the app itself, so it works offline.
+- **Type.**
+  - Sans for UI and body: `"SF Pro Text", "Helvetica Neue", system-ui,
+    sans-serif`, color `#2F3437`, line-height 1.6.
+  - Serif for the list title and section headings: `"Iowan Old Style",
+    Charter, Georgia, serif`, letter-spacing -0.02em, line-height 1.1.
+  - Mono for IDs, assignees, dates and diagnostic codes: `"SF Mono",
+    ui-monospace, monospace`.
+- **Palette** as CSS custom properties: canvas `#FBFBFA`, surface `#FFFFFF`,
+  hairline `#EAEAEA`, muted text `#787774`, primary `#111111`. A
+  `prefers-color-scheme: dark` block redefines the same tokens.
+- **Semantic pastels**, background with text color:
+
+  | Meaning | Background | Text |
+  | --- | --- | --- |
+  | ready | `#EDF3EC` | `#346538` |
+  | blocked, warning | `#FBF3DB` | `#956400` |
+  | error | `#FDEBEC` | `#9F2F2D` |
+  | info | `#E1F3FE` | `#1F6C9F` |
+
+  Tags are neutral chips (`#F7F6F3`). Badges always carry text, so state
+  never depends on color alone.
+- **Board.** The list title in large serif, its description in muted sans.
+  Section names in smaller serif over a hairline. Task rows are separated
+  by hairlines, not boxed:
+  - a square outlined checkbox button that completes the task (a form POST,
+    mirroring `- [ ]`);
+  - the ID in muted mono, then the title as a link;
+  - on the right, tag chips, `@assignee` and a small uppercase `READY` or
+    `BLOCKED` badge;
+  - for blocked tasks, a muted "blocked by 03, 07" line underneath.
+
+  The next task has a 2px charcoal bar on its left edge.
+- **Controls.** Primary buttons: solid `#111111`, white text, 6px radius,
+  `scale(0.98)` when pressed. Secondary actions are text buttons. Inputs:
+  1px hairline, 6px radius, charcoal focus ring. Focus is always visible.
+- **Task page.** A document column: title in serif, a metadata strip of
+  hairline-separated label and value pairs (values in mono), rendered
+  Markdown, and comments with author and time in mono above each body.
+- **Header.** The list title in small sans, then Board, Done and Check.
+  Check carries a red or yellow count badge when there are diagnostics.
+- **Flash messages.** One quiet full-width bar in the matching pastel.
+- **Empty states.** A plain muted sentence, such as "Nothing open. Add a
+  task above."
+- **Motion.** Only 150–200 ms transitions of color, border and opacity on
+  hover and focus, disabled under `prefers-reduced-motion`. No entrance
+  animations: live refresh would replay them.
+- **Styles.** Tokens and base styles live in `app/ui/styles.css`, served by
+  the app. Component-local styles use Remix's `css()` mixin where it renders
+  on the server in rc.2; the implementation plan checks that first.
 
 ## Effect bridge
 
