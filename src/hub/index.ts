@@ -1,4 +1,5 @@
 export * from "./errors.ts"
+export { type AddInput, type ProjectInputOptions, projectInput } from "./input.ts"
 export { isValidName } from "./names.ts"
 export type {
   AnySource,
