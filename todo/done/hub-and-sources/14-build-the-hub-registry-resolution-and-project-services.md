@@ -1,6 +1,8 @@
 ---
 title: "Build the hub: registry, resolution and project services"
 tags: [hub]
+group: Hub and sources
+completed_at: 2026-09-13T11:54:38Z
 ---
 ## Goal
 

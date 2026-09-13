@@ -8,8 +8,8 @@ are. For what a task *is* and how the files look, see
 | --- | --- |
 | The `TodoStore` contract, capabilities, conformance, writing an adapter | [contract.md](./contract.md) |
 | `markdown` and `fs`: parsing, splicing writes, the write path, locking | [storage.md](./storage.md) |
-| `hub`: projects, the registry, sync, changes, cross-project queries *(planned)* | [hub.md](./hub.md) |
-| Sources: fs, git and jira behind the hub *(planned)* | [sources.md](./sources.md) |
+| `hub`: projects, the registry, sync, changes, cross-project queries *(partly built)* | [hub.md](./hub.md) |
+| Sources: fs, git and jira behind the hub *(fs built)* | [sources.md](./sources.md) |
 | The CLI, the web app and the TUI as composition roots | [frontends.md](./frontends.md) |
 | Packaging, the `effect` pin, testing and tooling | [tooling.md](./tooling.md) |
 | Why things are the way they are | [decisions.md](./decisions.md) |
@@ -71,10 +71,11 @@ tui ─┘    ▲      ▲
 | [`src/markdown`](../../src/markdown) | `@lemol/todo-md/markdown`      | spec, `effect`, mdast/micromark, `yaml`  | Pure parse/serialize of `TODO.md` and task files; normalization; slugs          |
 | [`src/core`](../../src/core)         | `@lemol/todo-md/core`          | spec, `effect`                           | Adapter-agnostic logic: queries, ready/blocked, validation, mutation guards     |
 | [`src/fs`](../../src/fs)             | `@lemol/todo-md/fs`            | spec, markdown, `effect`                 | `TodoStore` over a list directory; discovery; safe writes                       |
-| `src/hub` *(planned)*           | `@lemol/todo-md/hub`           | spec, core, fs, `effect`, `yaml`         | Projects, registry, sync, changes, cross-project queries; the `Source` interface and `fsSource` |
+| [`src/hub`](../../src/hub)           | `@lemol/todo-md/hub`           | spec, core, fs, `effect`, `yaml`         | Projects: registry, resolution, a `TodoService` per project; the `Source` interface and `fsSource` (sync, changes and cross-project queries: task 15) |
+|                                 | `@lemol/todo-md/hub/testing`   | hub, spec                                | `memorySource`, for tests only                                                  |
 | `src/git` *(planned)*           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md`               |
 | `src/jira` *(planned)*          | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror                                |
-| [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                                      |
+| [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                          |
 | [`apps/web`](../../apps/web)         | `@lemol/todo-md-web`           | public todo-md subpaths, `effect`, Remix and renderer packages; server entry also Bun/Node | Private local web UI over one list |
 
 Planned rows are not enforced yet; each task that builds one adds its rule to
@@ -90,4 +91,4 @@ import in `src/` and `apps/web` and checks it against the table above):
 - `markdown` does no I/O.
 - Only apps (`cli`, `web`) choose and wire adapters, and only app composition
   roots touch Bun or Node APIs directly.
-- Runtime code never imports `spec/testing`.
+- Runtime code never imports `spec/testing` or `hub/testing`.

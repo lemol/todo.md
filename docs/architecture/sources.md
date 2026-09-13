@@ -1,9 +1,8 @@
 # Sources
 
-> **Status: planned.** Nothing here is built yet. The full design is in the
+> **Status: fs built (task 14).** git (task 19) and jira (task 06) are
+> planned; each updates this page. The full design is in the
 > [hub design](../superpowers/specs/2026-09-13-hub-design.md#4-sources).
-> Tasks 14 (fs), 19 (git) and 06 (jira) build them; each updates this page
-> to match the code.
 
 A **source** turns a registry entry into a `TodoStore` (see
 [contract.md](./contract.md)) and, when its data is remote, keeps a local
@@ -19,21 +18,34 @@ it.
 ## The interface
 
 ```ts
+type SourceEnv = FileSystem | Path            // provided by the hub
+
 interface Source<C> {
   readonly kind: string
-  readonly config: Schema.Codec<C>
+  readonly config: Schema.Codec<C, unknown>
   defaultName?(config: C): string | undefined
   location(config: C): string
-  prepare?(p: SourceProject<C>): Effect<void, SourceError>
-  open(p: SourceProject<C>): Layer<TodoStore, SourceError>
-  sync?(p: SourceProject<C>): Effect<SyncOutcome, SyncError>
-  changes?(p: SourceProject<C>): Stream<void>
-  status?(p: SourceProject<C>): Effect<Partial<ProjectStatus>>
-  beforeRemove?(p: SourceProject<C>, force: boolean): Effect<void, SourceError>
-  owns?(config: C, listRoot: string): boolean
+  prepare?(p: SourceProject<C>): Effect<void, SourceError, SourceEnv>
+  open(p: SourceProject<C>): Layer<TodoStore, SourceError, SourceEnv>
+  sync?(p: SourceProject<C>): Effect<SyncOutcome, SyncError, SourceEnv>
+  changes?(p: SourceProject<C>): Stream<void, never, SourceEnv>
+  status?(p: SourceProject<C>): Effect<Partial<ProjectStatus>, never, SourceEnv>
+  beforeRemove?(p: SourceProject<C>, force: boolean): Effect<void, SourceError, SourceEnv>
+  owns?(config: C, listRoot: string): Effect<boolean, never, SourceEnv>
+}
+
+interface SourceProject<C> {
+  readonly name: string
+  readonly config: C
+  readonly dir: string | undefined  // undefined for unregistered projects
 }
 ```
 
+- The hub provides `FileSystem` and `Path` (`SourceEnv`) to every call, so
+  `fsSource` is a plain value. `owns` is an effect because comparing list
+  roots reads the disk.
+- The hub expands `~` in top-level string fields before `config` decodes
+  them.
 - A source validates its own config and receives its project's data
   directory, touching nothing else.
 - Sources are built at the composition root with their services (for

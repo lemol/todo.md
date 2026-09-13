@@ -20,6 +20,12 @@ In: `state.json`, `status`, `sync`, `syncAll`, `autoSync`, `changes`,
 
 Out: any real remote source (19, 06); frontends (16–18).
 
+Already there from task 14: `SyncError` (`{ project, reason, message }`) and
+`SyncOutcome` are declared, because `Source.sync` names them;
+`memorySource(hooks)` accepts `sync`, `changes` and `status` hooks; sources
+receive `FileSystem` and `Path` from the hub (`SourceEnv`). See
+[`src/hub/README.md`](../../src/hub/README.md).
+
 ## Design
 
 **State** (`<home>/projects/<name>/state.json`):

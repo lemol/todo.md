@@ -45,6 +45,7 @@ One package, `@lemol/todo-md`, with a subpath per module:
 | [`@lemol/todo-md/markdown`](src/markdown)          | Parser and minimal-diff writer for the file format     |
 | [`@lemol/todo-md/core`](src/core)                  | Adapter-agnostic logic: queries, readiness, validation |
 | [`@lemol/todo-md/fs`](src/fs)                      | File-system adapter (the reference implementation)     |
+| [`@lemol/todo-md/hub`](src/hub)                    | Projects: registry, resolution, a service per project (`hub/testing`: `memorySource`) |
 | [`@lemol/todo-md/cli`](src/cli)                    | The `todo` command                                     |
 
 Install it from git. Releases are tagged `todo-md@<version>`; `effect` is a
