@@ -3,6 +3,13 @@ export * from "./errors.ts"
 export { Hub, type HubOptions } from "./Hub.ts"
 export { type AddInput, type ProjectInputOptions, projectInput } from "./input.ts"
 export { isValidName } from "./names.ts"
+export type {
+  Overview,
+  OverviewEntry,
+  OverviewError,
+  OverviewQuery,
+  OverviewTask,
+} from "./overview.ts"
 export { formatRef, parseRef, type TaskRef } from "./refs.ts"
 export type { ResolveInput } from "./resolve.ts"
 export type {

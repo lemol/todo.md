@@ -24,6 +24,7 @@ import {
 } from "./errors.ts"
 import type { AddInput } from "./input.ts"
 import { isValidName } from "./names.ts"
+import { type Overview, type OverviewQuery, overviewOf } from "./overview.ts"
 import {
   decodeConfig,
   fieldsOf,
@@ -93,6 +94,8 @@ export class Hub extends Context.Service<
     >
     /** Syncs every registered project whose source can sync, four at a time. Fails only for an unreadable registry. */
     syncAll(): Effect.Effect<ReadonlyArray<SyncResult | SyncFailure>, RegistryError>
+    /** `list(filter)` across projects, four at a time; a failing project is an error entry. */
+    overview(query?: OverviewQuery): Effect.Effect<Overview, RegistryError>
     /** Project, sync and registry changes. Watchers run only while something consumes it. */
     readonly changes: Stream.Stream<HubChange>
   }
@@ -445,6 +448,13 @@ const make = (options: HubOptions) =>
         }),
 
       syncAll: () => syncAll,
+      overview: (query = {}) =>
+        overviewOf(query, {
+          projects: Effect.map(registered, (projects) => [...projects, ...unregistered.all()]),
+          describe,
+          listing: (project, filter) =>
+            Effect.flatMap(serviceOf(project), (service) => service.list(filter)),
+        }),
       changes: changes.stream,
     })
   })
