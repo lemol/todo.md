@@ -15,6 +15,7 @@ test("the public entry point exposes the hub, its errors, fsSource and projectIn
     "fsSource",
     "FsConfig",
     "projectInput",
+    "watchList",
     "isValidName",
     "formatRef",
     "parseRef",

@@ -1,8 +1,8 @@
-import { Effect, FileSystem, Layer, Option, Path, Schema } from "effect"
-import { FsTodoStore } from "../../fs/index.ts"
+import { Effect, FileSystem, Layer, Option, Path, type PlatformError, Schema, Stream } from "effect"
+import { FsTodoStore, lockFile } from "../../fs/index.ts"
 import { SourceError } from "../errors.ts"
 import { nameForList } from "../names.ts"
-import type { Source } from "../Source.ts"
+import type { Source, SourceEnv, SourceProject } from "../Source.ts"
 
 export const FsConfig = Schema.Struct({
   path: Schema.String.check(
@@ -22,6 +22,48 @@ export const listRootOf = (path: string) =>
     }
     return Option.none<string>()
   })
+
+/**
+ * Emits once each burst of changes under `root` settles (100 ms), ignoring
+ * the lock file and temporary files. Fails when `root` cannot be watched.
+ */
+export const watchList = (
+  root: string,
+): Stream.Stream<void, PlatformError.PlatformError, SourceEnv> =>
+  Stream.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      // Event paths may be relative to `root`; only the file name matters.
+      return fs.watch(root, { recursive: true }).pipe(
+        Stream.filter((event) => {
+          const name = path.basename(event.path)
+          return name !== lockFile && !name.endsWith(".tmp")
+        }),
+        Stream.debounce("100 millis"),
+        Stream.map(() => undefined),
+      )
+    }),
+  )
+
+/** The list's changes; a missing or unwatchable list ends the stream with a warning. */
+const changesOf = (project: SourceProject<FsConfig>): Stream.Stream<void, never, SourceEnv> => {
+  const stop = (reason: string) =>
+    Stream.drain(
+      Stream.fromEffect(Effect.logWarning(`stopped watching ${project.name}: ${reason}`)),
+    )
+  return Stream.unwrap(
+    Effect.gen(function* () {
+      const root = yield* listRootOf(project.config.path)
+      const changes: Stream.Stream<void, PlatformError.PlatformError, SourceEnv> = Option.isSome(
+        root,
+      )
+        ? watchList(root.value)
+        : stop(`no TODO.md at ${project.config.path}`)
+      return changes
+    }),
+  ).pipe(Stream.catch((error) => stop(error.message)))
+}
 
 /** A list in a local directory: `{ path }`, the project directory or the list directory itself. */
 export const fsSource: Source<FsConfig> = {
@@ -51,6 +93,7 @@ export const fsSource: Source<FsConfig> = {
         return FsTodoStore.layer({ root: root.value })
       }),
     ),
+  changes: changesOf,
   owns: (config, listRoot) =>
     listRootOf(config.path).pipe(
       Effect.map(Option.contains(listRoot)),

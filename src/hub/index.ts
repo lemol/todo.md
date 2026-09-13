@@ -13,4 +13,4 @@ export type {
   SourceProject,
   SyncOutcome,
 } from "./Source.ts"
-export { FsConfig, fsSource } from "./sources/fs.ts"
+export { FsConfig, fsSource, watchList } from "./sources/fs.ts"

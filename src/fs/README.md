@@ -15,7 +15,7 @@ same conformance suite as `MemoryTodoStore`.
 | `FsTodoStore.normalize(root, lock?)` | Normalizes the list on request (spec §2.11) and returns a `NormalizeReport` (`assigned`, `finished`, `swept`). Backs `todo fmt`. |
 | `findListRoot(cwd)` | Discovery: walking up from `cwd`, the first level with `todo/TODO.md` or `TODO.md` (in that order) is the list. Returns an `Option`. |
 | `initList(dir, { title, description? })` | Creates a list (`TODO.md`), creating `dir`. Fails if `dir` already has one. Backs `todo init`. |
-| `makeLock(root, options?)`, `Lock`, `defaultLockOptions` | The advisory lock every mutation takes: `<root>/.todo.lock`, created exclusively. `makeLock` returns a `Lock`, a function that runs an effect while holding it and fails with `StoreError` after `timeout`. Exported so the hub (its registry) and the git source (its clone) reuse it; the file name stays `.todo.lock`. |
+| `makeLock(root, options?)`, `Lock`, `defaultLockOptions`, `lockFile` | The advisory lock every mutation takes: `<root>/.todo.lock`, created exclusively. `makeLock` returns a `Lock`, a function that runs an effect while holding it and fails with `StoreError` after `timeout`. Exported so the hub (its registry) and the git source (its clone) reuse it; the file name stays `.todo.lock`. `lockFile` is the name, for watchers that ignore it. |
 | `LockOptions` | `timeout` (default 10 s), `staleAfter` (30 s), `retryEvery` (50 ms). |
 
 ## Reads and writes
