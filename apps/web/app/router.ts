@@ -7,6 +7,7 @@ import { session } from "remix/middleware/session"
 import { createRouter } from "remix/router"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
 import rootController from "./actions/controller.tsx"
+import groupsController from "./actions/groups/controller.tsx"
 import tasksController from "./actions/tasks/controller.tsx"
 import { type AppAssets, createAssets, loadAssets } from "./assets.ts"
 import { loadAssetEntry } from "./middleware/assets.ts"
@@ -49,6 +50,7 @@ export const createAppRouter = (options: RouterOptions) => {
   })
   router.map(routes, rootController)
   router.map(routes.tasks, tasksController)
+  router.map(routes.groups, groupsController)
   return Object.assign(router, {
     close: async () => {
       await assets.close()

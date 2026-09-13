@@ -20,6 +20,10 @@ export const errorDescription = (error: unknown): string => {
       return Array.isArray(error.issues) ? error.issues.join(" ") : "The submitted task is invalid."
     case "Unsupported":
       return `This list does not support ${String(error.operation)}.`
+    case "HasDependents":
+      return `Task ${String(error.id)} still has open tasks depending on it: ${
+        Array.isArray(error.dependents) ? error.dependents.join(", ") : ""
+      }.`
     case "StoreError":
       return String(error.message)
     default:
@@ -38,6 +42,8 @@ export const statusFor = (error: unknown): number => {
       return 400
     case "ValidationError":
       return 400
+    case "HasDependents":
+      return 409
     default:
       return 500
   }

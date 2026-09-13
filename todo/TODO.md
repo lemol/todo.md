@@ -1,7 +1,5 @@
 # todo.md
 
-- [ ] 10 - Add move, reorder, remove, and group management to the web app
-  #web
 - [ ] 11 - Add a todo web command to the published package
   #web
 - [ ] 12 - Register repos/todo-md/apps/* in lemol-workspace

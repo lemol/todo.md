@@ -53,6 +53,30 @@ export const parseCommentForm = (form: FormData) => ({
   body: String(form.get("body") ?? "").trim(),
 })
 
+/**
+ * A board arrow sends `before` or `after`; the task page's form sends a target
+ * `group` (or `__new__` with `newGroup`) and a `position`.
+ */
+export const parseMoveForm = (form: FormData) => {
+  const before = value(form, "before")
+  const after = value(form, "after")
+  const group = value(form, "group")
+  const newGroup = value(form, "newGroup")
+  const issues = group === "__new__" && newGroup === "" ? ["New group is required"] : []
+  return {
+    before: before === "" ? undefined : taskId(before),
+    after: after === "" ? undefined : taskId(after),
+    group: group === "__new__" ? newGroup : group,
+    position: value(form, "position") === "top" ? ("top" as const) : ("bottom" as const),
+    issues,
+  }
+}
+
+export const parseRenameForm = (form: FormData) => ({
+  from: value(form, "from"),
+  to: value(form, "to"),
+})
+
 export const localBack = (value_: string | undefined): string =>
   value_?.startsWith("/") &&
   !value_.startsWith("//") &&

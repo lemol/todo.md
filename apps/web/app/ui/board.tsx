@@ -20,9 +20,27 @@ const queryHref = (back: string, name: string, value: string): string => {
   return `${routes.board.href()}?${query}`
 }
 
+/** Up moves before the row above, down after the row below; absent at the section's edges. */
+export interface RowMoves {
+  readonly above: string | undefined
+  readonly below: string | undefined
+}
+
+const moveButton = (
+  task: TaskView["task"],
+  back: string,
+  anchor: "before" | "after",
+  target: string | undefined,
+): string => {
+  const [label, arrow] = anchor === "before" ? ["up", "↑"] : ["down", "↓"]
+  if (target === undefined)
+    return `<button class="move" type="button" disabled aria-hidden="true" tabindex="-1">${arrow}</button>`
+  return `<form method="post" action="${routes.tasks.move.href({ id: task.id })}"><input type="hidden" name="back" value="${escapeHtml(back)}"><input type="hidden" name="${anchor}" value="${escapeHtml(target)}"><button class="move" type="submit" title="Move ${label}" aria-label="Move ${escapeHtml(task.title)} ${label}">${arrow}</button></form>`
+}
+
 export const TaskRow = (
   view: TaskView,
-  options: { readonly next: boolean; readonly back: string },
+  options: { readonly next: boolean; readonly back: string; readonly moves?: RowMoves },
 ): string => {
   const { task } = view
   const tags = task.tags
@@ -41,7 +59,11 @@ export const TaskRow = (
       : `<div class="blocked-by">blocked by ${view.blockedBy
           .map((id) => `<a href="${routes.tasks.show.href({ id })}">${showId(id)}</a>`)
           .join(", ")}</div>`
-  return `<article class="task-row${options.next ? " next" : ""}"${options.next ? ' data-next="true"' : ""}><form method="post" action="${routes.tasks.complete.href({ id: task.id })}"><input type="hidden" name="back" value="${escapeHtml(options.back)}"><button class="checkbox" aria-label="Complete ${escapeHtml(task.title)}" type="submit"></button></form><code>${showId(task.id)}</code><div class="task-copy"><a class="task-title" href="${routes.tasks.show.href({ id: task.id })}">${escapeHtml(task.title)}</a>${blockedBy}</div><div class="task-meta">${tags} ${assignee} <span class="badge ${view.state}">${view.state.toUpperCase()}</span></div></article>`
+  const moves =
+    options.moves === undefined
+      ? ""
+      : ` <span class="moves">${moveButton(task, options.back, "before", options.moves.above)}${moveButton(task, options.back, "after", options.moves.below)}</span>`
+  return `<article class="task-row${options.next ? " next" : ""}"${options.next ? ' data-next="true"' : ""}><form method="post" action="${routes.tasks.complete.href({ id: task.id })}"><input type="hidden" name="back" value="${escapeHtml(options.back)}"><button class="checkbox" aria-label="Complete ${escapeHtml(task.title)}" type="submit"></button></form><code>${showId(task.id)}</code><div class="task-copy"><a class="task-title" href="${routes.tasks.show.href({ id: task.id })}">${escapeHtml(task.title)}</a>${blockedBy}</div><div class="task-meta">${tags} ${assignee} <span class="badge ${view.state}">${view.state.toUpperCase()}</span>${moves}</div></article>`
 }
 
 export const AddTaskForm = (
@@ -80,8 +102,26 @@ export const BoardPage = (options: {
       const heading =
         section.name === undefined
           ? "Ungrouped"
-          : `<a href="${escapeHtml(queryHref(options.back, "group", section.name))}">${escapeHtml(section.name)}</a>`
-      return `<section class="task-section"><h2>${heading}</h2>${section.description === "" ? "" : `<div class="section-description markdown">${markdownHtml(section.description)}</div>`}${section.tasks.map((view) => TaskRow(view, { next: options.nextIds.has(view.task.id), back: options.back })).join("")}</section>`
+          : `<a href="${escapeHtml(queryHref(options.back, "group", section.name))}">${escapeHtml(section.name)}</a>${
+              options.capabilities.renameGroup
+                ? ` <a class="section-action" href="${escapeHtml(routes.groups.edit.href(undefined, { searchParams: { name: section.name } }))}">Rename</a>`
+                : ""
+            }`
+      const rows = section.tasks.map((view, index) =>
+        TaskRow(view, {
+          next: options.nextIds.has(view.task.id),
+          back: options.back,
+          ...(options.capabilities.reorder
+            ? {
+                moves: {
+                  above: section.tasks[index - 1]?.task.id,
+                  below: section.tasks[index + 1]?.task.id,
+                },
+              }
+            : {}),
+        }),
+      )
+      return `<section class="task-section"><h2>${heading}</h2>${section.description === "" ? "" : `<div class="section-description markdown">${markdownHtml(section.description)}</div>`}${rows.join("")}</section>`
     })
     .join("")
   return `<h1>${escapeHtml(options.listing.title)}</h1>${options.listing.description === "" ? "" : `<div class="list-description markdown">${markdownHtml(options.listing.description)}</div>`}<p class="summary">${views.length} open · ${ready} ready · ${blocked} blocked</p>${AddTaskForm(options.listing, options.capabilities, options.addValues, options.addIssues)}${sections || '<p class="empty">Nothing open. Add a task above.</p>'}`

@@ -1,11 +1,12 @@
 /** @jsxImportSource remix/ui */
+import { Effect } from "effect"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
 import { authorContext, runTodo } from "../../middleware/todo.ts"
 import { routes } from "../../routes.ts"
 import { Document } from "../../ui/document.tsx"
 import { showId } from "../../ui/format.ts"
-import { EditTaskPage, TaskPage, valuesOf } from "../../ui/task.tsx"
+import { EditTaskPage, RemoveTaskPage, TaskPage, valuesOf } from "../../ui/task.tsx"
 import { renderBoard } from "../controller.tsx"
 import {
   localBack,
@@ -13,6 +14,7 @@ import {
   parseAddForm,
   parseCommentForm,
   parseEditForm,
+  parseMoveForm,
 } from "../forms.ts"
 import {
   capabilitiesOf,
@@ -32,7 +34,12 @@ const idOf = (context: WebContext): string =>
 const tagOf = (error: unknown): string | undefined =>
   typeof error === "object" && error !== null && "_tag" in error ? String(error._tag) : undefined
 
-const renderTask = async (context: WebContext, id: string): Promise<Response> => {
+const renderTask = async (
+  context: WebContext,
+  id: string,
+  moveIssues: ReadonlyArray<string> = [],
+  status = 200,
+): Promise<Response> => {
   const [detail, chrome] = await Promise.all([
     runTodo(runtimeContext(context), (todo) => todo.show(id)),
     loadChrome(context),
@@ -49,11 +56,44 @@ const renderTask = async (context: WebContext, id: string): Promise<Response> =>
         detail: detail.value,
         capabilities: capabilitiesOf(context),
         author: String(context.get(authorContext)),
+        groups: chrome.groups,
+        moveIssues,
       })}
       diagnostics={chrome.diagnosticCounts}
       scriptEntry={scriptEntryOf(context)}
       {...(flash === undefined ? {} : { flash })}
     />,
+    { status },
+  )
+}
+
+const renderRemove = async (
+  context: WebContext,
+  id: string,
+  issues: ReadonlyArray<string> = [],
+  status = 200,
+): Promise<Response> => {
+  const [detail, chrome] = await Promise.all([
+    runTodo(runtimeContext(context), (todo) => todo.show(id)),
+    loadChrome(context),
+  ])
+  if (!detail.ok) return respond(context, detail.error)
+  if (!chrome.ok) return respond(context, chrome.error)
+  const task = detail.value.view.task
+  return renderPage(
+    context,
+    <Document
+      title={chrome.title}
+      pageTitle={`Remove ${showId(task.id)} · ${chrome.title}`}
+      content={RemoveTaskPage(
+        task,
+        detail.value.blocks.map((view) => view.task),
+        issues,
+      )}
+      diagnostics={chrome.diagnosticCounts}
+      scriptEntry={scriptEntryOf(context)}
+    />,
+    { status },
   )
 }
 
@@ -213,6 +253,91 @@ export default createController(routes.tasks, {
         return result.ok
           ? redirect(routes.tasks.show.href({ id }), 303)
           : respond(context, result.error)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
+    },
+
+    move: async (context) => {
+      try {
+        const id = idOf(context)
+        const form = formOf(context)
+        const back = localBack(form.get("back")?.toString())
+        const parsed = parseMoveForm(form)
+        if (parsed.issues.length > 0) return renderTask(context, id, parsed.issues, 422)
+        const anchored = parsed.before !== undefined || parsed.after !== undefined
+        const result = await runTodo(runtimeContext(context), (todo) =>
+          Effect.gen(function* () {
+            if (anchored)
+              return yield* todo.move(id, {
+                ...(parsed.before === undefined ? {} : { before: parsed.before }),
+                ...(parsed.after === undefined ? {} : { after: parsed.after }),
+              })
+            const group = parsed.group === "" ? undefined : parsed.group
+            if (parsed.position === "top") {
+              const section = (yield* todo.list()).sections.find((s) => s.name === group)
+              const first = section?.tasks.find((view) => view.task.id !== id)?.task
+              if (first !== undefined) return yield* todo.move(id, { before: first.id })
+            }
+            return yield* todo.move(id, group === undefined ? {} : { group })
+          }),
+        )
+        if (!result.ok) {
+          const tag = tagOf(result.error)
+          if (tag === "ValidationError")
+            return renderTask(
+              context,
+              id,
+              (result.error as { readonly issues: ReadonlyArray<string> }).issues,
+              422,
+            )
+          if (tag !== "InvalidTransition") return respond(context, result.error)
+          setFlash(context, { message: errorDescription(result.error), tone: "warning" })
+          return redirect(back, 303)
+        }
+        if (!anchored)
+          setFlash(context, {
+            message: `Moved ${showId(result.value.id)} to ${result.value.group ?? "the ungrouped tasks"}.`,
+            tone: "info",
+          })
+        return redirect(back, 303)
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
+    },
+
+    confirmRemove: async (context) => {
+      try {
+        return await renderRemove(context, idOf(context))
+      } catch (defect) {
+        return respondDefect(context, defect)
+      }
+    },
+
+    remove: async (context) => {
+      try {
+        const id = idOf(context)
+        const force = formOf(context).get("force") === "1"
+        const result = await runTodo(runtimeContext(context), (todo) =>
+          Effect.gen(function* () {
+            const { task } = (yield* todo.show(id)).view
+            yield* todo.remove(id, { force })
+            return task
+          }),
+        )
+        if (!result.ok) {
+          if (tagOf(result.error) === "HasDependents")
+            return renderRemove(context, id, [errorDescription(result.error)], 422)
+          return respond(context, result.error)
+        }
+        setFlash(context, {
+          message: `Removed ${showId(result.value.id)} ${result.value.title}.`,
+          tone: "info",
+        })
+        return redirect(
+          result.value.status === "done" ? routes.done.href() : routes.board.href(),
+          303,
+        )
       } catch (defect) {
         return respondDefect(context, defect)
       }

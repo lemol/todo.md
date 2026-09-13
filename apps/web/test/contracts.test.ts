@@ -285,3 +285,219 @@ describe("lifecycle, flash, and secondary pages", () => {
     expect(check).toContain(routes.tasks.show.href({ id: task.id }))
   })
 })
+
+const post = (router: ReturnType<typeof createAppRouter>, path: string, fields: object) => {
+  const body = new FormData()
+  for (const [name, value] of Object.entries(fields)) body.set(name, String(value))
+  return fetchApp(router, path, { method: "POST", body })
+}
+
+const cookieOf = (response: Response): string =>
+  required(response.headers.get("set-cookie")?.split(";", 1)[0])
+
+describe("move, remove, and group management", () => {
+  const titlesOf = async (runtime: ReturnType<typeof makeRuntime>) =>
+    (await runtime.runPromise(TodoService.use((todo) => todo.list()))).sections.map((section) => ({
+      name: section.name,
+      titles: section.tasks.map((view) => view.task.title),
+    }))
+
+  const seedThree = async (runtime: ReturnType<typeof makeRuntime>) => {
+    const add = (title: string, group?: string) =>
+      runtime.runPromise(
+        TodoService.use((todo) => todo.add({ title }, group === undefined ? {} : { group })),
+      )
+    return [await add("One"), await add("Two"), await add("Three", "Backend")]
+  }
+
+  test("board rows move up and down within their section", async () => {
+    const runtime = makeRuntime()
+    const [one, two] = await seedThree(runtime)
+    const router = appWith(runtime)
+    const board = await (await fetchApp(router, routes.board.href())).text()
+    const move = (id: string) => `action="${routes.tasks.move.href({ id })}"`
+    expect(board).toContain(move(required(two?.id)))
+    expect(board).toContain(`name="before" value="${one?.id}"`)
+    expect(board).toContain('aria-label="Move One down"')
+    expect(board).not.toContain('aria-label="Move One up"')
+
+    const moved = await post(router, routes.tasks.move.href({ id: required(two?.id) }), {
+      before: required(one?.id),
+      back: "/?tag=x",
+    })
+    expect(moved.status).toBe(303)
+    expect(moved.headers.get("location")).toBe("/?tag=x")
+    expect(await titlesOf(runtime)).toEqual([
+      { name: undefined, titles: ["Two", "One"] },
+      { name: "Backend", titles: ["Three"] },
+    ])
+  })
+
+  test("the task page moves a task to the top or bottom of a group", async () => {
+    const runtime = makeRuntime()
+    const [one, two] = await seedThree(runtime)
+    const router = appWith(runtime)
+    const page = await (
+      await fetchApp(router, routes.tasks.show.href({ id: required(one?.id) }))
+    ).text()
+    expect(page).toContain(`action="${routes.tasks.move.href({ id: required(one?.id) })}"`)
+    expect(page).toContain('<option value="Backend">Backend</option>')
+
+    const moved = await post(router, routes.tasks.move.href({ id: required(one?.id) }), {
+      group: "Backend",
+      position: "top",
+      back: routes.tasks.show.href({ id: required(one?.id) }),
+    })
+    expect(moved.status).toBe(303)
+    const after = await fetchApp(router, required(moved.headers.get("location")), {
+      headers: { Cookie: cookieOf(moved) },
+    })
+    expect(await after.text()).toContain("Moved 01 to Backend.")
+
+    await post(router, routes.tasks.move.href({ id: required(two?.id) }), {
+      group: "__new__",
+      newGroup: "Launch",
+      position: "top",
+    })
+    await post(router, routes.tasks.move.href({ id: required(one?.id) }), {
+      group: "",
+      position: "bottom",
+    })
+    expect(await titlesOf(runtime)).toEqual([
+      { name: undefined, titles: ["One"] },
+      { name: "Backend", titles: ["Three"] },
+      { name: "Launch", titles: ["Two"] },
+    ])
+
+    const blank = await post(router, routes.tasks.move.href({ id: required(one?.id) }), {
+      group: "__new__",
+      newGroup: "",
+    })
+    expect(blank.status).toBe(422)
+    expect(await blank.text()).toContain("New group is required")
+  })
+
+  test("moving a done task redirects back with a warning", async () => {
+    const runtime = makeRuntime()
+    const task = await seed(runtime)
+    await runtime.runPromise(TodoService.use((todo) => todo.complete(task.id)))
+    const router = appWith(runtime)
+    const moved = await post(router, routes.tasks.move.href({ id: task.id }), {
+      position: "top",
+    })
+    expect(moved.status).toBe(303)
+    const board = await fetchApp(router, routes.board.href(), {
+      headers: { Cookie: cookieOf(moved) },
+    })
+    expect(await board.text()).toContain("cannot be moved")
+    const page = await (await fetchApp(router, routes.tasks.show.href({ id: task.id }))).text()
+    expect(page).not.toContain(`action="${routes.tasks.move.href({ id: task.id })}"`)
+  })
+
+  test("removes a task after confirming, forcing past open dependents", async () => {
+    const runtime = makeRuntime()
+    const blocker = await seed(runtime)
+    await runtime.runPromise(
+      TodoService.use((todo) => todo.add({ title: "Release", dependsOn: [blocker.id] })),
+    )
+    const router = appWith(runtime)
+    const detail = await (await fetchApp(router, routes.tasks.show.href({ id: blocker.id }))).text()
+    expect(detail).toContain(`href="${routes.tasks.confirmRemove.href({ id: blocker.id })}"`)
+
+    const confirm = await (
+      await fetchApp(router, routes.tasks.confirmRemove.href({ id: blocker.id }))
+    ).text()
+    expect(confirm).toContain("Release")
+    expect(confirm).toContain('name="force" value="1"')
+    expect(confirm).toContain("Remove anyway")
+
+    const refused = await post(router, routes.tasks.remove.href({ id: blocker.id }), {})
+    expect(refused.status).toBe(422)
+    expect(await refused.text()).toContain("still has open tasks depending on it: 2")
+
+    const removed = await post(router, routes.tasks.remove.href({ id: blocker.id }), {
+      force: "1",
+    })
+    expect(removed.status).toBe(303)
+    expect(removed.headers.get("location")).toBe(routes.board.href())
+    const board = await fetchApp(router, routes.board.href(), {
+      headers: { Cookie: cookieOf(removed) },
+    })
+    expect(await board.text()).toContain("Removed 01 Write docs.")
+    expect((await fetchApp(router, routes.tasks.show.href({ id: blocker.id }))).status).toBe(404)
+  })
+
+  test("removing a done task returns to Done", async () => {
+    const runtime = makeRuntime()
+    const task = await seed(runtime)
+    await runtime.runPromise(TodoService.use((todo) => todo.complete(task.id)))
+    const router = appWith(runtime)
+    const confirm = await (
+      await fetchApp(router, routes.tasks.confirmRemove.href({ id: task.id }))
+    ).text()
+    expect(confirm).not.toContain('name="force"')
+    const removed = await post(router, routes.tasks.remove.href({ id: task.id }), {})
+    expect(removed.headers.get("location")).toBe(routes.done.href())
+  })
+
+  test("renames a group and rejects a name that exists", async () => {
+    const runtime = makeRuntime()
+    await seedThree(runtime)
+    await runtime.runPromise(
+      TodoService.use((todo) => todo.add({ title: "Four" }, { group: "Ops" })),
+    )
+    const router = appWith(runtime)
+    const editHref = routes.groups.edit.href(undefined, { searchParams: { name: "Backend" } })
+    const board = await (await fetchApp(router, routes.board.href())).text()
+    expect(board).toContain(`href="${editHref}"`)
+
+    const edit = await (await fetchApp(router, editHref)).text()
+    expect(edit).toContain('name="from" value="Backend"')
+
+    const taken = await post(router, routes.groups.rename.href(), { from: "Backend", to: "Ops" })
+    expect(taken.status).toBe(422)
+    expect(await taken.text()).toContain('value="Ops"')
+
+    const blank = await post(router, routes.groups.rename.href(), { from: "Backend", to: " " })
+    expect(blank.status).toBe(422)
+
+    const renamed = await post(router, routes.groups.rename.href(), {
+      from: "Backend",
+      to: "Server",
+    })
+    expect(renamed.status).toBe(303)
+    const after = await fetchApp(router, routes.board.href(), {
+      headers: { Cookie: cookieOf(renamed) },
+    })
+    expect(await after.text()).toContain("Renamed group Backend to Server.")
+    expect((await titlesOf(runtime)).map((section) => section.name)).toEqual([
+      undefined,
+      "Server",
+      "Ops",
+    ])
+
+    const missing = await fetchApp(
+      router,
+      routes.groups.edit.href(undefined, { searchParams: { name: "Nope" } }),
+    )
+    expect(missing.status).toBe(400)
+  })
+
+  test("hides move, and rename without reorder and renameGroup", async () => {
+    const runtime = makeRuntime()
+    const [one] = await seedThree(runtime)
+    const router = appWith(runtime, { ...allCapabilities, reorder: false, renameGroup: false })
+    const board = await (await fetchApp(router, routes.board.href())).text()
+    const page = await (
+      await fetchApp(router, routes.tasks.show.href({ id: required(one?.id) }))
+    ).text()
+    expect(board).not.toContain('class="moves"')
+    expect(board).not.toContain(routes.groups.edit.href())
+    expect(page).not.toContain(`action="${routes.tasks.move.href({ id: required(one?.id) })}"`)
+    const edit = await fetchApp(
+      router,
+      routes.groups.edit.href(undefined, { searchParams: { name: "Backend" } }),
+    )
+    expect(edit.status).toBe(400)
+  })
+})

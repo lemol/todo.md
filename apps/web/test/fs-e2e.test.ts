@@ -67,3 +67,51 @@ test("adds and completes a task through the router over FsTodoStore", async () =
   const doneFiles = await readdir(join(root, "done"), { recursive: true })
   expect(doneFiles.some((file) => file.endsWith("01-persist-me.md"))).toBe(true)
 })
+
+test("moves, renames a group, and removes a task through the router over FsTodoStore", async () => {
+  const root = await mkdtemp(join(tmpdir(), "todo-md-web-e2e-"))
+  await writeFile(
+    join(root, "TODO.md"),
+    "# Disk list\n\n- [ ] 1 - One\n- [ ] 2 - Two\n\n## Backend\n\n- [ ] 3 - Three\n",
+  )
+  const runtime = ManagedRuntime.make(
+    TodoService.layer.pipe(
+      Layer.provide(FsTodoStore.layer({ root })),
+      Layer.provide(BunServices.layer),
+    ),
+  )
+  const router = createAppRouter({
+    runtime,
+    capabilities: allCapabilities,
+    changes: makeFakeChanges(),
+    author: "tester",
+    hosts: ["localhost"],
+    sessionSecret: "test-secret-at-least-32-characters",
+    assets: makeFakeAssets(),
+  })
+  cleanup.push(async () => {
+    await router.close()
+    await runtime.dispose()
+    await rm(root, { recursive: true, force: true })
+  })
+  const post = async (path: string, fields: Record<string, string>) => {
+    const body = new FormData()
+    for (const [name, value] of Object.entries(fields)) body.set(name, value)
+    const response = await router.fetch(
+      new Request(`http://localhost${path}`, {
+        method: "POST",
+        headers: { Host: "localhost" },
+        body,
+      }),
+    )
+    expect(response.status).toBe(303)
+  }
+
+  await post(routes.tasks.move.href({ id: "2" }), { before: "1" })
+  await post(routes.tasks.move.href({ id: "1" }), { group: "Backend", position: "top" })
+  await post(routes.groups.rename.href(), { from: "Backend", to: "Server" })
+  await post(routes.tasks.remove.href({ id: "3" }), {})
+  expect(await readFile(join(root, "TODO.md"), "utf8")).toBe(
+    "# Disk list\n\n- [ ] 2 - Two\n\n## Server\n\n- [ ] 1 - One\n",
+  )
+})

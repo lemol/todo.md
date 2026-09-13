@@ -51,8 +51,9 @@ Out: any Jira code; changing other capabilities.
   - Export `SeedTask` from `@lemol/todo-md/spec/testing`.
 - **CLI.** `todo add` and `todo rm` already print `Unsupported` via core;
   check the message reads well ("this list does not support add").
-- **Web.** Hide the add form when `capabilities.add` is false (remove isn't
-  in the web app yet; task 10 must honor `remove`).
+- **Web.** Hide the add form when `capabilities.add` is false. Without
+  `remove`, hide the task page's Remove link and answer the confirm page
+  (`GET /tasks/:id/remove`, added by task 10) with `Unsupported`.
 
 ## Files
 
@@ -61,7 +62,8 @@ Out: any Jira code; changing other capabilities.
 - `src/core/TodoService.ts`, `src/core/README.md`
 - `src/spec/testing/conformance/*.ts`, `src/spec/testing.ts`,
   `src/spec/README.md`
-- `apps/web/app/ui/board.tsx` (add form), web tests
+- `apps/web/app/ui/board.tsx` (add form), `apps/web/app/ui/task.tsx` and
+  `apps/web/app/actions/tasks/controller.tsx` (remove), web tests
 - `docs/architecture/contract.md` (drop "Planned (task 13)")
 
 ## Tests
@@ -72,7 +74,8 @@ Out: any Jira code; changing other capabilities.
 - Conformance: a test store without `add` but with a `seed` runs every case
   that doesn't require `add`; without `seed` those cases are skipped.
   `MemoryTodoStore` and `FsTodoStore` still pass everything.
-- Web: the board without `add` has no add form.
+- Web: the board without `add` has no add form; a task page without
+  `remove` has no Remove link.
 
 ## Done when
 

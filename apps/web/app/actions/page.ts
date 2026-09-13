@@ -73,6 +73,9 @@ export const loadChrome = async (context: WebContext) => {
   return {
     ok: true as const,
     title: listing.value.title,
+    groups: listing.value.sections.flatMap((section) =>
+      section.name === undefined ? [] : [section.name],
+    ),
     diagnostics: diagnostics.value as ReadonlyArray<Diagnostic>,
     diagnosticCounts: diagnosticCounts(diagnostics.value),
   }

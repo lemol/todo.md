@@ -94,6 +94,7 @@ main > section {
 }
 .add-task form,
 .edit-form,
+.move-form,
 .comment-form {
   display: grid;
   gap: 14px;
@@ -130,6 +131,51 @@ textarea {
 .blocked-by {
   color: var(--blocked-text);
   font-size: 0.82rem;
+}
+.moves {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.moves form {
+  display: inline;
+}
+.move {
+  border-color: transparent;
+  padding: 0 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.move:hover:not(:disabled) {
+  border-color: var(--hairline);
+  color: var(--primary);
+}
+.move:disabled {
+  visibility: hidden;
+}
+.section-action {
+  margin-left: 8px;
+  color: var(--muted);
+  font:
+    0.8rem "SF Pro Text",
+    "Helvetica Neue",
+    system-ui,
+    sans-serif;
+  letter-spacing: 0;
+}
+.warning {
+  color: var(--blocked-text);
+}
+.danger {
+  border-color: var(--error-bg);
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+.actions.confirm {
+  justify-content: flex-start;
 }
 .checkbox {
   width: 1.25rem;
