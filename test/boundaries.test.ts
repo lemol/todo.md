@@ -78,6 +78,8 @@ const webPackages = [
   "@lemol/todo-md/core",
   "@lemol/todo-md/fs",
   "effect",
+  "@effect/platform-bun",
+  "@effect/platform-node-shared",
   "remix",
   "mdast-util-from-markdown",
   "mdast-util-to-hast",
@@ -86,7 +88,7 @@ const webPackages = [
 const webTodoPackages = ["@lemol/todo-md/markdown", "@lemol/todo-md/spec/testing"]
 
 export const webViolations = (file: string, source: string): string[] => {
-  const isTest = file.startsWith("test/")
+  const isTest = file.startsWith("test/") || file.includes(".test.")
   const serverOnly = file === "server.ts" || file === "watch.ts" || file === "app/assets.ts"
   return specifiersOf(source).flatMap((specifier) => {
     if (specifier.startsWith(".")) {
@@ -175,16 +177,27 @@ describe("module boundaries", () => {
     })
 
     test("web consumes todo-md through public subpaths", () => {
-      expect(webViolations("app/router.ts", 'import { TodoService } from "@lemol/todo-md/core"')).toEqual([])
-      expect(webViolations("app/router.ts", 'import { parseTodoFile } from "@lemol/todo-md/markdown"')).toEqual([
-        "app/router.ts: web must not import @lemol/todo-md/markdown",
-      ])
-      expect(webViolations("app/router.ts", 'import { x } from "../../../src/core/index.ts"')).toHaveLength(1)
+      expect(
+        webViolations("app/router.ts", 'import { TodoService } from "@lemol/todo-md/core"'),
+      ).toEqual([])
+      expect(
+        webViolations("app/router.ts", 'import { parseTodoFile } from "@lemol/todo-md/markdown"'),
+      ).toEqual(["app/router.ts: web must not import @lemol/todo-md/markdown"])
+      expect(
+        webViolations("app/router.ts", 'import { x } from "../../../src/core/index.ts"'),
+      ).toHaveLength(1)
     })
 
     test("web test helpers cannot leak into runtime", () => {
-      expect(webViolations("app/router.ts", 'import { effectTest } from "@lemol/todo-md/spec/testing"')).toHaveLength(1)
-      expect(webViolations("test/router.test.ts", 'import { effectTest } from "@lemol/todo-md/spec/testing"')).toEqual([])
+      expect(
+        webViolations("app/router.ts", 'import { effectTest } from "@lemol/todo-md/spec/testing"'),
+      ).toHaveLength(1)
+      expect(
+        webViolations(
+          "test/router.test.ts",
+          'import { effectTest } from "@lemol/todo-md/spec/testing"',
+        ),
+      ).toEqual([])
     })
   })
 })

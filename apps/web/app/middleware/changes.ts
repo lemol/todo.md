@@ -6,10 +6,12 @@ export interface ListChanges {
 
 export const changesContext = createContextKey<ListChanges>()
 
-export const loadChanges = (changes: ListChanges): Middleware => (context, next) => {
-  context.set(changesContext, changes)
-  return next()
-}
+export const loadChanges =
+  (changes: ListChanges): Middleware =>
+  (context, next) => {
+    context.set(changesContext, changes)
+    return next()
+  }
 
 export const makeFakeChanges = (): ListChanges & { emit(): void; listenerCount(): number } => {
   const listeners = new Set<() => void>()

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
-import { Effect } from "effect"
 import { TaskNotFound } from "@lemol/todo-md/spec"
+import { Effect } from "effect"
 import { runTodo, taskId } from "../app/middleware/todo.ts"
 import { routes } from "../app/routes.ts"
 import { makeRouter, makeRuntime } from "./harness.ts"
@@ -8,20 +8,24 @@ import { makeRouter, makeRuntime } from "./harness.ts"
 test("rejects foreign hosts, including the event stream", async () => {
   const router = makeRouter()
   for (const path of [routes.board.href(), routes.events.href()]) {
-    const response = await router.fetch(new Request(`http://foreign.example${path}`, {
-      headers: { Host: "foreign.example" },
-    }))
+    const response = await router.fetch(
+      new Request(`http://foreign.example${path}`, {
+        headers: { Host: "foreign.example" },
+      }),
+    )
     expect(response.status).toBe(403)
   }
 })
 
 test("rejects cross-origin POSTs", async () => {
   const router = makeRouter()
-  const response = await router.fetch(new Request(`http://localhost${routes.tasks.add.href()}`, {
-    method: "POST",
-    headers: { Host: "localhost", Origin: "http://foreign.example" },
-    body: new FormData(),
-  }))
+  const response = await router.fetch(
+    new Request(`http://localhost${routes.tasks.add.href()}`, {
+      method: "POST",
+      headers: { Host: "localhost", Origin: "http://foreign.example" },
+      body: new FormData(),
+    }),
+  )
   expect(response.status).toBe(403)
 })
 

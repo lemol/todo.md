@@ -1,9 +1,8 @@
-import { Layer, ManagedRuntime } from "effect"
-import { MemoryTodoStore } from "@lemol/todo-md/spec"
-import { allCapabilities } from "@lemol/todo-md/spec"
 import { TodoService } from "@lemol/todo-md/core"
-import { createAppRouter } from "../app/router.ts"
+import { allCapabilities, MemoryTodoStore } from "@lemol/todo-md/spec"
+import { Layer, ManagedRuntime } from "effect"
 import { makeFakeChanges } from "../app/middleware/changes.ts"
+import { createAppRouter } from "../app/router.ts"
 
 export const makeRuntime = () => {
   const store = MemoryTodoStore.layer({ title: "Acme", description: "Ship deliberately." })

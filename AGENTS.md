@@ -29,6 +29,7 @@ src/
   core/        adapter-agnostic logic (never imports an adapter)
   fs/          TodoStore over a list directory
   cli/         `todo` binary: the composition root
+apps/web/      private local Remix web UI over one list
 test/          bun:test suites, mirroring src/, plus boundaries.test.ts
 ```
 
@@ -40,6 +41,7 @@ bun run check         # lint + typecheck + tests: the gate for every change
 bun test              # tests only
 bun run fix           # apply Biome fixes
 bun src/cli/bin.ts    # run the todo CLI from source
+bun run web -- --dir todo  # run the private local web app
 ```
 
 ## Rules

@@ -8,8 +8,8 @@ todo.md is:
    the operations on them.
 2. **A reference implementation** that stores a list as Markdown files in a
    directory.
-3. **A CLI**, `todo`, to manage and view lists. A web app will follow, built
-   on the same core.
+3. **A CLI**, `todo`, to manage and view lists.
+4. **A private local web app**, built on the same core.
 
 > Status: early. The spec is a 0.1 draft; the modules are scaffolded but not
 > implemented yet.
@@ -77,6 +77,13 @@ todo --help                            # every command has --help
 Run it with `bun src/cli/bin.ts` from a checkout, `bun link` it, or get
 `todo` from `node_modules/.bin` when `@lemol/todo-md` is a dependency. See
 the [cli README](src/cli/README.md).
+
+## Using the web app
+
+From a checkout, run `bun run web -- --dir todo` to open the local board at
+`127.0.0.1:4400`. It supports Board, task detail/edit, Done, Check, add,
+complete, reopen and comments. Pages and forms work without JavaScript; an
+optional browser entry refreshes clean pages when the list changes.
 
 ## Development
 

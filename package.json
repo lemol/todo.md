@@ -2,7 +2,9 @@
   "name": "@lemol/todo-md",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "description": "todo.md: a standard for Markdown task lists, its file-system implementation and the `todo` CLI",
   "type": "module",
   "exports": {

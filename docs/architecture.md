@@ -12,7 +12,7 @@ split the way they are. For what a task *is* and how the files look, see
 - **Backends are adapters.** The file system is the reference adapter. Jira, a
   GitHub-backed store or a database are further adapters behind the same
   contract.
-- **Frontends share one core.** The CLI today and a web app later run the same
+- **Frontends share one core.** The CLI and local web app run the same
   logic; they differ only in presentation and in the adapter they wire in.
 - **Human and agent friendly.** Files stay hand-editable with minimal diffs.
   The CLI is scriptable (`--json`, no prompts without a TTY, stable exit
@@ -24,7 +24,7 @@ todo.md ships as **one package**, `@lemol/todo-md`, whose repository root is
 the package. Each module is a directory under `src/` and a subpath export:
 
 ```
-                ┌───────── cli (`todo`) ─────────┐        web (later)
+                ┌───────── cli (`todo`) ─────────┐        web
                 │  composition root: wires the    │
                 │  fs adapter into core           │
                 └──────┬───────────────────┬──────┘
@@ -46,6 +46,7 @@ the package. Each module is a directory under `src/` and a subpath export:
 | [`src/core`](../src/core)         | `@lemol/todo-md/core`          | spec, `effect`                           | Adapter-agnostic logic: queries, ready/blocked, validation, mutation guards     |
 | [`src/fs`](../src/fs)             | `@lemol/todo-md/fs`            | spec, markdown, `effect`                 | `TodoStore` over a list directory; discovery; safe writes                       |
 | [`src/cli`](../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                                      |
+| [`apps/web`](../apps/web)         | `@lemol/todo-md-web`           | public todo-md subpaths, `effect`, Remix and renderer packages; server entry also Bun/Node | Private local web UI over one list |
 
 **Dependency rules** (enforced by
 [`test/boundaries.test.ts`](../test/boundaries.test.ts), which reads every
@@ -55,7 +56,7 @@ import in `src/` and checks it against the table above):
   name.
 - `core` never imports an adapter.
 - `markdown` does no I/O.
-- Only apps (`cli`, later `web`) choose and wire adapters, and only `cli`
+- Only apps (`cli`, `web`) choose and wire adapters, and only app composition roots
   touches Bun or Node APIs directly.
 - Runtime code never imports `spec/testing`.
 
@@ -83,6 +84,13 @@ honest the way separate manifests would.
 repositories use**. Two copies of `effect` in one process break schema and
 error class identity and Effect's runtime internals, so consumers, framework
 and todo.md must share a single copy.
+
+## Decision log
+
+- **Remix 3, local server first.** The first web UI is a private Bun server over
+  one filesystem list; server-rendered forms keep the app useful without JS.
+- **GitHub-backed hosting later.** A hosted adapter and authentication remain
+  follow-up work behind the existing `TodoStore` boundary.
 
 ## The contract: `TodoStore`
 
