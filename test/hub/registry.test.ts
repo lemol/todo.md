@@ -1,0 +1,153 @@
+import { describe, expect, test } from "bun:test"
+import { BunServices } from "@effect/platform-bun"
+import { Effect } from "effect"
+import { RegistryError } from "../../src/hub/errors.ts"
+import { makeRegistry } from "../../src/hub/registry.ts"
+import { effectTest } from "../../src/spec/testing.ts"
+import { Disk, diskWith, md } from "./helpers.ts"
+
+const registryOnDisk = Effect.gen(function* () {
+  const { root } = yield* Disk
+  return yield* makeRegistry(`${root}/.todo-md`).pipe(Effect.provide(BunServices.layer))
+})
+
+const commented = md(
+  "# My projects",
+  "projects:",
+  "  # The main one",
+  "  a:",
+  "    source: fs # local",
+  "    path: /code/a",
+  "  b:",
+  "    source: memory",
+)
+
+describe("the registry file", () => {
+  effectTest(
+    "a missing file is an empty registry, and reading creates nothing",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      expect(yield* registry.entries).toEqual([])
+      expect(yield* (yield* Disk).tree()).toEqual([])
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "entries come back in file order with their fields",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      expect(yield* registry.entries).toEqual([
+        { name: "a", value: { source: "fs", path: "/code/a" } },
+        { name: "b", value: { source: "memory" } },
+      ])
+    }),
+    diskWith({ ".todo-md/projects.yaml": commented }),
+  )
+
+  effectTest(
+    "the first write creates the home and the file",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      yield* registry.update((edit) => Effect.sync(() => edit.add("app", { source: "memory" })))
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
+        md("projects:", "  app:", "    source: memory"),
+      )
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "add, rename and delete keep comments and order",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      yield* registry.update((edit) =>
+        Effect.sync(() => {
+          edit.add("c", { source: "memory", title: "C" })
+          edit.rename("a", "renamed")
+          edit.delete("b")
+        }),
+      )
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
+        md(
+          "# My projects",
+          "projects:",
+          "  # The main one",
+          "  renamed:",
+          "    source: fs # local",
+          "    path: /code/a",
+          "  c:",
+          "    source: memory",
+          "    title: C",
+        ),
+      )
+    }),
+    diskWith({ ".todo-md/projects.yaml": commented }),
+  )
+
+  effectTest(
+    "adding to an emptied registry writes a block map",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      yield* registry.update((edit) => Effect.sync(() => edit.add("a", { source: "memory" })))
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
+        md("projects:", "  a:", "    source: memory"),
+      )
+    }),
+    diskWith({ ".todo-md/projects.yaml": md("projects: {}") }),
+  )
+
+  effectTest(
+    "a failing edit writes nothing",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      const error = yield* Effect.flip(
+        registry.update((edit) =>
+          Effect.gen(function* () {
+            edit.delete("a")
+            return yield* new RegistryError({ message: "no" })
+          }),
+        ),
+      )
+      expect(error.message).toBe("no")
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(commented)
+      expect(yield* (yield* Disk).exists(".todo-md/.todo.lock")).toBe(false)
+    }),
+    diskWith({ ".todo-md/projects.yaml": commented }),
+  )
+
+  for (const [text, reason] of [
+    ["projects: [\n", "unparsable YAML"],
+    ["- a\n", "a top level that is not a map"],
+    ["projects: [a, b]\n", "projects that is not a map"],
+  ] as const) {
+    effectTest(
+      `fails to read ${reason}`,
+      Effect.gen(function* () {
+        const registry = yield* registryOnDisk
+        const error = yield* Effect.flip(registry.entries)
+        expect(error._tag).toBe("RegistryError")
+        expect(error.message).toContain("projects.yaml")
+      }),
+      diskWith({ ".todo-md/projects.yaml": text }),
+    )
+  }
+})
+
+// Real clock: the lock retries with sleeps.
+test("concurrent updates from two registries over one home all land", () =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const [one, two] = [yield* registryOnDisk, yield* registryOnDisk]
+      yield* Effect.all(
+        Array.from({ length: 10 }, (_, i) =>
+          (i % 2 === 0 ? one : two).update((edit) =>
+            Effect.sync(() => edit.add(`p${i}`, { source: "memory" })),
+          ),
+        ),
+        { concurrency: "unbounded" },
+      )
+      const names = (yield* one.entries).map((entry) => entry.name).sort()
+      expect(names).toEqual(["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"])
+    }).pipe(Effect.provide(diskWith({}))),
+  ))
