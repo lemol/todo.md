@@ -192,7 +192,55 @@ describe("add", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "refuses a leftover data directory without deleting it",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      yield* disk.write(".todo-md/projects/x/keep", "keep")
+      const hub = yield* hubOn([memorySource()])
+      const error = yield* Effect.flip(hub.add({ name: "x", source: "memory", config: {} }))
+      expect(error._tag).toBe("RegistryError")
+      expect(error.message).toContain("already exists")
+      expect(yield* disk.exists(".todo-md/projects/x/keep")).toBe(true)
+      expect(yield* hub.projects()).toEqual([])
+    }),
+    diskWith({}),
+  )
 })
+
+test("concurrent adds of one name keep the winner's directory", () =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const [one, two] = [
+        yield* hubOn([
+          memorySource({
+            prepare: (project) =>
+              Effect.flatMap(FileSystem.FileSystem, (fs) =>
+                fs.writeFileString(`${project.dir}/marker`, project.name),
+              ).pipe(Effect.orDie, Effect.andThen(Effect.sleep("50 millis"))),
+          }),
+        ]),
+        yield* hubOn([
+          memorySource({
+            prepare: (project) =>
+              Effect.flatMap(FileSystem.FileSystem, (fs) =>
+                fs.writeFileString(`${project.dir}/marker`, project.name),
+              ).pipe(Effect.orDie, Effect.andThen(Effect.sleep("50 millis"))),
+          }),
+        ]),
+      ]
+      const results = yield* Effect.all(
+        [one, two].map((hub) => Effect.exit(hub.add({ name: "x", source: "memory", config: {} }))),
+        { concurrency: "unbounded" },
+      )
+      expect(results.filter(Exit.isSuccess)).toHaveLength(1)
+      const projects = yield* one.projects()
+      expect(projects.map((project) => project.name)).toEqual(["x"])
+      const disk = yield* Disk
+      expect(yield* disk.exists(".todo-md/projects/x/marker")).toBe(true)
+    }).pipe(Effect.scoped, Effect.provide(diskWith({}))),
+  ))
 
 describe("remove", () => {
   effectTest(

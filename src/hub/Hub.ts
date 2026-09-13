@@ -151,8 +151,17 @@ const make = (options: HubOptions) =>
           }
           const dir = dirOf(name)
           yield* fs
-            .makeDirectory(dir, { recursive: true })
-            .pipe(Effect.mapError(ioError(`could not create ${dir}`)))
+            .makeDirectory(path.dirname(dir), { recursive: true })
+            .pipe(Effect.mapError(ioError(`could not create ${path.dirname(dir)}`)))
+          yield* fs.makeDirectory(dir).pipe(
+            Effect.mapError((error) =>
+              error.reason._tag === "AlreadyExists"
+                ? new RegistryError({
+                    message: `${dir} already exists; remove it or choose another name`,
+                  })
+                : ioError(`could not create ${dir}`)(error),
+            ),
+          )
           yield* Effect.gen(function* () {
             if (source.prepare !== undefined) {
               yield* inEnv(source.prepare({ name, config, dir }))
