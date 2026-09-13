@@ -1,0 +1,23 @@
+{
+  "skill_name": "todo-md",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a high-priority task titled 'Document backup recovery' to this project's todo list, and tell me its ID.",
+      "expected_output": "Reads local policy, uses the appropriate CLI to add the task, treats the returned ID as authoritative, and verifies the result.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What task should I work on next? Mark it complete after checking it is the right task.",
+      "expected_output": "Uses next and task context before completing through the CLI, then verifies the mutation.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Please record that bun run check fails because of a TypeScript type error, in this repository's todo list.",
+      "expected_output": "Finds the intended list from a nested directory, avoids duplicate work, and uses the CLI only when a mutation is needed.",
+      "files": []
+    }
+  ]
+}
