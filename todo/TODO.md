@@ -2,8 +2,6 @@
 
 ## Release
 
-- [ ] 03 - Push the lemol-workspace commit that registers todo-md
-  #workspace
 - [ ] 04 - Pin @effect/platform-node-shared in Mionso
   #deps
   Mionso pins @effect/platform-bun 4.0.0-rc.108, whose ^4.0.0-rc.108 range for platform-node-shared resolves to an incompatible release candidate (see docs/architecture.md, Tooling).
