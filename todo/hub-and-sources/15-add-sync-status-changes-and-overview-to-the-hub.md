@@ -26,6 +26,13 @@ Already there from task 14: `SyncError` (`{ project, reason, message }`) and
 receive `FileSystem` and `Path` from the hub (`SourceEnv`). See
 [`src/hub/README.md`](../../src/hub/README.md).
 
+From task 14's review: when `projects.yaml` changes from another process,
+compare entries and invalidate the `LayerMap` keys of changed or removed
+names (design §3 says layers are invalidated when an entry changes; today
+only this hub's own edits do). `todo()` returns a service whose layer scope
+a later invalidation can close: fine for fs and memory, but it matters for
+stores with finalizers.
+
 ## Design
 
 **State** (`<home>/projects/<name>/state.json`):

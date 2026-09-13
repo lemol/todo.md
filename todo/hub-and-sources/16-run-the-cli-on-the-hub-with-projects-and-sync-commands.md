@@ -20,6 +20,14 @@ commands and output; post-mutation status warnings.
 Out: git and jira flags on `projects add` and their sources' wiring (tasks
 19 and 06 add them); `init`/`fmt` for non-fs sources.
 
+From task 14's review: unregistered projects are keyed by the raw path, so
+`--dir app` and discovery of `app/todo` can yield two projects for one
+list, and `--dir` at a directory with no list adds a phantom project that
+fails only in `todo()`. `--dir` goes through `fsSource`, which prefers
+`<dir>/todo/TODO.md`. `fsSource.owns` compares paths textually, so
+symlinks (`/tmp` vs `/private/tmp`) don't match. `projectInput` leaves
+`~alice/app` relative to `cwd` and treats `HTTPS://…` as fs.
+
 ## Design
 
 **Composition.** `CliContext` gains `home` (from `$TODO_MD_HOME`, else

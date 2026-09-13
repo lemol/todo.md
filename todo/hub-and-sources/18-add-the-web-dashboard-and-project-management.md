@@ -21,6 +21,10 @@ dashboard.
 
 Out: new sources (19, 06 wire theirs); a progress UI for clones.
 
+From task 14's review: after an open unregistered list is registered under
+a different name, the unregistered project stays in `projects()`, a
+duplicate row. Decide how "Register" replaces it.
+
 ## Design
 
 **Dashboard (`GET /`)** from `hub.overview(query)` and `hub.projects()`:

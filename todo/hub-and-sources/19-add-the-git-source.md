@@ -21,6 +21,12 @@ CLI and web composition roots; `todo projects add` flags `--branch` and
 Out: GitHub API use (everything goes through `git`); per-project credentials;
 a progress UI; `fmt`/`init` on git projects.
 
+From task 14's review: `remove` of a broken entry (git source not loaded,
+or an invalid config) cannot call `beforeRemove`, so it deletes the data
+directory, a clone with possibly unpushed commits, without `force`. Require
+`force` when the source cannot be consulted and the data directory is not
+empty.
+
 ## Design
 
 **Running git.** A small `Git` helper (`src/git/git.ts`) over
