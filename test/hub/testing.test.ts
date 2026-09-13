@@ -50,6 +50,7 @@ describe("memorySource", () => {
       expect(source.kind).toBe("memory")
       expect(source.defaultName?.({})).toBe("memo")
       expect(source.sync).toBeUndefined()
+      expect(memorySource({ kind: "probe" }).kind).toBe("probe")
     }),
   )
 })

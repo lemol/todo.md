@@ -8,9 +8,11 @@ import {
   Path,
   type PlatformError,
   Random,
+  type Stream,
 } from "effect"
 import { TodoService } from "../core/index.ts"
-import type { StoreError } from "../spec/index.ts"
+import { type StoreError, TodoStore } from "../spec/index.ts"
+import { type Changes, type HubChange, makeChanges, notifying, type Watched } from "./changes.ts"
 import {
   type InvalidProjectConfig,
   type NoListFound,
@@ -24,6 +26,7 @@ import { isValidName } from "./names.ts"
 import {
   decodeConfig,
   fieldsOf,
+  fingerprintOf,
   infoOf,
   type Project,
   registeredProject,
@@ -74,6 +77,8 @@ export class Hub extends Context.Service<
     >
     /** The last sync (`state.json`), overlaid with the source's live fields. Never fails for a found project. */
     status(name: string): Effect.Effect<ProjectStatus, ProjectNotFound | RegistryError>
+    /** Project, sync and registry changes. Watchers run only while something consumes it. */
+    readonly changes: Stream.Stream<HubChange>
   }
 >()("@lemol/todo-md/hub/Hub") {
   /** Requires `FileSystem` and `Path`. Dies if two sources share a kind. */
@@ -138,6 +143,24 @@ const make = (options: HubOptions) =>
     const describe = (project: Project): Effect.Effect<ProjectInfo> =>
       Effect.map(inEnv(statusOf(project)), (status) => infoOf(project, status))
 
+    // The fingerprint of the entry each cached service was built from.
+    const built = new Map<string, string>()
+
+    const watched = Effect.map(registered, (projects) =>
+      [...projects, ...unregistered.all()].flatMap((project): ReadonlyArray<Watched> => {
+        const { config } = project
+        if (config._tag === "Invalid" || config.source.changes === undefined) return []
+        const stream = config.source.changes(sourceProjectOf(project, config.value))
+        return [{ name: project.name, key: fingerprintOf(project), changes: stream }]
+      }),
+    )
+    const changes: Changes = yield* makeChanges({
+      home: options.home,
+      watched,
+      onRegistryFile: Effect.suspend(() => refreshServices),
+    })
+    const registryChanged = Effect.andThen(changes.reconcile, changes.publish({ kind: "registry" }))
+
     const services = yield* LayerMap.make(
       (name: string) =>
         Layer.unwrap(
@@ -145,11 +168,56 @@ const make = (options: HubOptions) =>
             const project = yield* find(name)
             const { config } = project
             if (config._tag === "Invalid") return yield* config.problem
-            const store = config.source.open(sourceProjectOf(project, config.value))
-            return TodoService.layer.pipe(Layer.provide(store))
+            const opened = config.source.open(sourceProjectOf(project, config.value))
+            // Sources with `changes` report every change themselves; for the others, the hub
+            // reports its own mutations.
+            const store =
+              config.source.changes !== undefined
+                ? opened
+                : Layer.effect(
+                    TodoStore,
+                    Effect.map(TodoStore, (store) =>
+                      notifying(store, changes.publish({ kind: "changed", project: name })),
+                    ),
+                  ).pipe(Layer.provide(opened))
+            return Layer.fresh(TodoService.layer).pipe(Layer.provide(store))
           }),
         ),
       { idleTimeToLive: Duration.infinity },
+    )
+
+    // Drops a cached service, so its scope closes and the next `todo` builds it afresh.
+    const forget = (name: string): Effect.Effect<void> =>
+      Effect.andThen(
+        Effect.sync(() => built.delete(name)),
+        services.invalidate(name),
+      )
+
+    // Callers look the project up first, so an entry changed by another process is seen.
+    const serviceOf = (project: Project) =>
+      Effect.gen(function* () {
+        const key = fingerprintOf(project)
+        if (built.get(project.name) !== key) {
+          yield* services.invalidate(project.name)
+          built.set(project.name, key)
+        }
+        const context = yield* Effect.scoped(services.contextEffect(project.name))
+        return Context.get(context, TodoService)
+      }).pipe(
+        // A failed build is cached like a success; drop it so the next call retries.
+        Effect.tapError(() => forget(project.name)),
+      )
+
+    // Another process changed `projects.yaml`: close services built from changed or removed entries.
+    const refreshServices: Effect.Effect<void> = Effect.gen(function* () {
+      const current = new Map(
+        (yield* registered).map((project) => [project.name, fingerprintOf(project)]),
+      )
+      for (const [name, key] of [...built]) {
+        if (unregistered.get(name) === undefined && current.get(name) !== key) yield* forget(name)
+      }
+    }).pipe(
+      Effect.catch((error) => Effect.logWarning(`could not refresh projects: ${error.message}`)),
     )
 
     return Hub.of({
@@ -199,7 +267,8 @@ const make = (options: HubOptions) =>
             )
           }).pipe(Effect.onError(() => Effect.ignore(fs.remove(dir, { recursive: true }))))
           unregistered.forget(name)
-          yield* services.invalidate(name)
+          yield* forget(name)
+          yield* registryChanged
           return yield* describe({
             name,
             kind: source.kind,
@@ -249,7 +318,8 @@ const make = (options: HubOptions) =>
                   : Effect.void,
               ),
             )
-          yield* services.invalidate(name)
+          yield* forget(name)
+          yield* registryChanged
           if (aside !== undefined) {
             yield* fs.remove(aside, { recursive: true }).pipe(
               Effect.mapError(
@@ -302,23 +372,26 @@ const make = (options: HubOptions) =>
               ),
             )
           unregistered.forget(to)
-          yield* services.invalidate(from)
-          yield* services.invalidate(to)
+          yield* forget(from)
+          yield* forget(to)
+          yield* registryChanged
           return yield* describe(yield* find(to))
         }),
 
       resolve: (at) =>
         inEnv(resolveProject(at, { registered, find, unregistered })).pipe(
+          // Resolution may open an unregistered project, which is watched too.
+          Effect.tap(() => changes.reconcile),
           Effect.flatMap(describe),
         ),
 
       todo: (name) =>
-        Effect.scoped(services.contextEffect(name)).pipe(
-          Effect.map((context) => Context.get(context, TodoService)),
-          // A failed build is cached like a success; drop it so the next call retries.
-          Effect.tapError(() => services.invalidate(name)),
+        find(name).pipe(
+          Effect.flatMap(serviceOf),
+          Effect.tapError(() => forget(name)),
         ),
 
       status: (name) => Effect.flatMap(find(name), (project) => inEnv(statusOf(project))),
+      changes: changes.stream,
     })
   })

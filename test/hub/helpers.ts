@@ -7,10 +7,13 @@ import {
   FileSystem,
   Layer,
   Option,
+  PubSub,
   Queue,
   type Scope,
+  Stream,
 } from "effect"
-import { type AnySource, Hub } from "../../src/hub/index.ts"
+import { type AnySource, Hub, type HubChange } from "../../src/hub/index.ts"
+import type { MemoryHooks } from "../../src/hub/testing.ts"
 import { Disk } from "../fs/helpers.ts"
 
 export { Disk, diskWith, md } from "../fs/helpers.ts"
@@ -68,4 +71,55 @@ export const eventually = <A, E, R>(
       if (Option.isSome(found)) return found
     }
     return Option.none()
+  })
+
+/** A `changes` hook for `memorySource` that reports watcher starts and stops and emits on demand. */
+export interface Watchers {
+  /** Project names, as their watchers start. */
+  readonly started: Queue.Queue<string>
+  /** Project names, as their watchers stop. */
+  readonly stopped: Queue.Queue<string>
+  /** Makes project `name`'s watcher emit once. */
+  emit(name: string): Effect.Effect<void>
+  readonly changes: NonNullable<MemoryHooks["changes"]>
+}
+
+export const makeWatchers: Effect.Effect<Watchers> = Effect.gen(function* () {
+  const started = yield* Queue.unbounded<string>()
+  const stopped = yield* Queue.unbounded<string>()
+  const emitted = yield* PubSub.unbounded<string>()
+  return {
+    started,
+    stopped,
+    emit: (name) => Effect.asVoid(PubSub.publish(emitted, name)),
+    // Subscribed before `started` is reported, so an emit after `started` is never lost.
+    changes: (project) =>
+      Stream.unwrap(
+        Effect.gen(function* () {
+          const subscription = yield* PubSub.subscribe(emitted)
+          yield* Queue.offer(started, project.name)
+          return Stream.fromSubscription(subscription).pipe(
+            Stream.filter((name) => name === project.name),
+            Stream.map(() => undefined),
+          )
+        }),
+      ).pipe(Stream.ensuring(Queue.offer(stopped, project.name))),
+  }
+})
+
+/**
+ * Subscribes to `hub.changes` for the rest of the test and waits until the
+ * hub's watchers run: `started` must receive a name, so some registered
+ * project must use a `makeWatchers` source. The hub subscribes before it
+ * starts watchers, so no event after this returns is missed.
+ */
+export const listen = (hub: Hub["Service"], started: Queue.Queue<string>) =>
+  Effect.gen(function* () {
+    const events = yield* Queue.unbounded<HubChange>()
+    const fiber = yield* hub.changes.pipe(
+      Stream.runForEach((change) => Queue.offer(events, change)),
+      Effect.forkScoped,
+    )
+    const first = yield* Queue.take(started)
+    return { events, fiber, first }
   })

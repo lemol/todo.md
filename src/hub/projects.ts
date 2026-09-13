@@ -143,3 +143,12 @@ export const infoOf = (project: Project, status: ProjectStatus): ProjectInfo => 
     status,
   }
 }
+
+/** What a project's store is built from; it differs whenever the entry does. */
+export const fingerprintOf = (project: Project): string =>
+  JSON.stringify([
+    project.registered,
+    project.kind,
+    project.dir ?? null,
+    project.config._tag === "Valid" ? project.config.value : project.config.problem.message,
+  ])

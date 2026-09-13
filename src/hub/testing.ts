@@ -19,12 +19,13 @@ export type MemoryConfig = typeof MemoryConfig.Type
 export type MemoryHooks = Partial<
   Pick<
     Source<MemoryConfig>,
-    "defaultName" | "prepare" | "sync" | "changes" | "status" | "beforeRemove" | "owns"
+    "kind" | "defaultName" | "prepare" | "sync" | "changes" | "status" | "beforeRemove" | "owns"
   >
 >
 
 /**
- * A fresh `memory` source. Each project's store is a `MemoryTodoStore` seeded
+ * A fresh `memory` source. `hooks` add behavior; `kind` renames the source, so
+ * a test can load two. Each project's store is a `MemoryTodoStore` seeded
  * from `tasks` on first open and kept by project name for as long as this
  * source value lives, so state survives rebuilt layers within a test.
  */

@@ -1,3 +1,4 @@
+export type { HubChange } from "./changes.ts"
 export * from "./errors.ts"
 export { Hub, type HubOptions } from "./Hub.ts"
 export { type AddInput, type ProjectInputOptions, projectInput } from "./input.ts"

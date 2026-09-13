@@ -554,6 +554,37 @@ describe("todo", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "rebuilds a project's service when its entry changes on disk",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const hub = yield* hubOn([fsSource])
+      expect((yield* (yield* hub.todo("app")).list()).title).toBe("A")
+      yield* disk.write(
+        ".todo-md/projects.yaml",
+        md("projects:", "  app:", "    source: fs", "    path: ~/b"),
+      )
+      expect((yield* (yield* hub.todo("app")).list()).title).toBe("B")
+    }),
+    diskWith({
+      "a/TODO.md": md("# A"),
+      "b/TODO.md": md("# B"),
+      ".todo-md/projects.yaml": md("projects:", "  app:", "    source: fs", "    path: ~/a"),
+    }),
+  )
+
+  effectTest(
+    "fails with ProjectNotFound once its entry is removed on disk",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.todo("m")
+      yield* disk.write(".todo-md/projects.yaml", md("projects:"))
+      expect((yield* Effect.flip(hub.todo("m")))._tag).toBe("ProjectNotFound")
+    }),
+    diskWith({ ".todo-md/projects.yaml": md("projects:", "  m:", "    source: memory") }),
+  )
 })
 
 // Real clock: the registry lock retries with sleeps.
