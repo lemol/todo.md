@@ -13,6 +13,7 @@
     "./markdown": "./src/markdown/index.ts",
     "./core": "./src/core/index.ts",
     "./fs": "./src/fs/index.ts",
+    "./hub": "./src/hub/index.ts",
     "./cli": "./src/cli/index.ts"
   },
   "bin": {

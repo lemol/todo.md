@@ -23,18 +23,22 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
   },
   core: { modules: ["spec"], packages: ["effect"] },
   fs: { modules: ["spec", "markdown"], packages: ["effect"] },
+  hub: { modules: ["spec", "core", "fs"], packages: ["effect", "yaml"] },
   cli: {
-    modules: ["spec", "core", "fs"],
+    modules: ["spec", "core", "fs", "hub"],
     packages: ["effect", "@effect/platform-bun", "node:", "bun"],
   },
 }
 
-// Test helpers shipped for adapters (`@lemol/todo-md/spec/testing`) may use
-// the test runner and assertions; nothing else may import them.
-const testingEntry = join("spec", "testing")
+// Test helpers shipped for adapters (`@lemol/todo-md/spec/testing`) and for
+// hub users (`@lemol/todo-md/hub/testing`) may use the test runner and
+// assertions; nothing else may import them.
+const testingEntries = [join("spec", "testing"), join("hub", "testing")]
 const testingPackages = ["bun:test", "node:assert"]
 const isTestingFile = (path: string) =>
-  path === testingEntry || path === `${testingEntry}.ts` || path.startsWith(testingEntry + sep)
+  testingEntries.some(
+    (entry) => path === entry || path === `${entry}.ts` || path.startsWith(entry + sep),
+  )
 
 const srcRoot = resolve(import.meta.dir, "..", "src")
 const webRoot = resolve(import.meta.dir, "..", "apps", "web")
@@ -170,6 +174,36 @@ describe("module boundaries", () => {
       ).toEqual([
         `${at("core", "service.ts")}: runtime code imports test helpers (../spec/testing.ts)`,
       ])
+    })
+
+    test("lets hub use core, fs and yaml, and nothing above it", () => {
+      const source = [
+        'import { TodoService } from "../core/index.ts"',
+        'import { FsTodoStore } from "../fs/index.ts"',
+        'import { parseDocument } from "yaml"',
+      ].join("\n")
+      expect(violations(at("hub", "Hub.ts"), source)).toEqual([])
+      expect(violations(at("hub", "Hub.ts"), 'import { x } from "../cli/errors.ts"')).toEqual([
+        `${at("hub", "Hub.ts")}: module hub must not import module cli`,
+      ])
+      expect(violations(at("hub", "Hub.ts"), 'import { homedir } from "node:os"')).toEqual([
+        `${at("hub", "Hub.ts")}: module hub must not import package node:os`,
+      ])
+      expect(violations(at("cli", "context.ts"), 'import { Hub } from "../hub/index.ts"')).toEqual(
+        [],
+      )
+    })
+
+    test("keeps hub test helpers out of runtime code", () => {
+      expect(
+        violations(at("hub", "testing.ts"), 'import { MemoryTodoStore } from "../spec/index.ts"'),
+      ).toEqual([])
+      expect(
+        violations(at("hub", "Hub.ts"), 'import { memorySource } from "./testing.ts"'),
+      ).toEqual([`${at("hub", "Hub.ts")}: runtime code imports test helpers (./testing.ts)`])
+      expect(
+        violations(at("cli", "main.ts"), 'import { memorySource } from "../hub/testing.ts"'),
+      ).toEqual([`${at("cli", "main.ts")}: runtime code imports test helpers (../hub/testing.ts)`])
     })
 
     test("rejects files outside a module", () => {

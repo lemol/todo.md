@@ -1,9 +1,6 @@
 import { Schema } from "effect"
 
-/** No list was found by walking up from the working directory. */
-export class NoListFound extends Schema.TaggedError<NoListFound>()("NoListFound", {
-  cwd: Schema.String,
-}) {}
+export { NoListFound } from "../hub/index.ts"
 
 /** The command line asked for nothing to do, or for contradictory things. */
 export class UsageError extends Schema.TaggedError<UsageError>()("UsageError", {
