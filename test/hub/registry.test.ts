@@ -86,6 +86,36 @@ describe("the registry file", () => {
   )
 
   effectTest(
+    "delete finds a key that is not a string, like has does",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      yield* registry.update((edit) =>
+        Effect.sync(() => {
+          expect(edit.has("2024")).toBe(true)
+          edit.delete("2024")
+          expect(edit.has("2024")).toBe(false)
+        }),
+      )
+      expect((yield* registry.entries).map((entry) => entry.name)).toEqual(["a", "b"])
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(commented)
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md(
+        "# My projects",
+        "projects:",
+        "  # The main one",
+        "  a:",
+        "    source: fs # local",
+        "    path: /code/a",
+        "  2024:",
+        "    source: memory",
+        "  b:",
+        "    source: memory",
+      ),
+    }),
+  )
+
+  effectTest(
     "adding to an emptied registry writes a block map",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk

@@ -7,6 +7,7 @@ import {
   LayerMap,
   Path,
   type PlatformError,
+  Random,
 } from "effect"
 import { TodoService } from "../core/index.ts"
 import type { StoreError } from "../spec/index.ts"
@@ -92,7 +93,12 @@ const make = (options: HubOptions) =>
     }
     const registry = yield* makeRegistry(options.home)
     const unregistered = makeUnregistered()
-    const dirOf = (name: string) => path.join(options.home, "projects", name)
+    const projectsDir = path.join(options.home, "projects")
+    // A defect, not an error: callers validate names first, so an escaping path is never built.
+    const dirOf = (name: string) => {
+      if (!isValidName(name)) throw new Error(`invalid project name ${name} has no data directory`)
+      return path.join(projectsDir, name)
+    }
     const inEnv = <A, E>(effect: Effect.Effect<A, E, SourceEnv>) =>
       Effect.provideContext(effect, env)
     const ioError = (message: string) => (cause: PlatformError.PlatformError) =>
@@ -107,7 +113,7 @@ const make = (options: HubOptions) =>
     const registered = registry.entries.pipe(
       Effect.flatMap((entries) =>
         Effect.forEach(entries, (entry) =>
-          registeredProject(entry, sources, dirOf(entry.name), options.userHome),
+          registeredProject(entry, sources, dirOf, options.userHome),
         ),
       ),
     )
@@ -207,30 +213,71 @@ const make = (options: HubOptions) =>
             )
             yield* inEnv(refusal)
           }
-          yield* registry.update((edit) =>
-            edit.has(name)
-              ? Effect.sync(() => edit.delete(name))
-              : Effect.fail(new ProjectNotFound({ name })),
-          )
+          // An entry with an invalid name has no data directory.
+          const { dir } = project
+          let moved: string | undefined
+          // Under the lock, the data directory moves aside, so a concurrent rename onto this
+          // name finds it gone; names starting with `.` are never project names.
+          const aside = yield* registry
+            .update((edit) =>
+              Effect.gen(function* () {
+                if (!edit.has(name)) return yield* new ProjectNotFound({ name })
+                edit.delete(name)
+                if (dir === undefined) return undefined
+                const move = ioError(`could not move ${dir} aside`)
+                if (!(yield* fs.exists(dir).pipe(Effect.mapError(move)))) return undefined
+                const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
+                const to = path.join(projectsDir, `.removed-${name}-${token.toString(36)}`)
+                yield* fs.rename(dir, to).pipe(Effect.mapError(move))
+                moved = to
+                return to
+              }),
+            )
+            // The entry stays if the write failed, so the directory goes back too.
+            .pipe(
+              Effect.onError(() =>
+                moved !== undefined && dir !== undefined
+                  ? Effect.ignore(fs.rename(moved, dir))
+                  : Effect.void,
+              ),
+            )
           yield* services.invalidate(name)
-          const dir = dirOf(name)
-          yield* fs
-            .remove(dir, { recursive: true, force: true })
-            .pipe(Effect.mapError(ioError(`could not remove ${dir}`)))
+          if (aside !== undefined) {
+            yield* fs.remove(aside, { recursive: true }).pipe(
+              Effect.mapError(
+                (cause) =>
+                  new RegistryError({
+                    message: `the entry ${name} is removed, but its data directory, moved to ${aside}, could not be deleted: ${cause.message}`,
+                    cause,
+                  }),
+              ),
+            )
+          }
         }),
 
       rename: (from, to) =>
         Effect.gen(function* () {
-          const [oldDir, newDir] = [dirOf(from), dirOf(to)]
+          const project = (yield* registered).find((candidate) => candidate.name === from)
+          if (project === undefined) return yield* new ProjectNotFound({ name: from })
+          if (!isValidName(to)) return yield* nameError(to)
+          // An entry with an invalid name has no data directory: renaming it only repairs the entry.
+          const oldDir = project.dir
+          const newDir = dirOf(to)
           let moved = false
           yield* registry
             .update((edit) =>
               Effect.gen(function* () {
                 if (!edit.has(from)) return yield* new ProjectNotFound({ name: from })
                 if (from === to) return
-                if (!isValidName(to)) return yield* nameError(to)
                 if (edit.has(to)) return yield* takenError(to)
+                const check = ioError(`could not check ${newDir}`)
+                if (yield* fs.exists(newDir).pipe(Effect.mapError(check))) {
+                  return yield* new RegistryError({
+                    message: `${newDir} already exists; remove it or choose another name`,
+                  })
+                }
                 edit.rename(from, to)
+                if (oldDir === undefined) return
                 const move = ioError(`could not move ${oldDir}`)
                 if (yield* fs.exists(oldDir).pipe(Effect.mapError(move))) {
                   yield* fs.rename(oldDir, newDir).pipe(Effect.mapError(move))
@@ -241,7 +288,9 @@ const make = (options: HubOptions) =>
             // The entry keeps its old name if the write failed, so the directory goes back too.
             .pipe(
               Effect.onError(() =>
-                moved ? Effect.ignore(fs.rename(newDir, oldDir)) : Effect.void,
+                moved && oldDir !== undefined
+                  ? Effect.ignore(fs.rename(newDir, oldDir))
+                  : Effect.void,
               ),
             )
           unregistered.forget(to)

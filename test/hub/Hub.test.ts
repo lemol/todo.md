@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { BunServices } from "@effect/platform-bun"
-import { Effect, Exit, FileSystem, Layer } from "effect"
+import { Effect, Exit, FileSystem, Layer, PlatformError } from "effect"
 import { fsSource, Hub, SourceError } from "../../src/hub/index.ts"
 import { memorySource } from "../../src/hub/testing.ts"
 import { effectTest } from "../../src/spec/testing.ts"
@@ -74,6 +74,38 @@ describe("projects", () => {
         "    source: fs",
         "    path: 12",
         "  plain: just text",
+        "  ok:",
+        "    source: memory",
+      ),
+    }),
+  )
+
+  effectTest(
+    "entries with invalid names are listed with an error status",
+    Effect.gen(function* () {
+      const hub = yield* hubOn([memorySource()])
+      const projects = yield* hub.projects()
+      const invalidName = (name: string) => ({
+        result: "error" as const,
+        error: `project ${name} has an invalid config: invalid project name: use lowercase letters, digits and dashes`,
+      })
+      expect(projects.map(({ name, status }) => [name, status])).toEqual([
+        ["..", invalidName("..")],
+        ["../../victim", invalidName("../../victim")],
+        ["My App", invalidName("My App")],
+        ["ok", { result: "never" }],
+      ])
+      expect((yield* Effect.flip(hub.todo("My App")))._tag).toBe("InvalidProjectConfig")
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md(
+        "projects:",
+        "  ..:",
+        "    source: memory",
+        '  "../../victim":',
+        "    source: memory",
+        "  My App:",
+        "    source: memory",
         "  ok:",
         "    source: memory",
       ),
@@ -288,6 +320,107 @@ describe("remove", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "an entry with an invalid name loses only its entry, never a directory",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      yield* disk.write("victim/keep", "keep")
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.remove("../../victim")
+      yield* hub.remove("..")
+      expect(yield* hub.projects()).toEqual([])
+      expect(yield* disk.read("victim/keep")).toBe("keep")
+      expect(yield* disk.exists(".todo-md/projects.yaml")).toBe(true)
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md(
+        "projects:",
+        "  ..:",
+        "    source: memory",
+        '  "../../victim":',
+        "    source: memory",
+      ),
+    }),
+  )
+
+  effectTest(
+    "moves the data directory aside before the registry is written, then deletes it",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      // Whether projects/x exists at each write of projects.yaml.
+      const seen: Array<boolean> = []
+      const hub = yield* hubOn([memorySource()], (fs) => ({
+        ...fs,
+        rename: (from, to) =>
+          to.endsWith("/projects.yaml")
+            ? fs.exists(`${disk.root}/.todo-md/projects/x`).pipe(
+                Effect.tap((exists) => Effect.sync(() => seen.push(exists))),
+                Effect.andThen(fs.rename(from, to)),
+              )
+            : fs.rename(from, to),
+      }))
+      yield* hub.add({ name: "x", source: "memory", config: {} })
+      yield* disk.write(".todo-md/projects/x/marker", "x")
+      yield* hub.remove("x")
+      expect(seen).toEqual([true, false])
+      expect(yield* disk.tree()).toEqual([".todo-md/projects.yaml"])
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "a data directory that cannot be deleted is named, and the entry stays removed",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const hub = yield* hubOn([memorySource()], (fs) => ({
+        ...fs,
+        remove: (path, options) =>
+          path.includes("/.removed-")
+            ? Effect.fail(
+                PlatformError.systemError({
+                  _tag: "PermissionDenied",
+                  module: "FileSystem",
+                  method: "remove",
+                  pathOrDescriptor: path,
+                }),
+              )
+            : fs.remove(path, options),
+      }))
+      yield* hub.add({ name: "x", source: "memory", config: {} })
+      yield* disk.write(".todo-md/projects/x/marker", "x")
+      const error = yield* Effect.flip(hub.remove("x"))
+      expect(error._tag).toBe("RegistryError")
+      expect(error.message).toContain(`${disk.root}/.todo-md/projects/.removed-x-`)
+      expect(error.message).toContain("the entry x is removed")
+      expect(yield* hub.projects()).toEqual([])
+      expect(yield* disk.exists(".todo-md/projects/x")).toBe(false)
+      expect(
+        (yield* disk.tree()).filter((file) => file.startsWith(".todo-md/projects/.removed-x-")),
+      ).toHaveLength(1)
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "a failing registry write keeps the entry and puts the data directory back",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.add({ name: "x", source: "memory", config: {} })
+      yield* disk.write(".todo-md/projects/x/marker", "x")
+      // A directory where the registry writes its temporary file makes the write fail.
+      yield* disk.write(".todo-md/projects.yaml.tmp/blocker", "")
+      expect((yield* Effect.flip(hub.remove("x")))._tag).toBe("RegistryError")
+      expect((yield* hub.projects()).map((project) => project.name)).toEqual(["x"])
+      expect(yield* disk.tree()).toEqual([
+        ".todo-md/projects.yaml",
+        ".todo-md/projects.yaml.tmp/blocker",
+        ".todo-md/projects/x/marker",
+      ])
+    }),
+    diskWith({}),
+  )
 })
 
 describe("rename", () => {
@@ -323,6 +456,44 @@ describe("rename", () => {
       expect((yield* hub.projects()).map((project) => project.name)).toEqual(["a", "b"])
     }),
     diskWith({}),
+  )
+
+  effectTest(
+    "refuses a leftover target directory without touching either directory",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.add({ name: "a", source: "memory", config: {} })
+      yield* disk.write(".todo-md/projects/a/marker", "a")
+      yield* disk.write(".todo-md/projects/b/keep", "keep")
+      const error = yield* Effect.flip(hub.rename("a", "b"))
+      expect(error._tag).toBe("RegistryError")
+      expect(error.message).toBe(
+        `${disk.root}/.todo-md/projects/b already exists; remove it or choose another name`,
+      )
+      expect((yield* hub.projects()).map((project) => project.name)).toEqual(["a"])
+      expect(yield* disk.read(".todo-md/projects/a/marker")).toBe("a")
+      expect(yield* disk.read(".todo-md/projects/b/keep")).toBe("keep")
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "repairs an entry with an invalid name without moving any directory",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      yield* disk.write("victim/keep", "keep")
+      const hub = yield* hubOn([memorySource()])
+      const info = yield* hub.rename("../../victim", "fixed")
+      expect(info).toMatchObject({ name: "fixed", status: { result: "never" } })
+      expect(yield* disk.read("victim/keep")).toBe("keep")
+      expect(yield* disk.exists(".todo-md/projects/fixed")).toBe(false)
+      expect((yield* hub.projects()).map((project) => project.name)).toEqual(["fixed"])
+      yield* hub.todo("fixed")
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md("projects:", '  "../../victim":', "    source: memory"),
+    }),
   )
 })
 

@@ -17,7 +17,7 @@ process builds its own `Hub` over the shared home.
 | `Source<C>`, `AnySource`, `SourceProject<C>`, `SourceEnv` | The source interface (below). |
 | `ProjectInfo`, `ProjectStatus`, `SyncOutcome` | What frontends see. `status` is `{ result: "never" }` until task 15, or `{ result: "error", error }` for a broken entry. |
 | `fsSource`, `FsConfig` | Local lists: `{ path }`, an absolute path (or `~/…`). |
-| `projectInput(target, { cwd, source?, name? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`; anything else is `fs` with `{ path }` resolved against `cwd`. |
+| `projectInput(target, { cwd, source?, name? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`; anything else is `fs` with `{ path }` resolved against `cwd`. An explicit `source` other than `fs` or `git` gets an empty config. |
 | `isValidName` | The name rule, `[a-z0-9][a-z0-9-]*`. |
 | Errors | `ProjectNotFound`, `NoListFound`, `InvalidProjectConfig`, `SourceUnavailable`, `SourceError`, `RegistryError`, and `SyncError` (for `Source.sync`). Each has a readable `message`. |
 | `@lemol/todo-md/hub/testing` | `memorySource(hooks?)`, for tests only. |
@@ -26,10 +26,10 @@ process builds its own `Hub` over the shared home.
 
 | Method | Behavior |
 | --- | --- |
-| `projects()` | Registered projects in registry order, then the unregistered projects opened in this hub. A broken entry (unknown source, rejected config) is listed with an error status; the others still load. |
+| `projects()` | Registered projects in registry order, then the unregistered projects opened in this hub. A broken entry (unknown source, rejected config, invalid name) is listed with an error status; the others still load. |
 | `add({ name?, source, config })` | Validates `config` with the source's schema (after `~` expansion). The name defaults to the source's `defaultName`. Creates `<home>/projects/<name>/` exclusively — an existing directory is a `RegistryError` naming it, and nothing is deleted — then runs `prepare`, then writes the entry as given. On failure after that, only the directory this call created is removed; the entry never stays. |
-| `remove(name, { force? })` | Runs `beforeRemove` (which may refuse), then deletes the entry and the data directory. Works on broken entries too. |
-| `rename(from, to)` | Renames the entry in place, keeping its comments, and moves the data directory. |
+| `remove(name, { force? })` | Runs `beforeRemove` (which may refuse), then deletes the entry and, under the lock, moves the data directory aside to `projects/.removed-<name>-<token>`; after the write it deletes that. Works on broken entries too, but `beforeRemove` cannot run for an unknown source or a rejected config, and an entry with an invalid name has no data directory to delete. |
+| `rename(from, to)` | Renames the entry in place, keeping its comments, and moves the data directory. An existing `projects/<to>` directory is refused, like in `add`. An entry with an invalid name can be renamed, to repair it. |
 | `resolve({ project?, dir?, cwd })` | The current project (below). |
 | `todo(name)` | `core`'s `TodoService` over the project's store, built on first use and cached per name (`LayerMap`). Registry changes made through this hub drop the cached service; a failed open is not cached, so the next call retries. |
 
@@ -56,6 +56,8 @@ projects:
   stale document.
 - Unparsable YAML, a top level that is not a map, or `projects` that is not
   a map fail reads with `RegistryError`. A bad entry never does.
+- Names are validated on read too: a key that is not a valid name (`My App`,
+  `..`) is listed as a broken entry, with no data directory.
 - `~` or `~/…` at the start of a top-level string value expands to
   `userHome` before the source sees it.
 

@@ -65,8 +65,11 @@ const editOf = (doc: Document): RegistryEdit => {
       if (map.items.length === 0) map.flow = false
       map.add(doc.createPair(name, value))
     },
+    // Not `YAMLMap.delete`: it compares raw scalar values, so it would miss a key like `2024:`.
     delete: (name) => {
-      projects()?.delete(name)
+      const map = projects()
+      const pair = pairOf(name)
+      if (map !== undefined && pair !== undefined) map.items.splice(map.items.indexOf(pair), 1)
     },
     rename: (from, to) => {
       const pair = pairOf(from)

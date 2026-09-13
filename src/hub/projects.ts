@@ -1,5 +1,6 @@
 import { Effect, Option, Predicate, Schema } from "effect"
 import { InvalidProjectConfig, SourceUnavailable } from "./errors.ts"
+import { isValidName } from "./names.ts"
 import type { RegistryEntry } from "./registry.ts"
 import type { AnySource, ProjectInfo, SourceProject } from "./Source.ts"
 
@@ -14,7 +15,7 @@ export interface Project {
   /** The source kind the project names; empty when its entry names none. */
   readonly kind: string
   readonly registered: boolean
-  /** `<home>/projects/<name>` for registered projects. */
+  /** `<home>/projects/<name>` for registered projects with a valid name. */
   readonly dir: string | undefined
   readonly config: ProjectConfig
 }
@@ -64,18 +65,36 @@ const invalid = (problem: InvalidProjectConfig | SourceUnavailable): ProjectConf
   problem,
 })
 
-/** A registry entry as a project. Never fails: an unusable entry keeps its problem. */
+/**
+ * A registry entry as a project. Never fails: an unusable entry keeps its
+ * problem. `dirOf` is called only for a valid name; an invalid one has no
+ * data directory.
+ */
 export const registeredProject = (
   entry: RegistryEntry,
   sources: ReadonlyMap<string, AnySource>,
-  dir: string,
+  dirOf: (name: string) => string,
   userHome: string,
 ): Effect.Effect<Project> =>
   Effect.gen(function* () {
     const { name } = entry
-    const base = { name, registered: true, dir }
     const fields = yield* Effect.option(Schema.decodeUnknownEffect(Fields)(entry.value))
     const kind = Option.getOrUndefined(fields)?.source
+    if (!isValidName(name)) {
+      return {
+        name,
+        kind: Predicate.isString(kind) ? kind : "",
+        registered: true,
+        dir: undefined,
+        config: invalid(
+          new InvalidProjectConfig({
+            name,
+            issues: ["invalid project name: use lowercase letters, digits and dashes"],
+          }),
+        ),
+      }
+    }
+    const base = { name, registered: true, dir: dirOf(name) }
     if (Option.isNone(fields) || !Predicate.isString(kind)) {
       return {
         ...base,
