@@ -24,7 +24,6 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "bun test",
     "test:boundaries": "bun test test/boundaries.test.ts",
-    "web": "bun src/web/server.ts",
     "todo": "bun ./src/cli/bin.ts"
   },
   "peerDependencies": {

@@ -1,4 +1,3 @@
-import { userInfo } from "node:os"
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime, Option } from "effect"
 import { TodoService } from "../core/index.ts"
@@ -14,42 +13,6 @@ export interface ServerOptions {
   readonly host: string
   readonly env: Readonly<Record<string, string | undefined>>
   readonly username: string
-}
-
-export const helpText =
-  "Usage: todo-web [options]\n\n--dir <path>  List directory\n--port <port> Port (default 4400)\n--host <host> Bind host (default 127.0.0.1)\n\nExamples:\n  bun run web -- --dir todo"
-
-export const parseServerOptions = (
-  args: ReadonlyArray<string>,
-  base: Partial<ServerOptions> = {},
-): ServerOptions | { readonly help: true } => {
-  const options = {
-    cwd: base.cwd ?? process.cwd(),
-    port: base.port ?? 4400,
-    host: base.host ?? "127.0.0.1",
-    env: base.env ?? process.env,
-    username: base.username ?? "unknown",
-  }
-  let dir: string | undefined
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i]
-    if (arg === "--help" || arg === "-h") return { help: true }
-    if (arg === "--dir" || arg === "--port" || arg === "--host") {
-      const value = args[++i]
-      if (value === undefined || value.startsWith("--")) throw new Error(`missing value for ${arg}`)
-      if (arg === "--dir") dir = value
-      if (arg === "--host") options.host = value
-      if (arg === "--port") {
-        const port = Number(value)
-        if (!Number.isInteger(port) || port < 1 || port > 65535)
-          throw new Error("port must be an integer from 1 to 65535")
-        options.port = port
-      }
-      continue
-    }
-    throw new Error(`unknown option ${arg}`)
-  }
-  return dir === undefined ? options : { ...options, dir }
 }
 
 export const resolveRoot = async (options: ServerOptions): Promise<string> => {
@@ -125,50 +88,3 @@ export const startServer = async (options: ServerOptions) => {
     },
   }
 }
-
-interface SignalSource {
-  once(signal: NodeJS.Signals, listener: () => void): unknown
-  off(signal: NodeJS.Signals, listener: () => void): unknown
-}
-
-export const installSignalHandlers = (
-  close: () => Promise<void>,
-  signals: SignalSource = process,
-): (() => void) => {
-  let closing = false
-  const remove = () => {
-    signals.off("SIGINT", shutdown)
-    signals.off("SIGTERM", shutdown)
-  }
-  const shutdown = () => {
-    if (closing) return
-    closing = true
-    remove()
-    void close().catch((error) => {
-      console.error(error instanceof Error ? error.message : String(error))
-      process.exitCode = 1
-    })
-  }
-  signals.once("SIGINT", shutdown)
-  signals.once("SIGTERM", shutdown)
-  return remove
-}
-
-export const main = async (args = process.argv.slice(2)) => {
-  const options = parseServerOptions(args, { username: userInfo().username })
-  if ("help" in options) {
-    console.log(helpText)
-    return
-  }
-  const started = await startServer(options)
-  installSignalHandlers(started.close)
-  console.log(`http://${options.host}:${started.port}`)
-  if (!["127.0.0.1", "localhost", "::1"].includes(options.host))
-    console.log("Warning: anyone who can reach this address can edit the list.")
-}
-
-if (import.meta.main)
-  main().catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error))
-    process.exitCode = 1
-  })

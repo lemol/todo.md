@@ -42,6 +42,7 @@ effectTest(
       "fmt",
       "projects",
       "sync",
+      "web",
     ])
     for (const command of commands) {
       const help = yield* todo(command, "--help")

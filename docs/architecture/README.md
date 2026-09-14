@@ -75,7 +75,7 @@ tui ─┘    ▲      ▲
 |                                 | `@lemol/todo-md/hub/testing`   | hub, spec                                | `memorySource`, for tests only                                                  |
 | `src/git` *(planned)*           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md`               |
 | `src/jira` *(planned)*          | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror                                |
-| [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                          |
+| [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, web, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                     |
 | [`apps/web`](../../apps/web)         | `@lemol/todo-md-web`           | public todo-md subpaths, `effect`, Remix and renderer packages; server entry also Bun/Node | Private local web UI over one list |
 
 Planned rows are not enforced yet; each task that builds one adds its rule to

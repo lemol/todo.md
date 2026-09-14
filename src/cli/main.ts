@@ -5,6 +5,7 @@ import { fmt, init } from "./commands/lists.ts"
 import { projects, sync } from "./commands/projects.ts"
 import { check, list, next, show, showList } from "./commands/query.ts"
 import { add, comment, done, edit, mv, reopen, rm } from "./commands/tasks.ts"
+import { web } from "./commands/web.ts"
 import { CliContext, Dir, Json, Project } from "./context.ts"
 import { describeError, errorJson, exitCodeOf } from "./errors.ts"
 
@@ -36,6 +37,7 @@ export const todo = Command.make("todo", {}, () => showList()).pipe(
     fmt,
     projects,
     sync,
+    web,
   ]),
   Command.withGlobalFlags([Json, Dir, Project]),
 )

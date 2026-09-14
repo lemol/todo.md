@@ -36,6 +36,7 @@ examples. `todo --help` lists the commands.
 | `todo fmt` | Normalize a hand-edited list: number new items, complete ticked ones, sync link text. | `{ assigned, finished, swept }` |
 | `todo projects` | Registered projects with sync status; `ls`, `add <target> [--name] [--source]`, `rm <name> [--force]`, `rename <from> <to>`. | `ProjectInfo[]` |
 | `todo sync [names…] [--all]` | Sync projects with their remotes; exits 1 when any sync failed. | `(SyncResult \| SyncFailure)[]` |
+| `todo web [--port] [--host]` | Start the local web UI over the current list (`--port` default 4400, next free when busy; `--host` default 127.0.0.1). | `{ url }` |
 
 `todo list` and `todo next` take `--all` for every registered project at once
 (each under a `# <project>` heading with qualified IDs); with no registered
@@ -104,7 +105,7 @@ user name.
 | `bin.ts` | The executable: passes the process's arguments, working directory, environment and TTY state to `main`, and sets the exit code. |
 | `main.ts` | The command tree (`todo`) and `main(args, context)` → exit code. |
 | `context.ts` | `CliContext`, the global flags, hub resolution, `withTodo` (the current project through the hub), output, author. |
-| `commands/*.ts` | The commands: `query` (list, next, show, check), `tasks` (add … comment), `lists` (init, fmt), `projects` (projects, sync). |
+| `commands/*.ts` | The commands: `query` (list, next, show, check), `tasks` (add … comment), `lists` (init, fmt), `projects` (projects, sync), `web` (serve the local web UI). |
 | `render.ts`, `style.ts` | Human output, including overview, project and sync lines. |
 | `errors.ts` | CLI errors, their messages and exit codes. |
 
@@ -122,6 +123,7 @@ user name.
 - [`fs`](../fs)
 - [`hub`](../hub)
 - [`spec`](../spec)
+- [`web`](../web) (`startServer` for `todo web` only)
 - `effect`
 - `@effect/platform-bun`
 - `node:*` and `bun`

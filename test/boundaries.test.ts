@@ -25,7 +25,7 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
   fs: { modules: ["spec", "markdown"], packages: ["effect"] },
   hub: { modules: ["spec", "core", "fs"], packages: ["effect", "yaml"] },
   cli: {
-    modules: ["spec", "core", "fs", "hub"],
+    modules: ["spec", "core", "fs", "hub", "web"],
     packages: ["effect", "@effect/platform-bun", "node:", "bun"],
   },
 }
