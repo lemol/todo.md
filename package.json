@@ -27,7 +27,8 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
     "test": "bun test",
     "test:boundaries": "bun test test/boundaries.test.ts",
-    "web": "bun apps/web/server.ts"
+    "web": "bun apps/web/server.ts",
+    "todo": "bun ./src/cli/bin.ts"
   },
   "peerDependencies": {
     "effect": "4.0.0-rc.108"
