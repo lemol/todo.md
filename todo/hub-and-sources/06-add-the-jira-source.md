@@ -126,7 +126,7 @@ others false:
 **`changes`**: watch `<dir>/mirror.json`. **`status`**: nothing beyond the
 hub's state.
 
-**Wiring.** `src/cli/bin.ts` and `apps/web/server.ts` add
+**Wiring.** `src/cli/bin.ts` and `src/web/server.ts` add
 `JiraSource.make({ env })` (needing `HttpClient` via `FetchHttpClient` and
 `ChildProcessSpawner`). `todo projects add <site> --source jira --name
 <n> --email <e> (--token-env <VAR> | --token-command <cmd>) [--jql <q>]`,
@@ -141,7 +141,7 @@ when the source select is `jira`.
 - `test/boundaries.test.ts`: `jira: { modules: ["spec", "hub"],
   packages: ["effect"] }` + checker cases; web may import
   `@lemol/todo-md/jira`
-- `src/cli/bin.ts`, `src/cli/commands/projects.ts`, `apps/web/server.ts`,
+- `src/cli/bin.ts`, `src/cli/commands/projects.ts`, `src/web/server.ts`,
   web projects form
 - `test/jira/*.test.ts`, `test/jira/fixtures/*.json` (ADF and issue
   payloads)

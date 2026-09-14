@@ -48,9 +48,7 @@ there). Run `bun install` to update `bun.lock`.
 with a server-only carve-out carried over from the current web checker:
 only `web/server.ts`, `web/watch.ts` and `web/app/assets.ts` may import
 `bun` or `node:*`; no other `src/web` runtime file may. `cli` gains `web`
-in its modules. The `webViolations` checker is retired in favor of the
-single `violations` table, so every `src/web` and `test/web` file is
-scanned by it. `docs/architecture/README.md` module table and `tooling.md`
+in its modules. The `webViolations` checker now scans `src/web` (repointed from `apps/web`), and the `violations()` source scan skips `src/web` (comment: governed by the web-import-graph test); full unification stays a later task. `docs/architecture/README.md` module table and `tooling.md`
 ("published package does not depend on Remix") are updated to the new
 shape.
 

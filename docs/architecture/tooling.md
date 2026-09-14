@@ -25,9 +25,7 @@ repositories use**. Two copies of `effect` in one process break schema and
 error class identity and Effect's runtime internals, so consumers, framework
 and todo.md must share a single copy.
 
-Apps under `apps/*` (the web app) are private workspace members. Git
-consumers of `@lemol/todo-md` never install them, so the published package
-does not depend on Remix.
+The web UI lives in `src/web` and ships in the published package, so `remix` (exact) and the Markdown renderer packages are runtime dependencies.
 
 ## Testing
 
@@ -38,8 +36,7 @@ does not depend on Remix.
   test with a scope and Effect's `TestClock`/`TestConsole` (`effect/testing`).
   This entry point is never imported by runtime code.
 - **Boundaries:** `test/boundaries.test.ts` enforces the module graph.
-- **Layout:** tests live in `test/<module>/`, mirroring `src/`; the web app's
-  in `apps/web/test/`.
+- **Layout:** tests live in `test/<module>/`, mirroring `src/`.
 - **No network, no real home.** Tests use temporary directories; remote
   sources are tested against local bare repositories and fake HTTP layers.
 
@@ -50,7 +47,7 @@ does not depend on Remix.
 | `core`     | Unit tests against `MemoryTodoStore`.                                      |
 | `fs`       | Conformance suite against temporary directories, plus crash/lock/hand-edit scenarios. |
 | `cli`      | End-to-end tests: run commands with `--json` against temporary directories. |
-| `apps/web` | Router tests over `MemoryTodoStore`, an end-to-end test over `FsTodoStore`, security tests. |
+| `web` | Router tests over `MemoryTodoStore`, an end-to-end test over `FsTodoStore`, security tests. |
 | `hub` *(planned)* | Tests over `memorySource` and temporary homes.                      |
 | `git` *(planned)* | Conformance over a clone of a local bare repository, plus push/rebase/offline scenarios. |
 | `jira` *(planned)* | Conformance with `seed` against a fake Jira `HttpClient` layer; golden ADF → Markdown. |

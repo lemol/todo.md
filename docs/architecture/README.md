@@ -76,14 +76,15 @@ tui ─┘    ▲      ▲
 | `src/git` *(planned)*           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md`               |
 | `src/jira` *(planned)*          | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror                                |
 | [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, web, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                     |
-| [`apps/web`](../../apps/web)         | `@lemol/todo-md-web`           | public todo-md subpaths, `effect`, Remix and renderer packages; server entry also Bun/Node | Private local web UI over one list |
+| [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `fs` (+ `effect`, Remix, Markdown renderers; `node:`/`bun` only in `server.ts`, `watch.ts`, `app/assets.ts`) | Local web UI over one list |
 
 Planned rows are not enforced yet; each task that builds one adds its rule to
 the boundaries test.
 
 **Dependency rules** (enforced by
 [`test/boundaries.test.ts`](../../test/boundaries.test.ts), which reads every
-import in `src/` and `apps/web` and checks it against the table above):
+import in `src/` and checks it against the table above (`src/web` is
+checked by `webViolations`, the web import graph, instead):
 
 - Modules import each other with relative paths, never through the package
   name.

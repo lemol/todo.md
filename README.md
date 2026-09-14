@@ -90,7 +90,7 @@ the [cli README](src/cli/README.md).
 
 ## Using the web app
 
-From a checkout, run `bun run web -- --dir todo` to open the local board at
+Run `todo web --dir todo` (`bun src/cli/bin.ts web --dir todo` from source) to open the local board at
 `127.0.0.1:4400`. It supports Board, task detail/edit, Done, Check, add,
 complete, reopen and comments. Pages and forms work without JavaScript; an
 optional browser entry refreshes clean pages when the list changes.

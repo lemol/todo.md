@@ -1,6 +1,6 @@
 # todo.md web app
 
-Run `bun run web -- --dir <list>` from the repository root. Defaults are
+Run `todo web -- --dir <list>` (or `bun src/cli/bin.ts web -- --dir <list>` from source). Defaults are
 `127.0.0.1:4400`; `--port` selects the starting port and an occupied port is
 followed by the next available port. `--host` can widen binding; widening it
 prints a warning because anyone who can reach the address can edit the list.
@@ -24,5 +24,4 @@ when no form has unsaved input; dirty forms show a reload notice instead.
 
 `server.ts` is the composition root. `watch.ts` supplies debounced file
 changes; `app/middleware` supplies request capabilities; `app/actions` owns
-routes; `app/ui` owns shared rendering and styles. Hosting/authentication,
-GitHub-backed storage and a published `todo web` command are deferred.
+routes; `app/ui` owns shared rendering and styles. Hosting/authentication and GitHub-backed storage are deferred (task 09).

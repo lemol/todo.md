@@ -74,9 +74,7 @@ main(process.argv.slice(2), { cwd, env, username, color, home, userHome, sources
 
 ## web
 
-`apps/web` is a private workspace member, `@lemol/todo-md-web`, outside the
-published package: a Remix 3 server-rendered app over one list, on
-`127.0.0.1` by default.
+`src/web` ships in the published package and is served by the `todo web` command (`src/cli/commands/web.ts`), which builds the `ManagedRuntime` (TodoService + FsTodoStore + BunServices), creates the file watcher and hands both to `createAppRouter`. The router never sees `FsTodoStore`.
 
 - **Composition root.** `server.ts` resolves the list root like the CLI,
   builds a `ManagedRuntime` from `TodoService.layer` over `FsTodoStore`, and
@@ -89,7 +87,7 @@ published package: a Remix 3 server-rendered app over one list, on
 - **Security.** Localhost binding, a `Host` allowlist against DNS
   rebinding, and cross-origin protection for unsafe requests.
 
-Details: [apps/web/README.md](../../apps/web/README.md) and the
+Details: [src/web/README.md](../../src/web/README.md) and the
 [web app design](../superpowers/specs/2026-09-12-web-app-design.md).
 
 **Planned (tasks 17, 18):** the web app builds a hub instead. `watch.ts`

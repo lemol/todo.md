@@ -100,7 +100,7 @@ directory is outside it unless the list is the clone root; then filter out
 **`beforeRemove(p, force)`**: refuse with `SourceError` ("N unpushed
 commits; use --force") when `ahead > 0` and not `force`.
 
-**Wiring.** `src/cli/bin.ts` and `apps/web/server.ts` add
+**Wiring.** `src/cli/bin.ts` and `src/web/server.ts` add
 `gitSource` to `sources` (providing Bun's `ChildProcessSpawner` through
 `BunServices`). `todo projects add` gains `--branch` and `--list` (with
 descriptions and an example), passed into the git config; they are usage
@@ -115,7 +115,7 @@ list fields shown for git targets.
 - `test/boundaries.test.ts`: `git: { modules: ["spec", "fs", "hub"],
   packages: ["effect"] }` + checker cases; web may import
   `@lemol/todo-md/git`
-- `src/cli/bin.ts`, `src/cli/commands/projects.ts`, `apps/web/server.ts`,
+- `src/cli/bin.ts`, `src/cli/commands/projects.ts`, `src/web/server.ts`,
   web projects form
 - `test/git/*.test.ts`
 

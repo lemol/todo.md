@@ -62,7 +62,7 @@ page's project from a `data-project` attribute on the live region and
 reacts only to `changed`/`synced` for that project (and `registry` on no
 page yet; task 18 uses it). Keep `refreshDecision` as is.
 
-**Delete** `apps/web/watch.ts`, `apps/web/test/watch.test.ts` (its
+**Delete** `src/web/watch.ts`, `test/web/watch.test.ts` (its
 scenarios moved to the hub in task 15), `app/middleware/changes.ts` and
 `makeFakeChanges`; tests emit through `memorySource`'s `changes` hook
 instead.
@@ -74,17 +74,17 @@ name comes from the hub.
 
 ## Files
 
-- `apps/web/server.ts`, `app/router.ts`, `app/routes.ts`,
+- `src/web/server.ts`, `app/router.ts`, `app/routes.ts`,
   `app/middleware/todo.ts` (+ new `project.ts`), `app/actions/**`,
   `app/ui/document.tsx`, `app/actions/public/entry.ts`
-- Delete `apps/web/watch.ts`, `app/middleware/changes.ts`,
+- Delete `src/web/watch.ts`, `app/middleware/changes.ts`,
   `test/watch.test.ts`
-- `apps/web/test/*` (harness over `Hub.layer` with `memorySource` and a
+- `test/web/*` (harness over `Hub.layer` with `memorySource` and a
   temporary home)
 - `test/boundaries.test.ts`: web may import `@lemol/todo-md/hub` (and
   `hub/testing` in tests); drop `@lemol/todo-md/fs` if unused;
   `watch.ts` no longer in `serverOnly`
-- `apps/web/README.md`
+- `src/web/README.md`
 
 ## Tests
 
@@ -101,11 +101,11 @@ name comes from the hub.
 
 ## Docs
 
-- `apps/web/README.md`; `docs/architecture/frontends.md` web section
+- `src/web/README.md`; `docs/architecture/frontends.md` web section
   (hub wiring instead of `watch.ts`).
 
 ## Done when
 
 - Web behavior is unchanged apart from URLs and the header.
-- No file in `apps/web` implements watching or builds a store.
+- No file in `src/web` implements watching or builds a store.
 - `bun run check` passes.

@@ -19,7 +19,7 @@ This task needs its own brainstorm and design spec. Decide there:
   OpenTUI, Ink) against: works under Bun 1.4, keyboard-first, redraws on
   external events, testable without a real terminal.
 - **Packaging.** Likely `apps/tui`, a private workspace member like
-  `apps/web`, unless it should ship in the published package as `todo tui`
+  `src/web`, unless it should ship in the published package as `todo tui`
   (compare with task 11's `todo web`).
 - **Scope of edits** for the first version (read and complete/reopen/comment
   at least; add and edit forms are harder in a terminal).

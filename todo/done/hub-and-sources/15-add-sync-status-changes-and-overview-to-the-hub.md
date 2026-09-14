@@ -89,7 +89,7 @@ one interval after startup. It ends with the layer's scope.
 **`fsSource.changes`**: `FileSystem.watch(root, { recursive: true })`,
 ignoring events whose basename is `.todo.lock` or ends in `.tmp`,
 debounced 100 ms (`Stream.debounce`), mapped to `void`. This is the Effect
-version of `apps/web/watch.ts`; task 17 deletes the web copy. Export the
+version of `src/web/watch.ts`; task 17 deletes the web copy. Export the
 building block as `watchList(root)` so the git source can watch its clone.
 
 **`overview({ projects?, sources?, filter? })`**:
@@ -129,7 +129,7 @@ unchanged (the CLI still strips leading zeros for fs IDs).
   second hub over the same home → `registry`; a mutation through `todo()`
   on a source without `changes` → `changed`; no subscriber → the memory
   source's `changes` is never started.
-- `fsSource.changes`: port the scenarios of `apps/web/test/watch.test.ts`
+- `fsSource.changes`: port the scenarios of `test/web/watch.test.ts`
   (writing a task file fires one debounced event; `.todo.lock` and `*.tmp`
   fire none). The web version is flaky under full-suite load (it failed
   once in `bun run check` on 2026-09-13 and passed alone): wait for the

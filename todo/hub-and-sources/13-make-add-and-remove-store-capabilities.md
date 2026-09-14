@@ -62,8 +62,8 @@ Out: any Jira code; changing other capabilities.
 - `src/core/TodoService.ts`, `src/core/README.md`
 - `src/spec/testing/conformance/*.ts`, `src/spec/testing.ts`,
   `src/spec/README.md`
-- `apps/web/app/ui/board.tsx` (add form), `apps/web/app/ui/task.tsx` and
-  `apps/web/app/actions/tasks/controller.tsx` (remove), web tests
+- `src/web/app/ui/board.tsx` (add form), `src/web/app/ui/task.tsx` and
+  `src/web/app/actions/tasks/controller.tsx` (remove), web tests
 - `docs/architecture/contract.md` (drop "Planned (task 13)")
 
 ## Tests

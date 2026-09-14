@@ -80,10 +80,10 @@ shared with the board header).
 
 ## Files
 
-- `apps/web/app/routes.ts`, `app/router.ts`, new controllers and UI files,
+- `src/web/app/routes.ts`, `app/router.ts`, new controllers and UI files,
   `app/ui/document.tsx`, `app/ui/styles.css`, `app/actions/public/entry.ts`
-- `apps/web/test/dashboard.test.ts`, `projects.test.ts` (new)
-- `apps/web/README.md`
+- `test/web/dashboard.test.ts`, `projects.test.ts` (new)
+- `src/web/README.md`
 
 ## Tests
 
@@ -104,7 +104,7 @@ Router tests over a hub with `memorySource` projects in a temporary home:
 
 ## Docs
 
-- `apps/web/README.md` (routes), `docs/architecture/frontends.md`
+- `src/web/README.md` (routes), `docs/architecture/frontends.md`
   (drop "Planned (tasks 17, 18)"), root `README.md` "Using the web app".
 
 ## Done when
