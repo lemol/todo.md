@@ -1,4 +1,6 @@
-import { basename, dirname, relative, resolve } from "node:path"
+import { readFileSync, realpathSync } from "node:fs"
+import { createRequire } from "node:module"
+import { basename, dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createAssetServer, type ScriptEntry } from "remix/assets"
 import { createContextKey, type Middleware } from "remix/router"
@@ -17,29 +19,77 @@ export const loadAssets =
     return next()
   }
 
-// Resolve the directory the asset server should mount as `npm`. Bun may hoist
-// remix into a central store (`<ws>/node_modules/.bun/remix@<v>/node_modules`),
-// where remix's own deps live in sibling store dirs outside the package dir —
-// so mount the store root. In a local install (`<repo>/node_modules`) the
-// neighbouring tree already holds everything, so mount it directly. Either way
-// a single mount keeps the asset server's no-overlap check satisfied, and
-// `allowPackages` still limits serving to remix and its dependencies.
-export const serveRootFor = (npmRoot: string): string => {
-  const storeDir = dirname(dirname(npmRoot))
-  return basename(storeDir) === ".bun" ? storeDir : npmRoot
+// The nearest node_modules above a package dir.
+const containerOf = (packageDir: string): string => {
+  let dir = packageDir
+  while (basename(dir) !== "node_modules") {
+    const parent = dirname(dir)
+    if (parent === dir) throw new Error(`no node_modules above ${packageDir}`)
+    dir = parent
+  }
+  return dir
 }
 
-export const createAssets = (rootDir = resolve(import.meta.dir, "..")): AppAssets => {
-  const remixPackageDir = dirname(fileURLToPath(import.meta.resolve("remix/package.json")))
-  const npmRoot = dirname(remixPackageDir)
-  const serveRoot = serveRootFor(npmRoot)
-  return createAssetServer({
-    rootDir,
+/**
+ * Every node_modules tree holding remix or one of its transitive
+ * dependencies. Package discovery walks up from these the way node itself
+ * resolves, so the set is complete in every layout: a local install
+ * collapses to one tree, while bun's store contributes one per entry.
+ */
+export const packageContainers = (remixPackageDir: string): ReadonlyArray<string> => {
+  const containers = new Set<string>()
+  const seen = new Set<string>()
+  const visit = (packageDir: string) => {
+    const real = realpathSync(packageDir)
+    if (seen.has(real)) return
+    seen.add(real)
+    containers.add(containerOf(real))
+    const pkg = JSON.parse(readFileSync(join(real, "package.json"), "utf8")) as {
+      dependencies?: Readonly<Record<string, string>>
+      optionalDependencies?: Readonly<Record<string, string>>
+    }
+    const require = createRequire(join(real, "package.json"))
+    for (const dep of [
+      ...Object.keys(pkg.dependencies ?? {}),
+      ...Object.keys(pkg.optionalDependencies ?? {}),
+    ]) {
+      try {
+        visit(dirname(require.resolve(`${dep}/package.json`)))
+      } catch {
+        // Unresolvable here: the server's own discovery reports it.
+      }
+    }
+  }
+  visit(remixPackageDir)
+  return [...containers]
+}
+
+// The asset server's options from the app dir and the loaded remix copy.
+// Every container is mounted: the compiler reads remix and its dependencies
+// wherever the install put them, while `allowPackages` still limits serving
+// to that closure. Mounting anything above the trees — e.g. the store root —
+// overlaps the `app` mount, and the server refuses to boot.
+export const assetOptions = (rootDir: string, remixPackageDir: string) => {
+  // Canonicalize: the server realpaths the root before resolving mounts, so
+  // mounts computed from a symlinked root (a symlinked checkout, macOS tmp)
+  // would point nowhere. Containers already come back canonical.
+  const base = realpathSync(rootDir)
+  const mounts: Record<string, string> = { app: "app" }
+  packageContainers(remixPackageDir).forEach((dir, index) => {
+    mounts[index === 0 ? "npm" : `npm${index + 1}`] = relative(base, dir)
+  })
+  return {
+    rootDir: base,
     basePath: "/assets",
-    mounts: { app: "app", npm: relative(rootDir, serveRoot) },
+    mounts,
     allowFiles: ["app/routes.ts", "app/ui/styles.css", "app/actions/public/**", "app/**/public/**"],
     allowPackages: ["remix"],
     denyFiles: ["app/**/*.test.*"],
     watch: false,
-  })
+  }
+}
+
+export const createAssets = (rootDir = resolve(import.meta.dir, "..")): AppAssets => {
+  const remixPackageDir = dirname(fileURLToPath(import.meta.resolve("remix/package.json")))
+  return createAssetServer(assetOptions(rootDir, remixPackageDir))
 }
