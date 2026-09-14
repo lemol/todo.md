@@ -2,6 +2,8 @@
 title: Run the CLI on the hub with projects and sync commands
 tags: [cli, hub]
 depends_on: [15]
+group: Hub and sources
+completed_at: 2026-09-14T04:25:35Z
 ---
 ## Goal
 

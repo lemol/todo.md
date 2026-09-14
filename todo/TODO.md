@@ -11,7 +11,6 @@ Multi-project support: the hub library, projects, sync, and git and Jira
 sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md).
 
 - [ ] [13 - Make add and remove store capabilities](./hub-and-sources/13-make-add-and-remove-store-capabilities.md)
-- [ ] [16 - Run the CLI on the hub with projects and sync commands](./hub-and-sources/16-run-the-cli-on-the-hub-with-projects-and-sync-commands.md)
 - [ ] [17 - Run the web app on the hub](./hub-and-sources/17-run-the-web-app-on-the-hub.md)
 - [ ] [18 - Add the web dashboard and project management](./hub-and-sources/18-add-the-web-dashboard-and-project-management.md)
 - [ ] [19 - Add the git source](./hub-and-sources/19-add-the-git-source.md)
