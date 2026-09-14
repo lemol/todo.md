@@ -18,9 +18,10 @@ This task needs its own brainstorm and design spec. Decide there:
 - **Library.** Evaluate TUI libraries that run on Bun (for example
   OpenTUI, Ink) against: works under Bun 1.4, keyboard-first, redraws on
   external events, testable without a real terminal.
-- **Packaging.** Likely `apps/tui`, a private workspace member like
-  `src/web`, unless it should ship in the published package as `todo tui`
-  (compare with task 11's `todo web`).
+- **Packaging.** Likely `apps/tui`, a private workspace member (unlike
+  `src/web`, which ships in the published package), unless it should ship
+  in the published package as `todo tui` (compare with task 11's
+  `todo web`).
 - **Scope of edits** for the first version (read and complete/reopen/comment
   at least; add and edit forms are harder in a terminal).
 

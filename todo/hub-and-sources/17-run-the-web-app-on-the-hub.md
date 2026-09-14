@@ -78,7 +78,7 @@ name comes from the hub.
   `app/middleware/todo.ts` (+ new `project.ts`), `app/actions/**`,
   `app/ui/document.tsx`, `app/actions/public/entry.ts`
 - Delete `src/web/watch.ts`, `app/middleware/changes.ts`,
-  `test/watch.test.ts`
+  `test/web/watch.test.ts`
 - `test/web/*` (harness over `Hub.layer` with `memorySource` and a
   temporary home)
 - `test/boundaries.test.ts`: web may import `@lemol/todo-md/hub` (and
