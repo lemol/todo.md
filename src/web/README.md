@@ -1,6 +1,6 @@
 # todo.md web app
 
-Run `todo web -- --dir <list>` (or `bun src/cli/bin.ts web -- --dir <list>` from source). Defaults are
+Run `todo web --dir <list>` (or `bun src/cli/bin.ts web --dir <list>` from source). Defaults are
 `127.0.0.1:4400`; `--port` selects the starting port and an occupied port is
 followed by the next available port. `--host` can widen binding; widening it
 prints a warning because anyone who can reach the address can edit the list.
