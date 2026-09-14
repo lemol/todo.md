@@ -1,7 +1,5 @@
 # todo.md
 
-- [ ] 11 - Add a todo web command to the published package
-  #web
 - [ ] 12 - Register repos/todo-md/apps/* in lemol-workspace
   #web
 
