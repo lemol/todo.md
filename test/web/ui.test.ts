@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test"
-import { localBack } from "../app/actions/forms.ts"
-import { statusFor } from "../app/actions/respond.tsx"
-import { createAssets } from "../app/assets.ts"
-import { routes } from "../app/routes.ts"
-import { markdownHtml } from "../app/ui/markdown.tsx"
+import { localBack } from "../../src/web/app/actions/forms.ts"
+import { statusFor } from "../../src/web/app/actions/respond.tsx"
+import { createAssets } from "../../src/web/app/assets.ts"
+import { routes } from "../../src/web/app/routes.ts"
+import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
 import { makeRouter } from "./harness.ts"
 
 test("renders Markdown without raw HTML", () => {

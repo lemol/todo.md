@@ -19,11 +19,14 @@ export const loadAssets =
 
 export const createAssets = (rootDir = resolve(import.meta.dir, "..")): AppAssets => {
   const remixPackageDir = dirname(fileURLToPath(import.meta.resolve("remix/package.json")))
-  const bunStoreDir = dirname(dirname(dirname(remixPackageDir)))
+  // Mount the node_modules tree that contains remix. It sits beside src/web in a
+  // root install (../../node_modules), never inside the app mount, so the asset
+  // server's no-overlap check holds. allowPackages still limits serving to remix.
+  const npmRoot = dirname(remixPackageDir)
   return createAssetServer({
     rootDir,
     basePath: "/assets",
-    mounts: { app: "app", npm: relative(rootDir, bunStoreDir) },
+    mounts: { app: "app", npm: relative(rootDir, npmRoot) },
     allowFiles: ["app/routes.ts", "app/ui/styles.css", "app/actions/public/**", "app/**/public/**"],
     allowPackages: ["remix"],
     denyFiles: ["app/**/*.test.*"],

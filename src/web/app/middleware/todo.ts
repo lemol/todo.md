@@ -1,7 +1,7 @@
-import { TodoService } from "@lemol/todo-md/core"
-import type { Capabilities } from "@lemol/todo-md/spec"
 import { Effect, Result } from "effect"
 import { createContextKey, type Middleware } from "remix/router"
+import { TodoService } from "../../../core/index.ts"
+import type { Capabilities } from "../../../spec/index.ts"
 
 export interface TodoRuntime {
   readonly runPromise: <A, E>(effect: Effect.Effect<A, E, TodoService>) => Promise<A>

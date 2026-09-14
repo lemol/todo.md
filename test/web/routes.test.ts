@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { routes } from "../app/routes.ts"
+import { routes } from "../../src/web/app/routes.ts"
 
 test("defines stable hrefs for every web route", () => {
   expect(routes.board.href()).toBe("/")

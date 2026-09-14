@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test"
-import { TaskNotFound } from "@lemol/todo-md/spec"
 import { Effect } from "effect"
-import { runTodo, taskId } from "../app/middleware/todo.ts"
-import { routes } from "../app/routes.ts"
+import { TaskNotFound } from "../../src/spec/index.ts"
+import { runTodo, taskId } from "../../src/web/app/middleware/todo.ts"
+import { routes } from "../../src/web/app/routes.ts"
 import { makeRouter, makeRuntime } from "./harness.ts"
 
 test("rejects foreign hosts, including the event stream", async () => {

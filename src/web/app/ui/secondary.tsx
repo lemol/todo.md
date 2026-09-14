@@ -1,5 +1,5 @@
-import type { TaskView } from "@lemol/todo-md/core"
-import type { Diagnostic } from "@lemol/todo-md/spec"
+import type { TaskView } from "../../../core/index.ts"
+import type { Diagnostic } from "../../../spec/index.ts"
 import { routes } from "../routes.ts"
 import { escapeHtml } from "./document.tsx"
 import { formatDate, showId } from "./format.ts"

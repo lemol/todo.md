@@ -1,5 +1,5 @@
-import type { Listing, TaskView } from "@lemol/todo-md/core"
-import type { Capabilities } from "@lemol/todo-md/spec"
+import type { Listing, TaskView } from "../../../core/index.ts"
+import type { Capabilities } from "../../../spec/index.ts"
 import { routes } from "../routes.ts"
 import { escapeHtml } from "./document.tsx"
 import { showId } from "./format.ts"

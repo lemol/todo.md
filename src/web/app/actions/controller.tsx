@@ -1,7 +1,8 @@
 /** @jsxImportSource remix/ui */
-import type { TaskFilter } from "@lemol/todo-md/core"
+
 import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
+import type { TaskFilter } from "../../../core/index.ts"
 import { assetsContext } from "../assets.ts"
 import { changesContext } from "../middleware/changes.ts"
 import { runTodo } from "../middleware/todo.ts"

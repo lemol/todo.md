@@ -41,7 +41,7 @@ const isTestingFile = (path: string) =>
   )
 
 const srcRoot = resolve(import.meta.dir, "..", "src")
-const webRoot = resolve(import.meta.dir, "..", "apps", "web")
+const webRoot = resolve(srcRoot, "web")
 
 const importPattern =
   /(?:^|[\s;])(?:import|export)\s+(?:type\s+)?(?:[\w*{}\s,$]+\s+from\s+)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g
@@ -78,9 +78,6 @@ export const violations = (file: string, source: string): string[] => {
 }
 
 const webPackages = [
-  "@lemol/todo-md/spec",
-  "@lemol/todo-md/core",
-  "@lemol/todo-md/fs",
   "effect",
   "@effect/platform-bun",
   "@effect/platform-node-shared",
@@ -89,7 +86,14 @@ const webPackages = [
   "mdast-util-to-hast",
   "hast-util-to-html",
 ]
-const webTodoPackages = ["@lemol/todo-md/markdown", "@lemol/todo-md/spec/testing"]
+const webTodoPackages = [
+  "@lemol/todo-md/spec",
+  "@lemol/todo-md/core",
+  "@lemol/todo-md/fs",
+  "@lemol/todo-md/markdown",
+  "@lemol/todo-md/spec/testing",
+]
+const webModules = ["spec", "core", "fs"]
 
 export const webViolations = (file: string, source: string): string[] => {
   const isTest = file.startsWith("test/") || file.includes(".test.")
@@ -97,7 +101,17 @@ export const webViolations = (file: string, source: string): string[] => {
   return specifiersOf(source).flatMap((specifier) => {
     if (specifier.startsWith(".")) {
       const target = resolve(webRoot, file.includes("/") ? dirname(file) : ".", specifier)
-      if (!target.startsWith(webRoot)) return [`${file}: imports ${specifier}, outside apps/web`]
+      if (!target.startsWith(webRoot)) {
+        const srcRelative = relative(srcRoot, target)
+        const targetModule = srcRelative.split(sep)[0] ?? ""
+        if (!srcRelative.startsWith("..") && webModules.includes(targetModule)) {
+          if (isTestingFile(target) && !isTest) {
+            return [`${file}: runtime code imports test helpers (${specifier})`]
+          }
+          return []
+        }
+        return [`${file}: imports ${specifier}, outside src/web`]
+      }
       return []
     }
     if (specifier === "bun" || specifier.startsWith("node:")) {
@@ -116,7 +130,10 @@ export const webViolations = (file: string, source: string): string[] => {
 
 describe("module boundaries", () => {
   test("every source file respects the module graph", () => {
-    const files = [...new Glob("**/*.ts").scanSync({ cwd: srcRoot, onlyFiles: true })]
+    // src/web is governed by the web import graph below, not the module table.
+    const files = [...new Glob("**/*.ts").scanSync({ cwd: srcRoot, onlyFiles: true })].filter(
+      (file) => file !== "web" && !file.startsWith(`web${sep}`),
+    )
     const found = files.flatMap((file) =>
       violations(file, readFileSync(join(srcRoot, file), "utf8")),
     )
@@ -210,16 +227,19 @@ describe("module boundaries", () => {
       expect(violations("index.ts", "")).toEqual(["index.ts: not inside a known module"])
     })
 
-    test("web consumes todo-md through public subpaths", () => {
+    test("web reaches sibling modules through relative paths", () => {
       expect(
-        webViolations("app/router.ts", 'import { TodoService } from "@lemol/todo-md/core"'),
+        webViolations("app/router.ts", 'import { TodoService } from "../../core/index.ts"'),
       ).toEqual([])
       expect(
-        webViolations("app/router.ts", 'import { parseTodoFile } from "@lemol/todo-md/markdown"'),
-      ).toEqual(["app/router.ts: web must not import @lemol/todo-md/markdown"])
+        webViolations("app/router.ts", 'import { parseTodoFile } from "../../markdown/index.ts"'),
+      ).toEqual(["app/router.ts: imports ../../markdown/index.ts, outside src/web"])
+      expect(webViolations("app/router.ts", 'import { x } from "@lemol/todo-md/core"')).toEqual([
+        "app/router.ts: web must not import @lemol/todo-md/core",
+      ])
       expect(
-        webViolations("app/router.ts", 'import { x } from "../../../src/core/index.ts"'),
-      ).toHaveLength(1)
+        webViolations("app/router.ts", 'const lazy = import("../../../package.json")'),
+      ).toEqual(["app/router.ts: imports ../../../package.json, outside src/web"])
     })
 
     test("web test helpers cannot leak into runtime", () => {

@@ -1,4 +1,4 @@
-import type { TaskFilter } from "@lemol/todo-md/core"
+import type { TaskFilter } from "../../../core/index.ts"
 import { taskId } from "../middleware/todo.ts"
 import { routes } from "../routes.ts"
 

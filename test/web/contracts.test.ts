@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { TodoService } from "@lemol/todo-md/core"
-import { allCapabilities, type Capabilities } from "@lemol/todo-md/spec"
-import { makeFakeChanges } from "../app/middleware/changes.ts"
-import { createAppRouter } from "../app/router.ts"
-import { routes } from "../app/routes.ts"
+import { TodoService } from "../../src/core/index.ts"
+import { allCapabilities, type Capabilities } from "../../src/spec/index.ts"
+import { makeFakeChanges } from "../../src/web/app/middleware/changes.ts"
+import { createAppRouter } from "../../src/web/app/router.ts"
+import { routes } from "../../src/web/app/routes.ts"
 import { makeFakeAssets, makeRuntime } from "./harness.ts"
 
 const open: Array<{ close(): Promise<void> }> = []

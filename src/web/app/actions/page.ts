@@ -1,6 +1,6 @@
-import type { Capabilities, Diagnostic } from "@lemol/todo-md/spec"
 import type { RenderFunction } from "remix/middleware/render"
 import type { RequestContext } from "remix/router"
+import type { Capabilities, Diagnostic } from "../../../spec/index.ts"
 import { type assetEntryContext, assetEntryOf } from "../middleware/assets.ts"
 import {
   capabilitiesContext,

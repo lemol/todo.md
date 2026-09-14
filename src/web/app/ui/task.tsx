@@ -1,5 +1,5 @@
-import type { TaskDetail } from "@lemol/todo-md/core"
-import type { Capabilities, Task } from "@lemol/todo-md/spec"
+import type { TaskDetail } from "../../../core/index.ts"
+import type { Capabilities, Task } from "../../../spec/index.ts"
 import type { EditValues } from "../actions/forms.ts"
 import { routes } from "../routes.ts"
 import { escapeHtml } from "./document.tsx"

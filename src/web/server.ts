@@ -1,9 +1,9 @@
 import { userInfo } from "node:os"
 import { BunServices } from "@effect/platform-bun"
-import { TodoService } from "@lemol/todo-md/core"
-import { FsTodoStore, findListRoot } from "@lemol/todo-md/fs"
-import { allCapabilities } from "@lemol/todo-md/spec"
 import { Effect, Layer, ManagedRuntime, Option } from "effect"
+import { TodoService } from "../core/index.ts"
+import { FsTodoStore, findListRoot } from "../fs/index.ts"
+import { allCapabilities } from "../spec/index.ts"
 import { createAppRouter } from "./app/router.ts"
 import { watchList } from "./watch.ts"
 

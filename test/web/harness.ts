@@ -1,9 +1,9 @@
-import { TodoService } from "@lemol/todo-md/core"
-import { allCapabilities, MemoryTodoStore } from "@lemol/todo-md/spec"
 import { Layer, ManagedRuntime } from "effect"
-import type { AppAssets } from "../app/assets.ts"
-import { makeFakeChanges } from "../app/middleware/changes.ts"
-import { createAppRouter } from "../app/router.ts"
+import { TodoService } from "../../src/core/index.ts"
+import { allCapabilities, MemoryTodoStore } from "../../src/spec/index.ts"
+import type { AppAssets } from "../../src/web/app/assets.ts"
+import { makeFakeChanges } from "../../src/web/app/middleware/changes.ts"
+import { createAppRouter } from "../../src/web/app/router.ts"
 
 export const makeRuntime = () => {
   const store = MemoryTodoStore.layer({ title: "Acme", description: "Ship deliberately." })

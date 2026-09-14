@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { routes } from "../app/routes.ts"
+import { routes } from "../../src/web/app/routes.ts"
 import { makeRouter } from "./harness.ts"
 
 test("allowed GET requests reach the board controller", async () => {

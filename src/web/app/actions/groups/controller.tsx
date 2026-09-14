@@ -1,7 +1,8 @@
 /** @jsxImportSource remix/ui */
-import { GroupNotFound, Unsupported } from "@lemol/todo-md/spec"
+
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
+import { GroupNotFound, Unsupported } from "../../../../spec/index.ts"
 import { runTodo } from "../../middleware/todo.ts"
 import { routes } from "../../routes.ts"
 import { Document } from "../../ui/document.tsx"

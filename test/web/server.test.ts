@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { EventEmitter } from "node:events"
-import { helpText, installSignalHandlers, parseServerOptions } from "../server.ts"
+import { helpText, installSignalHandlers, parseServerOptions } from "../../src/web/server.ts"
 
 test("parses server defaults and options", () => {
   const options = parseServerOptions(["--dir", "todo", "--port", "4401", "--host", "0.0.0.0"], {
