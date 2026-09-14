@@ -12,6 +12,11 @@ export class ProblemsFound extends Schema.TaggedError<ProblemsFound>()("Problems
   errors: Schema.Number,
 }) {}
 
+/** `todo sync` finished with failures; the per-project lines were already printed. */
+export class SyncFailed extends Schema.TaggedError<SyncFailed>()("SyncFailed", {
+  errors: Schema.Number,
+}) {}
+
 type Tagged = { readonly _tag: string } & Record<string, unknown>
 
 const isTagged = (error: unknown): error is Tagged =>
@@ -52,6 +57,10 @@ export const describeError = (error: unknown): string => {
       return `no todo.md list found from ${text("cwd")}; run \`todo init\` or pass --dir`
     case "ProblemsFound":
       return `check found ${text("errors")} error(s)`
+    case "SyncFailed": {
+      const errors = Number(error.errors)
+      return `sync failed for ${errors} project${errors === 1 ? "" : "s"}`
+    }
     default:
       return typeof error.message === "string" && error.message !== "" ? error.message : error._tag
   }

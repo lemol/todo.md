@@ -30,23 +30,19 @@ in the [hub](./hub.md)).
 ## cli
 
 The CLI is built with `effect/unstable/cli` (`Command`, `Flag`, `Argument`,
-`GlobalFlag`) and runs on `BunRuntime`. Each command resolves the list root
-(from `--dir`, or `findListRoot`) and runs against `TodoService` over
-`FsTodoStore`:
+`GlobalFlag`) and runs on `BunRuntime`. Each command resolves the current
+project through the hub (`hub.resolve`, then `hub.todo`):
 
 ```ts
 // context.ts
 const withTodo = (f) =>
   Effect.gen(function* () {
-    const root = yield* listRoot
-    return yield* f(yield* TodoService).pipe(
-      Effect.provide(TodoService.layer),
-      Effect.provide(FsTodoStore.layer({ root })),
-    )
+    const info = yield* hub.resolve({ project, dir, cwd })
+    return yield* f(yield* hub.todo(info.name), info)
   })
 
 // bin.ts
-main(process.argv.slice(2), { cwd, env, username, color }).pipe(
+main(process.argv.slice(2), { cwd, env, username, color, home, userHome, sources: [fsSource] }).pipe(
   Effect.tap((code) => Effect.sync(() => { process.exitCode = code })),
   Effect.provide(BunServices.layer),
   BunRuntime.runMain,
@@ -55,25 +51,26 @@ main(process.argv.slice(2), { cwd, env, username, color }).pipe(
 
 - **Testable entry point.** `main(args, context)` runs the command tree with
   `Command.runWith` and returns the exit code. Tests pass their own working
-  directory, environment and color setting.
+  directory, environment, color setting, hub home and sources.
 - **Commands:** `list`/`ls` (also plain `todo`), `next`, `show`, `add`,
-  `edit`, `done`, `reopen`, `mv`, `rm`, `comment`, `check`, `init`, `fmt`.
-  The full surface is in the [cli README](../../src/cli/README.md).
+  `edit`, `done`, `reopen`, `mv`, `rm`, `comment`, `check`, `init`, `fmt`,
+  `projects …`, `sync`. The full surface is in the
+  [cli README](../../src/cli/README.md).
+- **Projects:** `--project <name>` (exclusive with `--dir`); qualified
+  `project:id` references (`mionso:12`); `todo projects …` to manage the
+  registry; `todo sync` to refresh remotes; `ls`/`next --all` over `overview`.
+  Unregistered lists work exactly as before. See the
+  [hub design](../superpowers/specs/2026-09-13-hub-design.md#cli).
 - **Help:** every command has `--help` with a description, every flag, and
   examples. A test walks the command tree to keep it that way.
 - **Output:** human output mirrors `TODO.md`. `--json` (a global flag,
   accepted anywhere) prints the result exactly on stdout, and failures as JSON
-  on stderr.
+  on stderr. Results from a registered project gain its name as `project`.
 - **Non-interactive:** the CLI never prompts.
 - **Exit codes:** `0` success, `1` domain error (not found, validation,
-  `check` found errors), `2` usage error.
+  `check` found errors, a `sync` with failures), `2` usage error.
 - **Comment author:** `--author`, then `$TODO_MD_AUTHOR`, then the OS user
   name.
-
-**Planned (task 16):** `withTodo` becomes `hub.resolve` then `hub.todo`;
-`--project`, qualified references (`mionso:12`), `todo projects …`,
-`todo sync` and `ls`/`next --all`. See the
-[hub design](../superpowers/specs/2026-09-13-hub-design.md#cli).
 
 ## web
 

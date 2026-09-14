@@ -1,9 +1,17 @@
 import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 import type { TaskFilter } from "../../core/index.ts"
-import { output, taskId, withTodo } from "../context.ts"
+import { Hub } from "../../hub/index.ts"
+import { output, projectOfRefs, refOf, withTodo } from "../context.ts"
 import { ProblemsFound, UsageError } from "../errors.ts"
-import { renderDetail, renderDiagnostics, renderListing, taskLines } from "../render.ts"
+import {
+  renderDetail,
+  renderDiagnostics,
+  renderListing,
+  renderNextOverview,
+  renderOverview,
+  taskLines,
+} from "../render.ts"
 
 /** Filters shared by `list` and `next`. */
 const filterFlags = {
@@ -28,12 +36,63 @@ const filterOf = (flags: {
   ...(Option.isSome(flags.group) ? { group: flags.group.value } : {}),
 })
 
+/** The registered project names, in registry order. */
+const registeredNames = Effect.gen(function* () {
+  const hub = yield* Hub
+  return (yield* hub.projects()).filter((p) => p.registered).map((p) => p.name)
+})
+
+/**
+ * `ls --all`: every registered project's listing under its own heading. With
+ * no registered projects, the current list, open and done, exactly as before.
+ */
+const showAll = (filter: TaskFilter, done: boolean) =>
+  Effect.gen(function* () {
+    const names = yield* registeredNames
+    if (names.length === 0) return yield* showList({ ...filter, status: "all" })
+    const hub = yield* Hub
+    const view = yield* hub.overview({
+      projects: names,
+      filter: { ...filter, status: done ? "done" : "open" },
+    })
+    yield* output(undefined, view, (style) => renderOverview(view, style))
+  })
+
+/**
+ * `next --all`: the ready tasks of every registered project. With no
+ * registered projects, every ready task of the current list.
+ */
+const showNextAll = (filter: TaskFilter, limit: number) =>
+  Effect.gen(function* () {
+    const names = yield* registeredNames
+    if (names.length === 0) {
+      return yield* withTodo((todo, project) =>
+        Effect.gen(function* () {
+          const ready = yield* todo.next({ ...filter, state: "ready" })
+          yield* output(project, ready, (style) =>
+            ready.length === 0 ? ["Nothing is ready."] : taskLines(ready, style),
+          )
+        }),
+      )
+    }
+    const hub = yield* Hub
+    const view = yield* hub.overview({ projects: names, filter: { ...filter, state: "ready" } })
+    const shown = limit > 0 ? view.tasks.slice(0, limit) : view.tasks
+    yield* output(undefined, view, (style) =>
+      shown.length === 0 && !view.projects.some((entry) => "error" in entry)
+        ? ["Nothing is ready."]
+        : renderNextOverview(view, shown, style),
+    )
+  })
+
 /** Prints the list; `todo` with no command does this too. */
 export const showList = (filter: TaskFilter = {}) =>
-  Effect.gen(function* () {
-    const listing = yield* withTodo((todo) => todo.list(filter))
-    yield* output(listing, (style) => renderListing(listing, style))
-  })
+  withTodo((todo, project) =>
+    Effect.gen(function* () {
+      const listing = yield* todo.list(filter)
+      yield* output(project, listing, (style) => renderListing(listing, style))
+    }),
+  )
 
 export const list = Command.make(
   "list",
@@ -44,15 +103,21 @@ export const list = Command.make(
       Flag.withDescription("Only tasks blocked by an unfinished dependency"),
     ),
     done: Flag.boolean("done").pipe(Flag.withDescription("Only done tasks, newest first")),
-    all: Flag.boolean("all").pipe(Flag.withDescription("Open and done tasks")),
+    all: Flag.boolean("all").pipe(
+      Flag.withDescription("Open and done tasks, or every registered project when any exist"),
+    ),
   },
   Effect.fn(function* (flags) {
     if (flags.ready && flags.blocked) {
       return yield* new UsageError({ message: "use --ready or --blocked, not both" })
     }
     const state = flags.ready ? "ready" : flags.blocked ? "blocked" : undefined
-    const status = flags.all ? "all" : flags.done ? "done" : "open"
-    yield* showList({ ...filterOf(flags), status, ...(state === undefined ? {} : { state }) })
+    if (!flags.all) {
+      const status = flags.done ? "done" : "open"
+      yield* showList({ ...filterOf(flags), status, ...(state === undefined ? {} : { state }) })
+    } else {
+      yield* showAll({ ...filterOf(flags), ...(state === undefined ? {} : { state }) }, flags.done)
+    }
   }),
 ).pipe(
   Command.withAlias("ls"),
@@ -62,6 +127,7 @@ export const list = Command.make(
     { command: "todo ls --tag bug --ready", description: "Ready tasks tagged #bug" },
     { command: "todo list --done", description: "Completed tasks, newest first" },
     { command: "todo list --json", description: "The whole listing as JSON" },
+    { command: "todo ls --all", description: "Every registered project, each under its heading" },
   ]),
 )
 
@@ -73,13 +139,26 @@ export const next = Command.make(
       Flag.withDefault(1),
       Flag.withDescription("How many ready tasks to show (0 for all)"),
     ),
+    all: Flag.boolean("all").pipe(
+      Flag.withDescription(
+        "Every registered project (or every ready task when none are registered)",
+      ),
+    ),
   },
   Effect.fn(function* (flags) {
-    const ready = yield* withTodo((todo) => todo.next(filterOf(flags)))
-    const shown = flags.limit > 0 ? ready.slice(0, flags.limit) : ready
-    yield* output(shown, (style) =>
-      shown.length === 0 ? ["Nothing is ready."] : taskLines(shown, style),
-    )
+    if (!flags.all) {
+      yield* withTodo((todo, project) =>
+        Effect.gen(function* () {
+          const ready = yield* todo.next(filterOf(flags))
+          const shown = flags.limit > 0 ? ready.slice(0, flags.limit) : ready
+          yield* output(project, shown, (style) =>
+            shown.length === 0 ? ["Nothing is ready."] : taskLines(shown, style),
+          )
+        }),
+      )
+    } else {
+      yield* showNextAll(filterOf(flags), flags.limit)
+    }
   }),
 ).pipe(
   Command.withDescription("Show the ready task(s) to work on next, in priority order"),
@@ -89,15 +168,30 @@ export const next = Command.make(
       command: "todo next --assignee claude --limit 3 --json",
       description: "An agent's next three",
     },
+    { command: "todo next --all", description: "Ready tasks across every project" },
   ]),
 )
 
 export const show = Command.make(
   "show",
-  { id: Argument.string("id").pipe(Argument.withDescription("The task's ID, e.g. 7 or 07")) },
+  {
+    id: Argument.string("id").pipe(
+      Argument.withDescription(
+        "The task's ID, e.g. 7 or 07, or <project>:<id> for another project",
+      ),
+    ),
+  },
   Effect.fn(function* ({ id }) {
-    const detail = yield* withTodo((todo) => todo.show(taskId(id)))
-    yield* output(detail, (style) => renderDetail(detail, style))
+    const ref = refOf(id)
+    const refProject = yield* projectOfRefs([ref])
+    yield* withTodo(
+      (todo, project) =>
+        Effect.gen(function* () {
+          const detail = yield* todo.show(ref.id)
+          yield* output(project, detail, (style) => renderDetail(detail, style))
+        }),
+      { project: refProject },
+    )
   }),
 ).pipe(
   Command.withDescription(
@@ -113,10 +207,14 @@ export const check = Command.make(
   "check",
   {},
   Effect.fn(function* () {
-    const diagnostics = yield* withTodo((todo) => todo.check())
-    yield* output(diagnostics, (style) => renderDiagnostics(diagnostics, style))
-    const errors = diagnostics.filter((d) => d.severity === "error").length
-    if (errors > 0) return yield* new ProblemsFound({ errors })
+    yield* withTodo((todo, project) =>
+      Effect.gen(function* () {
+        const diagnostics = yield* todo.check()
+        yield* output(project, diagnostics, (style) => renderDiagnostics(diagnostics, style))
+        const errors = diagnostics.filter((d) => d.severity === "error").length
+        if (errors > 0) return yield* new ProblemsFound({ errors })
+      }),
+    )
   }),
 ).pipe(
   Command.withDescription("Validate the list; exits with 1 when it finds errors"),

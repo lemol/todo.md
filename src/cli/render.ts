@@ -1,6 +1,16 @@
 import { DateTime } from "effect"
 import type { Completion, Listing, TaskDetail, TaskView } from "../core/index.ts"
+import {
+  formatRef,
+  type Overview,
+  type OverviewTask,
+  type ProjectInfo,
+  type ProjectStatus,
+  type SyncFailure,
+  type SyncResult,
+} from "../hub/index.ts"
 import type { Diagnostic, Task } from "../spec/index.ts"
+import { describeError } from "./errors.ts"
 import type { Style } from "./style.ts"
 
 /** A task ID as people read it: numeric IDs padded like the file format (`7` → `07`). */
@@ -28,30 +38,38 @@ const indented = (text: string, spaces: number): string[] =>
  * titles padded so the extras line up, and a `blocked by` line under blocked
  * tasks. Done tasks show their completion date instead of tags.
  */
-export const taskLines = (views: ReadonlyArray<TaskView>, style: Style): string[] => {
-  const idWidth = Math.max(2, ...views.map((v) => showId(v.task.id).length))
+export const taskLines = (
+  views: ReadonlyArray<TaskView>,
+  style: Style,
+  idOf: (id: string) => string = showId,
+): string[] => {
+  const idWidth = Math.max(2, ...views.map((v) => idOf(v.task.id).length))
   const titleWidth = Math.min(50, Math.max(0, ...views.map((v) => v.task.title.length)))
   return views.flatMap((v) => {
     const extra = v.state === "done" ? day(v.task) : meta(v.task)
     const title = extra === "" ? v.task.title : v.task.title.padEnd(titleWidth)
-    const head = `  ${showId(v.task.id).padEnd(idWidth)}  ${title}`
+    const head = `  ${idOf(v.task.id).padEnd(idWidth)}  ${title}`
     const line = extra === "" ? head : `${head}  ${style.dim(extra)}`
     if (v.state !== "blocked") return [line]
-    const blocked = `blocked by ${v.blockedBy.map(showId).join(", ")}`
+    const blocked = `blocked by ${v.blockedBy.map(idOf).join(", ")}`
     return [line, `${" ".repeat(idWidth + 4)}${style.yellow(blocked)}`]
   })
 }
 
 /** `todo list`: the outline of the list, like TODO.md, and a summary line. */
-export const renderListing = (listing: Listing, style: Style): string[] => {
+export const renderListing = (
+  listing: Listing,
+  style: Style,
+  idOf: (id: string) => string = showId,
+): string[] => {
   const lines: string[] = []
   if (listing.title !== "") lines.push(style.bold(listing.title), "")
   for (const section of listing.sections.filter((s) => s.tasks.length > 0)) {
     if (section.name !== undefined) lines.push(style.bold(section.name))
-    lines.push(...taskLines(section.tasks, style), "")
+    lines.push(...taskLines(section.tasks, style, idOf), "")
   }
   if (listing.done.length > 0) {
-    lines.push(style.bold("Done"), ...taskLines(listing.done, style), "")
+    lines.push(style.bold("Done"), ...taskLines(listing.done, style, idOf), "")
   }
   const open = listing.sections.flatMap((section) => section.tasks)
   if (open.length === 0 && listing.done.length === 0) return [...lines, "No tasks."]
@@ -100,6 +118,76 @@ export const renderDetail = (detail: TaskDetail, style: Style): string[] => {
   }
   return lines
 }
+
+/** `ls --all`: every project's listing under a `# <project>` heading, with qualified IDs. */
+export const renderOverview = (view: Overview, style: Style): string[] => {
+  const blocks = view.projects.map((entry) => [
+    `# ${entry.project.name}`,
+    ...("listing" in entry
+      ? renderListing(entry.listing, style, (id) => formatRef(entry.project.name, showId(id)))
+      : [`error: ${describeError(entry.error)}`]),
+  ])
+  return blocks.flatMap((lines, index) => (index === 0 ? lines : ["", ...lines]))
+}
+
+/** `next --all`: the given ready tasks grouped under their project's heading. */
+export const renderNextOverview = (
+  view: Overview,
+  tasks: ReadonlyArray<OverviewTask>,
+  style: Style,
+): string[] => {
+  const blocks: string[][] = []
+  for (const entry of view.projects) {
+    if ("error" in entry) {
+      blocks.push([`# ${entry.project.name}`, `error: ${describeError(entry.error)}`])
+      continue
+    }
+    const mine = tasks.filter((item) => item.project === entry.project.name)
+    if (mine.length === 0) continue
+    blocks.push([
+      `# ${entry.project.name}`,
+      ...taskLines(
+        mine.map((item) => item.view),
+        style,
+        (id) => formatRef(entry.project.name, showId(id)),
+      ),
+    ])
+  }
+  return blocks.flatMap((lines, index) => (index === 0 ? lines : ["", ...lines]))
+}
+
+/** One `todo projects` line: name, source, location, open and ready counts, status. */
+export const projectLine = (args: {
+  readonly info: ProjectInfo
+  readonly open: number
+  readonly ready: number
+  readonly status: string
+}): string =>
+  `${args.info.name}${args.info.registered ? "" : " (not registered)"}  ${args.info.source}  ${args.info.location}  ${args.open} open · ${args.ready} ready  ${args.status}`
+
+/** A project's one-line sync status, for `todo projects`. */
+export const statusText = (status: ProjectStatus, now: DateTime.Utc): string => {
+  if (status.diverged === true) return "diverged"
+  if (status.ahead !== undefined && status.ahead > 0) return `ahead ${status.ahead}`
+  if (status.result === "error") return `error: ${status.error ?? "unknown error"}`
+  if (status.result === "never" || status.lastSync === undefined) return "never synced"
+  const seconds = Math.max(
+    0,
+    Math.floor((DateTime.toEpochMillis(now) - DateTime.toEpochMillis(status.lastSync)) / 1000),
+  )
+  if (seconds < 60) return "synced just now"
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `synced ${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `synced ${hours}h ago`
+  return `synced ${Math.floor(hours / 24)}d ago`
+}
+
+/** One `todo sync` line per project. */
+export const syncLine = (outcome: SyncResult | SyncFailure): string =>
+  "error" in outcome
+    ? `${outcome.project}: error (${outcome.error.reason}): ${outcome.error.message}`
+    : `${outcome.project}: ${outcome.summary}`
 
 /** `todo done`: what was completed and what became ready. */
 export const renderCompletions = (

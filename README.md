@@ -75,6 +75,15 @@ todo done 1
 todo --help                            # every command has --help
 ```
 
+Across projects:
+
+```sh
+todo projects add ~/labs/acme         # register another list
+todo --project acme ls                # work on it from anywhere
+todo ls --all                         # everything, every project
+todo sync --all                       # refresh remotes
+```
+
 Run it with `bun src/cli/bin.ts` from a checkout, `bun link` it, or get
 `todo` from `node_modules/.bin` when `@lemol/todo-md` is a dependency. See
 the [cli README](src/cli/README.md).

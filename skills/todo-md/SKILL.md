@@ -40,6 +40,13 @@ checks, task-selection workflow, or restrictions on mutations.
 Treat the CLI result as authoritative for generated IDs and task state. Do not
 guess IDs or infer readiness from Markdown order alone.
 
+## Working across projects
+
+Registered projects share one hub: `todo projects` lists them,
+`todo projects add <dir>` registers one, `--project <name>` targets one from
+anywhere, and task IDs accept `<project>:<id>`. `todo ls --all` and
+`todo next --all` span every project; `todo sync` refreshes remotes.
+
 ## Verify each mutation
 
 After adding, updating, or completing a task, inspect the affected task with

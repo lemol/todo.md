@@ -1,9 +1,11 @@
 import { Console, Effect } from "effect"
 import { CliOutput, Command } from "effect/unstable/cli"
+import { Hub } from "../hub/index.ts"
 import { fmt, init } from "./commands/lists.ts"
+import { projects, sync } from "./commands/projects.ts"
 import { check, list, next, show, showList } from "./commands/query.ts"
 import { add, comment, done, edit, mv, reopen, rm } from "./commands/tasks.ts"
-import { CliContext, Dir, Json } from "./context.ts"
+import { CliContext, Dir, Json, Project } from "./context.ts"
 import { describeError, errorJson, exitCodeOf } from "./errors.ts"
 
 /** Keep in step with package.json's version. */
@@ -32,8 +34,10 @@ export const todo = Command.make("todo", {}, () => showList()).pipe(
     check,
     init,
     fmt,
+    projects,
+    sync,
   ]),
-  Command.withGlobalFlags([Json, Dir]),
+  Command.withGlobalFlags([Json, Dir, Project]),
 )
 
 /**
@@ -64,5 +68,8 @@ export const main = (
       }),
     ),
     Effect.provideService(CliContext, context),
+    Effect.provide(
+      Hub.layer({ home: context.home, userHome: context.userHome, sources: context.sources }),
+    ),
     Effect.provide(CliOutput.layer(CliOutput.defaultFormatter({ colors: context.color }))),
   )

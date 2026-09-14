@@ -40,6 +40,8 @@ effectTest(
       "check",
       "init",
       "fmt",
+      "projects",
+      "sync",
     ])
     for (const command of commands) {
       const help = yield* todo(command, "--help")
@@ -48,6 +50,15 @@ effectTest(
       expect(section(help.stdout, "EXAMPLES").length, command).toBeGreaterThan(0)
       for (const line of [...section(help.stdout, "FLAGS"), ...section(help.stdout, "ARGUMENTS")]) {
         expect(line, `${command}: ${line}`).toMatch(described)
+      }
+    }
+    for (const sub of ["ls", "add", "rm", "rename"]) {
+      const help = yield* todo("projects", sub, "--help")
+      expect(help.code, `projects ${sub}`).toBe(0)
+      expect(section(help.stdout, "DESCRIPTION").length, `projects ${sub}`).toBeGreaterThan(0)
+      expect(section(help.stdout, "EXAMPLES").length, `projects ${sub}`).toBeGreaterThan(0)
+      for (const line of [...section(help.stdout, "FLAGS"), ...section(help.stdout, "ARGUMENTS")]) {
+        expect(line, `projects ${sub}: ${line}`).toMatch(described)
       }
     }
   }),

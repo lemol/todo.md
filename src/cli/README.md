@@ -34,10 +34,18 @@ examples. `todo --help` lists the commands.
 | `todo check` | Validate the list; exits 1 when it finds errors. | `Diagnostic[]` |
 | `todo init [dir]` | Create a list (default `./todo`); `--title` (default: the directory's name). | `{ root }` |
 | `todo fmt` | Normalize a hand-edited list: number new items, complete ticked ones, sync link text. | `{ assigned, finished, swept }` |
+| `todo projects` | Registered projects with sync status; `ls`, `add <target> [--name] [--source]`, `rm <name> [--force]`, `rename <from> <to>`. | `ProjectInfo[]` |
+| `todo sync [names…] [--all]` | Sync projects with their remotes; exits 1 when any sync failed. | `(SyncResult \| SyncFailure)[]` |
+
+`todo list` and `todo next` take `--all` for every registered project at once
+(each under a `# <project>` heading with qualified IDs); with no registered
+projects `--all` means open and done tasks, or every ready task, of the
+current list.
 
 Where it helps, arguments are forgiving:
 
-- IDs may be typed as shown (`07`) or bare (`7`).
+- IDs may be typed as shown (`07`) or bare (`7`), or qualified with their
+  project (`acme:07`) to work on another project from anywhere.
 - A title or comment made of several words doesn't need quotes: `todo add Fix the bug`.
 
 A `TaskView` is `{ task, state: "ready" | "blocked" | "done", blockedBy: id[] }`;
@@ -49,6 +57,11 @@ see [`core`](../core).
 | --- | --- |
 | `--json` | Print the result as one line of JSON on stdout. Failures print `{ "error": { tag, message, … } }` on stderr. |
 | `--dir <path>` | The list's directory (the one holding `TODO.md`). Default: walking up from the working directory, the first `todo/TODO.md` or `TODO.md`. |
+| `--project <name>` | The registered project to work on, from any directory. Cannot be used with `--dir`. |
+
+The project registry lives in `$TODO_MD_HOME` (default: `~/.todo-md`).
+`todo projects add <dir>` registers a list; `--project` and `<project>:<id>`
+then reach it from anywhere.
 | `--help`, `-h` | Help for the command. |
 | `--version` | The version. |
 
@@ -62,7 +75,8 @@ user name.
   and a summary.
 - **Colors** are used only on a terminal, and never when `NO_COLOR` is set.
 - **JSON output** is the command's result exactly, with dates as ISO 8601
-  strings.
+  strings. Results from a registered project gain its name as `project`;
+  unregistered lists print exactly what they always did.
 
 ## Exit codes
 
@@ -89,9 +103,9 @@ user name.
 | --- | --- |
 | `bin.ts` | The executable: passes the process's arguments, working directory, environment and TTY state to `main`, and sets the exit code. |
 | `main.ts` | The command tree (`todo`) and `main(args, context)` → exit code. |
-| `context.ts` | `CliContext`, the global flags, list discovery, `withTodo` (wires `FsTodoStore` into `TodoService`), output, author. |
-| `commands/*.ts` | The commands: `query` (list, next, show, check), `tasks` (add … comment), `lists` (init, fmt). |
-| `render.ts`, `style.ts` | Human output. |
+| `context.ts` | `CliContext`, the global flags, hub resolution, `withTodo` (the current project through the hub), output, author. |
+| `commands/*.ts` | The commands: `query` (list, next, show, check), `tasks` (add … comment), `lists` (init, fmt), `projects` (projects, sync). |
+| `render.ts`, `style.ts` | Human output, including overview, project and sync lines. |
 | `errors.ts` | CLI errors, their messages and exit codes. |
 
 ## Testing
@@ -106,9 +120,11 @@ user name.
 
 - [`core`](../core)
 - [`fs`](../fs)
+- [`hub`](../hub)
 - [`spec`](../spec)
 - `effect`
 - `@effect/platform-bun`
 - `node:*` and `bun`
 
-The CLI is the composition root: it wires `FsTodoStore` into `TodoService`.
+The CLI is the composition root: it builds a hub over `fsSource` and runs every
+command through it.
