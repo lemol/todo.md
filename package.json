@@ -24,7 +24,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "bun test",
     "test:boundaries": "bun test test/boundaries.test.ts",
-    "todo": "bun ./src/cli/bin.ts"
+    "todo": "bun ./src/cli/bin.ts",
+    "nzila": "bun ../nzila/src/cli/bin.ts"
   },
   "peerDependencies": {
     "effect": "4.0.0-rc.108"
