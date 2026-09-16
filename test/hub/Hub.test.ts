@@ -32,6 +32,35 @@ describe("sourceKinds", () => {
   )
 })
 
+describe("dashboard", () => {
+  effectTest(
+    "describes each project once and keeps overview rows aligned",
+    Effect.gen(function* () {
+      let statusReads = 0
+      const counting = memorySource({
+        status: () => {
+          statusReads += 1
+          return Effect.succeed({ ahead: statusReads })
+        },
+      })
+      const hub = yield* hubOn([counting])
+      yield* hub.add({ name: "a", source: "memory", config: { title: "A" } })
+      yield* hub.add({ name: "b", source: "memory", config: { title: "B" } })
+      statusReads = 0
+      const snapshot = yield* hub.dashboard()
+      expect(statusReads).toBe(2)
+      expect(snapshot.projects.map((info) => [info.name, info.status])).toEqual([
+        ["a", { ahead: 1, result: "never" }],
+        ["b", { ahead: 2, result: "never" }],
+      ])
+      expect(snapshot.overview.projects.map((entry) => entry.project)).toEqual([
+        ...snapshot.projects,
+      ])
+    }),
+    diskWith({}),
+  )
+})
+
 describe("projects", () => {
   effectTest(
     "an empty home has no projects",

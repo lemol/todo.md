@@ -9,14 +9,14 @@ afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
-const open = (options: Parameters<typeof makeRouter>[0] = {}) => {
-  const app = makeRouter(options)
+const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
+  const app = await makeRouter(options)
   cleanup.push(app.close)
   return app
 }
 
 const postApp = (
-  router: ReturnType<typeof makeRouter>["router"],
+  router: Awaited<ReturnType<typeof makeRouter>>["router"],
   path: string,
   fields: Record<string, string>,
 ) => {
@@ -50,7 +50,7 @@ const failing = memorySource({
 
 describe("sync", () => {
   test("POST /sync syncs everything and flashes a summary", async () => {
-    const app = open({
+    const app = await open({
       projects: [
         { name: "ok", source: "syncs" },
         { name: "bad", source: "fails" },
@@ -71,7 +71,7 @@ describe("sync", () => {
   })
 
   test("POST /p/:project/sync reports one project", async () => {
-    const app = open({
+    const app = await open({
       projects: [{ name: "ok", source: "syncs" }],
       extraSources: [syncing("pulled 3 commits")],
     })
@@ -89,7 +89,10 @@ describe("sync", () => {
   })
 
   test("a failing project's reason reaches the flash", async () => {
-    const app = open({ projects: [{ name: "bad", source: "fails" }], extraSources: [failing] })
+    const app = await open({
+      projects: [{ name: "bad", source: "fails" }],
+      extraSources: [failing],
+    })
     const response = await postApp(app.router, "/p/bad/sync", {})
     const html = await (
       await app.router.fetch(
@@ -104,7 +107,10 @@ describe("sync", () => {
   })
 
   test("an off-site back value falls back to the dashboard", async () => {
-    const app = open({ projects: [{ name: "ok", source: "syncs" }], extraSources: [syncing("ok")] })
+    const app = await open({
+      projects: [{ name: "ok", source: "syncs" }],
+      extraSources: [syncing("ok")],
+    })
     const response = await postApp(app.router, "/sync", { back: "//evil.example" })
     expect(response.headers.get("Location")).toBe("/")
   })

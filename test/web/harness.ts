@@ -5,7 +5,7 @@ import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
 import type { TodoService } from "../../src/core/index.ts"
 import type { AnySource, Source } from "../../src/hub/index.ts"
-import { Hub } from "../../src/hub/index.ts"
+import { fsSource, Hub } from "../../src/hub/index.ts"
 import { type MemoryConfig, type MemoryHooks, memorySource } from "../../src/hub/testing.ts"
 import { type Capabilities, TodoStore } from "../../src/spec/index.ts"
 import type { AppAssets } from "../../src/web/app/assets.ts"
@@ -111,6 +111,10 @@ export const makeFakeAssets = (): AppAssets => ({
 
 export interface MakeRouterOptions extends MakeHubOptions {
   readonly assets?: AppAssets
+  /** Opens this directory as the unregistered startup project (`fs` is added). */
+  readonly listDir?: string
+  /** Overrides the startup name passed to the router (for example after `listDir`). */
+  readonly startup?: string
 }
 
 /**
@@ -118,12 +122,29 @@ export interface MakeRouterOptions extends MakeHubOptions {
  * name `acme`, title `Acme`, no tasks — use `seed` to add what a test needs).
  * `close()` disposes both the router and the hub runtime.
  */
-export const makeRouter = (options: MakeRouterOptions = {}) => {
-  const { hubRuntime, project, home } = makeHub(options)
+export const makeRouter = async (options: MakeRouterOptions = {}) => {
+  const hubOptions =
+    options.listDir === undefined
+      ? options
+      : {
+          ...options,
+          projects: options.projects ?? [],
+          extraSources: [fsSource, ...(options.extraSources ?? [])],
+        }
+  const { hubRuntime, project, home } = makeHub(hubOptions)
+  let startup = options.startup ?? project
+  const listDir = options.listDir
+  if (listDir !== undefined) {
+    startup = (
+      await hubRuntime.runPromise(
+        Effect.flatMap(Hub, (hub) => hub.resolve({ dir: listDir, cwd: listDir })),
+      )
+    ).name
+  }
   const runtime: HubRuntime = { runPromise: (effect) => hubRuntime.runPromise(effect) }
   const router = createAppRouter({
     runtime,
-    startup: project,
+    startup,
     cwd: process.cwd(),
     author: "tester",
     hosts: ["localhost", "127.0.0.1", "::1"],

@@ -25,7 +25,14 @@ import {
 } from "./errors.ts"
 import type { AddInput } from "./input.ts"
 import { isValidName } from "./names.ts"
-import { type Overview, type OverviewQuery, overviewOf } from "./overview.ts"
+import {
+  type Dashboard,
+  type DashboardOptions,
+  dashboardOf,
+  type Overview,
+  type OverviewQuery,
+  overviewOf,
+} from "./overview.ts"
 import {
   decodeConfig,
   fieldsOf,
@@ -99,6 +106,11 @@ export class Hub extends Context.Service<
     syncAll(): Effect.Effect<ReadonlyArray<SyncResult | SyncFailure>, RegistryError>
     /** `list(filter)` across projects, four at a time; a failing project is an error entry. */
     overview(query?: OverviewQuery): Effect.Effect<Overview, RegistryError>
+    /** Like `projects` plus `overview`, with a single describe/status pass per project. */
+    dashboard(
+      query?: OverviewQuery,
+      options?: DashboardOptions,
+    ): Effect.Effect<Dashboard, RegistryError>
     /** Project, sync and registry changes. Watchers run only while something consumes it. */
     readonly changes: Stream.Stream<HubChange>
     /** Acquires the change subscription and starts source watchers before returning. */
@@ -484,6 +496,17 @@ const make = (options: HubOptions) =>
           listing: (project, filter) =>
             Effect.flatMap(serviceOf(project), (service) => service.list(filter)),
         }),
+      dashboard: (query = {}, options = {}) =>
+        dashboardOf(
+          query,
+          {
+            projects: Effect.map(registered, (projects) => [...projects, ...unregistered.all()]),
+            describe,
+            listing: (project, filter) =>
+              Effect.flatMap(serviceOf(project), (service) => service.list(filter)),
+          },
+          options,
+        ),
       changes: changes.stream,
       subscribeChanges: changes.subscribe,
     })

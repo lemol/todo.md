@@ -47,6 +47,12 @@ export interface Overview {
   readonly tasks: ReadonlyArray<OverviewTask>
 }
 
+/** One `describe` per project, then an overview that reuses those rows. */
+export interface Dashboard {
+  readonly projects: ReadonlyArray<ProjectInfo>
+  readonly overview: Overview
+}
+
 /** What `overviewOf` needs from the hub. */
 export interface OverviewDeps {
   /** Registered projects in registry order, then unregistered ones opened in the hub. */
@@ -114,4 +120,57 @@ export const overviewOf = (
       { concurrency: 4 },
     )
     return { projects: entries, tasks: tasksOf(entries) }
+  })
+
+/**
+ * Describes every project once, then builds `overview` from that snapshot so
+ * chrome and body cannot drift apart or double-call `source.status`.
+ */
+export interface DashboardOptions {
+  /**
+   * When the startup project is still unregistered, overview lists it before
+   * registered projects unless `query.projects` overrides the order.
+   */
+  readonly startup?: string
+}
+
+export const dashboardOf = (
+  query: OverviewQuery,
+  deps: OverviewDeps,
+  options: DashboardOptions = {},
+): Effect.Effect<Dashboard, RegistryError> =>
+  Effect.gen(function* () {
+    const all = yield* deps.projects
+    const infos = yield* Effect.forEach(all, deps.describe, { concurrency: 4 })
+    const byName = new Map(
+      all.flatMap((project, index) => {
+        const info = infos[index]
+        return info === undefined ? [] : [[project.name, info] as const]
+      }),
+    )
+    const startup = options.startup
+    const startupRow =
+      startup === undefined ? undefined : infos.find((info) => info.name === startup)
+    const projectOrder =
+      query.projects ??
+      (startupRow !== undefined && !startupRow.registered
+        ? [startupRow.name, ...infos.filter((info) => info.registered).map((info) => info.name)]
+        : undefined)
+    const overview = yield* overviewOf(
+      {
+        ...query,
+        ...(projectOrder === undefined ? {} : { projects: projectOrder }),
+      },
+      {
+        projects: Effect.succeed(all),
+        describe: (project) => {
+          const info = byName.get(project.name)
+          return info === undefined
+            ? Effect.die(`dashboard snapshot missing ${project.name}`)
+            : Effect.succeed(info)
+        },
+        listing: deps.listing,
+      },
+    )
+    return { projects: infos, overview }
   })

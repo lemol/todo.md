@@ -10,7 +10,7 @@ afterEach(async () => {
 
 test("emits a changed event for the source change and unsubscribes on abort", async () => {
   const watchers = await Effect.runPromise(makeWatchers)
-  const harness = makeRouter({ changes: watchers.changes })
+  const harness = await makeRouter({ changes: watchers.changes })
   const { hubRuntime } = harness
   cleanup.push(async () => {
     await harness.close()

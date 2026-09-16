@@ -6,7 +6,7 @@ import { runTodo, taskId } from "../../src/web/app/middleware/todo.ts"
 import { makeRouter } from "./harness.ts"
 
 test("rejects foreign hosts, including the event stream", async () => {
-  const { router, project, close } = makeRouter()
+  const { router, project, close } = await makeRouter()
   try {
     for (const path of [`/p/${project}`, "/events", "/", "/projects", "/go?project=acme"]) {
       const response = await router.fetch(
@@ -20,7 +20,7 @@ test("rejects foreign hosts, including the event stream", async () => {
 })
 
 test("rejects cross-origin POSTs on every route", async () => {
-  const { router, project, close } = makeRouter()
+  const { router, project, close } = await makeRouter()
   try {
     for (const path of [
       `/p/${project}/tasks`,

@@ -98,7 +98,7 @@ test("the sync badge carries the hub's words and a matching pastel", () => {
 })
 
 test("renders the shared document shell with the project badge", async () => {
-  const { router, project, close } = makeRouter()
+  const { router, project, close } = await makeRouter()
   cleanup.push(close)
   const response = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),

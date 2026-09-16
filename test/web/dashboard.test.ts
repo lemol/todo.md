@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { Effect, Layer, Schema } from "effect"
-import { type AnySource, fsSource, SourceError } from "../../src/hub/index.ts"
+import { type AnySource, fsSource, Hub, SourceError } from "../../src/hub/index.ts"
 import { TodoStore } from "../../src/spec/index.ts"
 import { makeRouter, seed } from "./harness.ts"
 
@@ -9,13 +12,29 @@ afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
-const open = (options: Parameters<typeof makeRouter>[0] = {}) => {
-  const app = makeRouter(options)
+const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
+  const app = await makeRouter(options)
   cleanup.push(app.close)
   return app
 }
 
-const fetchApp = (router: ReturnType<typeof makeRouter>["router"], path: string) =>
+const postApp = (
+  router: Awaited<ReturnType<typeof makeRouter>>["router"],
+  path: string,
+  fields: Record<string, string>,
+) => {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(fields)) body.append(key, value)
+  return router.fetch(
+    new Request(`http://localhost${path}`, {
+      method: "POST",
+      headers: { Host: "localhost", Origin: "http://localhost" },
+      body,
+    }),
+  )
+}
+
+const fetchApp = (router: Awaited<ReturnType<typeof makeRouter>>["router"], path: string) =>
   router.fetch(new Request(`http://localhost${path}`, { headers: { Host: "localhost" } }))
 
 const twoProjects = {
@@ -27,7 +46,7 @@ const twoProjects = {
 
 describe("dashboard", () => {
   test("lists projects in registry order with counts and next tasks", async () => {
-    const app = open(twoProjects)
+    const app = await open(twoProjects)
     await seed(app.hubRuntime, "acme", (todo) => todo.add({ title: "Write docs", tags: ["docs"] }))
     await seed(app.hubRuntime, "work", (todo) => todo.add({ title: "Ship it" }))
     const html = await (await fetchApp(app.router, "/")).text()
@@ -40,7 +59,7 @@ describe("dashboard", () => {
   })
 
   test("shows at most five ready tasks per project", async () => {
-    const app = open()
+    const app = await open()
     for (const index of [1, 2, 3, 4, 5, 6]) {
       await seed(app.hubRuntime, "acme", (todo) => todo.add({ title: `Task ${index}` }))
     }
@@ -51,14 +70,14 @@ describe("dashboard", () => {
   })
 
   test("the source filter lists every loaded source kind", async () => {
-    const app = open({ extraSources: [fsSource] })
+    const app = await open({ extraSources: [fsSource] })
     const html = await (await fetchApp(app.router, "/")).text()
     expect(html).toContain('name="source" value="memory"')
     expect(html).toContain('name="source" value="fs"')
   })
 
   test("each filter narrows the results", async () => {
-    const app = open(twoProjects)
+    const app = await open(twoProjects)
     await seed(app.hubRuntime, "acme", (todo) =>
       todo.add({ title: "Write docs", tags: ["docs"], assignee: "lemol" }),
     )
@@ -80,8 +99,48 @@ describe("dashboard", () => {
     expect(bySource).not.toContain("Write docs")
   })
 
+  test("state=ready and state=blocked narrow the dashboard", async () => {
+    const app = await open()
+    await seed(app.hubRuntime, "acme", (todo) =>
+      Effect.gen(function* () {
+        yield* todo.add({ title: "Blocker" })
+        yield* todo.add({ title: "Blocked task", dependsOn: ["1"] })
+        yield* todo.add({ title: "Ready solo" })
+      }),
+    )
+    const ready = await (await fetchApp(app.router, "/?state=ready")).text()
+    expect(ready).toContain("Blocker")
+    expect(ready).toContain("Ready solo")
+    expect(ready).not.toContain("Blocked task")
+
+    const blocked = await (await fetchApp(app.router, "/?state=blocked")).text()
+    expect(blocked).toContain("0 ready · 1 blocked")
+    expect(blocked).not.toContain("Ready solo")
+
+    const blockedFlat = await (await fetchApp(app.router, "/?state=blocked&view=flat")).text()
+    expect(blockedFlat).toContain("Blocked task")
+  })
+
+  test("register replaces the unregistered startup project", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "todo-md-register-"))
+    writeFileSync(join(dir, "TODO.md"), "# Disk list\n")
+    const app = await open({ projects: [], listDir: dir })
+    const before = await (await fetchApp(app.router, "/")).text()
+    expect(before).toContain("Register")
+    expect(before).toContain("not registered")
+    const response = await postApp(app.router, "/projects", {
+      target: dir,
+      name: "work",
+      source: "fs",
+    })
+    expect(response.status).toBe(303)
+    const listed = await app.hubRuntime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))
+    expect(listed.map((info) => info.name)).toEqual(["work"])
+    expect(listed.every((info) => info.registered)).toBe(true)
+  })
+
   test("the flat view lists qualified ids across projects", async () => {
-    const app = open(twoProjects)
+    const app = await open(twoProjects)
     await seed(app.hubRuntime, "acme", (todo) => todo.add({ title: "Write docs" }))
     await seed(app.hubRuntime, "work", (todo) => todo.add({ title: "Ship it" }))
     const html = await (await fetchApp(app.router, "/?view=flat")).text()
@@ -91,27 +150,27 @@ describe("dashboard", () => {
   })
 
   test("rejects an invalid state or view with 400", async () => {
-    const app = open()
+    const app = await open()
     expect((await fetchApp(app.router, "/?state=soon")).status).toBe(400)
     expect((await fetchApp(app.router, "/?view=grid")).status).toBe(400)
   })
 
   test("an empty registry points at /projects", async () => {
-    const app = open({ projects: [] })
+    const app = await open({ projects: [] })
     const html = await (await fetchApp(app.router, "/")).text()
     expect(html).toContain("No projects yet.")
     expect(html).toContain('href="/projects"')
   })
 
   test("the switcher redirects to a project's board", async () => {
-    const app = open(twoProjects)
+    const app = await open(twoProjects)
     const response = await fetchApp(app.router, "/go?project=work")
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/p/work")
   })
 
   test("the switcher refuses an unknown project", async () => {
-    const app = open(twoProjects)
+    const app = await open(twoProjects)
     expect((await fetchApp(app.router, "/go?project=nope")).status).toBe(404)
   })
 
@@ -126,7 +185,7 @@ describe("dashboard", () => {
           Effect.fail(new SourceError({ name: "bad", message: "cannot open" })),
         ),
     }
-    const app = open({
+    const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
         { name: "bad", source: "broken" },
@@ -141,7 +200,7 @@ describe("dashboard", () => {
   })
 
   test("the dashboard's live region listens to every hub event", async () => {
-    const app = open()
+    const app = await open()
     const html = await (await fetchApp(app.router, "/")).text()
     expect(html).toContain('data-live-events="changed synced registry"')
     expect(html).not.toContain("data-project=")

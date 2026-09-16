@@ -12,17 +12,17 @@ afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
-const open = (options: Parameters<typeof makeRouter>[0] = {}) => {
-  const app = makeRouter(options)
+const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
+  const app = await makeRouter(options)
   cleanup.push(app.close)
   return app
 }
 
-const fetchApp = (router: ReturnType<typeof makeRouter>["router"], path: string) =>
+const fetchApp = (router: Awaited<ReturnType<typeof makeRouter>>["router"], path: string) =>
   router.fetch(new Request(`http://localhost${path}`, { headers: { Host: "localhost" } }))
 
 const postApp = (
-  router: ReturnType<typeof makeRouter>["router"],
+  router: Awaited<ReturnType<typeof makeRouter>>["router"],
   path: string,
   fields: Record<string, string>,
 ) => {
@@ -44,14 +44,14 @@ const required = (value: string | null | undefined): string => {
 
 describe("projects page", () => {
   test("the add form lists every loaded source kind", async () => {
-    const app = open({ extraSources: [fsSource] })
+    const app = await open({ extraSources: [fsSource] })
     const html = await (await fetchApp(app.router, "/projects")).text()
     expect(html).toContain('<option value="memory"')
     expect(html).toContain('<option value="fs"')
   })
 
   test("lists every project with its source, location and status", async () => {
-    const app = open({
+    const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
         { name: "work", fields: { title: "Work" } },
@@ -67,7 +67,7 @@ describe("projects page", () => {
   })
 
   test("adds a project and redirects to its board", async () => {
-    const app = open({ extraSources: [fsSource] })
+    const app = await open({ extraSources: [fsSource] })
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
     writeFileSync(join(dir, "TODO.md"), "# New\n\n- [ ] First\n")
     const response = await postApp(app.router, "/projects", { target: dir, name: "new" })
@@ -78,7 +78,7 @@ describe("projects page", () => {
   })
 
   test("a duplicate name re-renders the form with 422", async () => {
-    const app = open({ extraSources: [fsSource] })
+    const app = await open({ extraSources: [fsSource] })
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
     writeFileSync(join(dir, "TODO.md"), "# Dup\n")
     const response = await postApp(app.router, "/projects", { target: dir, name: "acme" })
@@ -89,14 +89,14 @@ describe("projects page", () => {
   })
 
   test("a missing target is rejected without touching the registry", async () => {
-    const app = open()
+    const app = await open()
     const response = await postApp(app.router, "/projects", { target: "", name: "x" })
     expect(response.status).toBe(422)
     expect(await response.text()).toContain("A path or URL is required")
   })
 
   test("renames a project and flashes the result", async () => {
-    const app = open()
+    const app = await open()
     const response = await postApp(app.router, "/projects/acme/rename", { to: "acme2" })
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/projects")
@@ -112,14 +112,14 @@ describe("projects page", () => {
   })
 
   test("an invalid new name re-renders with 422", async () => {
-    const app = open()
+    const app = await open()
     const response = await postApp(app.router, "/projects/acme/rename", { to: "Not A Name" })
     expect(response.status).toBe(422)
     expect(await response.text()).toContain("invalid project name")
   })
 
   test("removes a project", async () => {
-    const app = open({
+    const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
         { name: "work", fields: { title: "Work" } },
@@ -139,7 +139,7 @@ describe("projects page", () => {
           ? Effect.void
           : Effect.fail(new SourceError({ name: project.name, message: "1 unpushed commit" })),
     })
-    const app = open({
+    const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
         { name: "stub", source: "refuses" },

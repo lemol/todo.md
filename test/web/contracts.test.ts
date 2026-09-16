@@ -8,20 +8,20 @@ afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
-const open = () => {
-  const app = makeRouter()
+const open = async () => {
+  const app = await makeRouter()
   cleanup.push(app.close)
   return app
 }
 
-const openWith = (capabilities: Partial<Capabilities>) => {
-  const app = makeRouter({ capabilities })
+const openWith = async (capabilities: Partial<Capabilities>) => {
+  const app = await makeRouter({ capabilities })
   cleanup.push(app.close)
   return app
 }
 
 const fetchApp = (
-  router: ReturnType<typeof makeRouter>["router"],
+  router: Awaited<ReturnType<typeof makeRouter>>["router"],
   path: string,
   init: RequestInit = {},
 ) =>
@@ -37,14 +37,17 @@ const required = (value: string | null | undefined): string => {
   return value
 }
 
-const seedDocs = (hubRuntime: ReturnType<typeof makeRouter>["hubRuntime"], project: string) =>
+const seedDocs = (
+  hubRuntime: Awaited<ReturnType<typeof makeRouter>>["hubRuntime"],
+  project: string,
+) =>
   seed(hubRuntime, project, (todo) =>
     todo.add({ title: "Write docs", tags: ["docs"], assignee: "lemol" }),
   )
 
 describe("board contract", () => {
   test("renders filters, capabilities, state summary, and linked blockers", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     await seedDocs(hubRuntime, project)
     const blocker = await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Build API" }, { group: "Backend" }),
@@ -63,7 +66,7 @@ describe("board contract", () => {
     expect(html).toContain("blocked by")
     expect(html).toContain('data-next="true"')
 
-    const filter = open()
+    const filter = await open()
     await seedDocs(filter.hubRuntime, filter.project)
     const filtered = await (
       await fetchApp(
@@ -77,13 +80,13 @@ describe("board contract", () => {
   })
 
   test("shows no sync button on a non-syncable project", async () => {
-    const { router, project } = open()
+    const { router, project } = await open()
     const html = await (await fetchApp(router, routes.project.board.href({ project }))).text()
     expect(html).not.toContain('action="/p/acme/sync"')
   })
 
   test("hides unsupported controls", async () => {
-    const { router, hubRuntime, project } = openWith({ groups: false, comments: false })
+    const { router, hubRuntime, project } = await openWith({ groups: false, comments: false })
     const task = await seedDocs(hubRuntime, project)
 
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
@@ -97,7 +100,7 @@ describe("board contract", () => {
   })
 
   test("adds a task to a new group", async () => {
-    const { router, project } = open()
+    const { router, project } = await open()
     const form = new FormData()
     form.set("title", "Grouped task")
     form.set("group", "__new__")
@@ -116,7 +119,7 @@ describe("board contract", () => {
 
 describe("task forms and detail", () => {
   test("shows complete metadata, actions, comments newest first, and a populated edit form", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const dependency = await seedDocs(hubRuntime, project)
     const task = await seed(hubRuntime, project, (todo) =>
       todo.add({
@@ -199,7 +202,7 @@ describe("task forms and detail", () => {
   })
 
   test("re-renders add and edit forms with submitted values on validation errors", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const first = await seedDocs(hubRuntime, project)
     const second = await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Second", dependsOn: [first.id] }),
@@ -241,7 +244,7 @@ describe("task forms and detail", () => {
 
 describe("lifecycle, flash, and secondary pages", () => {
   test("completes with a flash, reports newly ready tasks, and handles a stale tab", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const blocker = await seedDocs(hubRuntime, project)
     const unblocked = await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Release", dependsOn: [blocker.id] }),
@@ -293,7 +296,7 @@ describe("lifecycle, flash, and secondary pages", () => {
   })
 
   test("returns shared pages for missing tasks and diagnostic groups", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const task = await seedDocs(hubRuntime, project)
     await seed(hubRuntime, project, (todo) => todo.update(task.id, { dependsOn: ["99"] }))
 
@@ -318,7 +321,11 @@ describe("lifecycle, flash, and secondary pages", () => {
   })
 })
 
-const post = (router: ReturnType<typeof makeRouter>["router"], path: string, fields: object) => {
+const post = (
+  router: Awaited<ReturnType<typeof makeRouter>>["router"],
+  path: string,
+  fields: object,
+) => {
   const body = new FormData()
   for (const [name, value] of Object.entries(fields)) body.set(name, String(value))
   return fetchApp(router, path, { method: "POST", body })
@@ -329,7 +336,7 @@ const cookieOf = (response: Response): string =>
 
 describe("move, remove, and group management", () => {
   const titlesOf = async (
-    hubRuntime: ReturnType<typeof makeRouter>["hubRuntime"],
+    hubRuntime: Awaited<ReturnType<typeof makeRouter>>["hubRuntime"],
     project: string,
   ) =>
     (await seed(hubRuntime, project, (todo) => todo.list())).sections.map((section) => ({
@@ -338,7 +345,7 @@ describe("move, remove, and group management", () => {
     }))
 
   const seedThree = async (
-    hubRuntime: ReturnType<typeof makeRouter>["hubRuntime"],
+    hubRuntime: Awaited<ReturnType<typeof makeRouter>>["hubRuntime"],
     project: string,
   ) => {
     const add = (title: string, group?: string) =>
@@ -347,7 +354,7 @@ describe("move, remove, and group management", () => {
   }
 
   test("board rows move up and down within their section", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const [one, two] = await seedThree(hubRuntime, project)
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
     const move = (id: string) => `action="${routes.project.tasks.move.href({ project, id })}"`
@@ -373,7 +380,7 @@ describe("move, remove, and group management", () => {
   })
 
   test("the task page moves a task to the top or bottom of a group", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const [one, two] = await seedThree(hubRuntime, project)
     const page = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: required(one?.id) }))
@@ -426,7 +433,7 @@ describe("move, remove, and group management", () => {
   })
 
   test("moving a done task redirects back with a warning", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const task = await seedDocs(hubRuntime, project)
     await seed(hubRuntime, project, (todo) => todo.complete(task.id))
     const moved = await post(router, routes.project.tasks.move.href({ project, id: task.id }), {
@@ -446,7 +453,7 @@ describe("move, remove, and group management", () => {
   })
 
   test("removes a task after confirming, forcing past open dependents", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const blocker = await seedDocs(hubRuntime, project)
     await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Release", dependsOn: [blocker.id] }),
@@ -492,7 +499,7 @@ describe("move, remove, and group management", () => {
   })
 
   test("removing a done task returns to Done", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     const task = await seedDocs(hubRuntime, project)
     await seed(hubRuntime, project, (todo) => todo.complete(task.id))
     const confirm = await (
@@ -508,7 +515,7 @@ describe("move, remove, and group management", () => {
   })
 
   test("renames a group and rejects a name that exists", async () => {
-    const { router, hubRuntime, project } = open()
+    const { router, hubRuntime, project } = await open()
     await seedThree(hubRuntime, project)
     await seed(hubRuntime, project, (todo) => todo.add({ title: "Four" }, { group: "Ops" }))
     const editHref = routes.project.groups.edit.href(
@@ -557,7 +564,7 @@ describe("move, remove, and group management", () => {
   })
 
   test("hides move, and rename without reorder and renameGroup", async () => {
-    const { router, hubRuntime, project } = openWith({ reorder: false, renameGroup: false })
+    const { router, hubRuntime, project } = await openWith({ reorder: false, renameGroup: false })
     const [one] = await seedThree(hubRuntime, project)
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
     const page = await (

@@ -34,26 +34,11 @@ export const dashboardAction =
       const { projects, overview, kinds } = await options.runtime.runPromise(
         Effect.gen(function* () {
           const hub = yield* Hub
-          const all = yield* hub.projects()
           const kinds = yield* hub.sourceKinds()
-          const startup = all.find((info) => info.name === options.startup)
-          const unregisteredStartup =
-            startup !== undefined && !startup.registered ? [startup.name] : []
-          const wanted =
-            query.overview.projects ??
-            (unregisteredStartup.length === 0
-              ? undefined
-              : [
-                  ...unregisteredStartup,
-                  ...all.filter((info) => info.registered).map((info) => info.name),
-                ])
-          const view = yield* hub.overview({
-            ...query.overview,
-            ...(wanted === undefined ? {} : { projects: wanted }),
-          })
+          const snapshot = yield* hub.dashboard(query.overview, { startup: options.startup })
           return {
-            projects: all,
-            overview: view,
+            projects: snapshot.projects,
+            overview: snapshot.overview,
             kinds,
           }
         }),

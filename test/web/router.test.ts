@@ -7,7 +7,7 @@ afterEach(async () => {
 })
 
 test("allowed GET requests reach the board controller", async () => {
-  const { router, project, close } = makeRouter()
+  const { router, project, close } = await makeRouter()
   cleanup.push(close)
   const response = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
@@ -17,7 +17,7 @@ test("allowed GET requests reach the board controller", async () => {
 })
 
 test("GET / renders the dashboard", async () => {
-  const { router, close } = makeRouter()
+  const { router, close } = await makeRouter()
   cleanup.push(close)
   const response = await router.fetch(
     new Request("http://localhost/", { headers: { Host: "localhost" } }),
@@ -27,7 +27,7 @@ test("GET / renders the dashboard", async () => {
 })
 
 test("an unknown project renders 404", async () => {
-  const { router, close } = makeRouter()
+  const { router, close } = await makeRouter()
   cleanup.push(close)
   const response = await router.fetch(
     new Request("http://localhost/p/ghost", { headers: { Host: "localhost" } }),
