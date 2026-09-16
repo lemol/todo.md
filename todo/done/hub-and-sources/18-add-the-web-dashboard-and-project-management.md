@@ -2,6 +2,8 @@
 title: Add the web dashboard and project management
 tags: [web, hub]
 depends_on: [17]
+group: Hub and sources
+completed_at: 2026-09-16T06:16:42Z
 ---
 
 ## Plan

@@ -121,6 +121,28 @@ describe("dashboard", () => {
     expect(blockedFlat).toContain("Blocked task")
   })
 
+  const registerFormFields = (html: string): Record<string, string> => {
+    const match = html.match(
+      /<form method="post" action="\/projects" class="inline">([\s\S]*?)<button class="secondary" type="submit">Register<\/button><\/form>/,
+    )
+    if (match === null) throw new Error("register form not found")
+    const body = match[1]
+    if (body === undefined) throw new Error("register form not found")
+    const fields: Record<string, string> = {}
+    for (const [, name, value] of body.matchAll(
+      /<input type="hidden" name="([^"]+)" value="([^"]*)">/g,
+    )) {
+      if (name === undefined) continue
+      fields[name] = value ?? ""
+    }
+    expect(fields).toEqual({
+      target: expect.any(String),
+      name: expect.any(String),
+      source: "fs",
+    })
+    return fields
+  }
+
   test("register replaces the unregistered startup project", async () => {
     const dir = mkdtempSync(join(tmpdir(), "todo-md-register-"))
     writeFileSync(join(dir, "TODO.md"), "# Disk list\n")
@@ -128,10 +150,10 @@ describe("dashboard", () => {
     const before = await (await fetchApp(app.router, "/")).text()
     expect(before).toContain("Register")
     expect(before).toContain("not registered")
+    const fields = registerFormFields(before)
     const response = await postApp(app.router, "/projects", {
-      target: dir,
+      ...fields,
       name: "work",
-      source: "fs",
     })
     expect(response.status).toBe(303)
     const listed = await app.hubRuntime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))

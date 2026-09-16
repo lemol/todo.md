@@ -59,6 +59,56 @@ describe("dashboard", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "lists from the snapshotted project when the registry changes mid-request",
+    Effect.gen(function* () {
+      const snapYaml = md(
+        "projects:",
+        "  a:",
+        "    source: memory",
+        "    title: SnapTitle",
+        "    tasks:",
+        "      - title: keep",
+      )
+      const otherYaml = md(
+        "projects:",
+        "  a:",
+        "    source: memory",
+        "    title: OtherTitle",
+        "    tasks:",
+        "      - title: gone",
+      )
+      let registryReads = 0
+      const hub = yield* hubOn([memorySource()], {
+        wrapFs: (fs) => ({
+          ...fs,
+          readFileString: (path, options) => {
+            if (path.endsWith("/projects.yaml")) {
+              registryReads += 1
+              return Effect.succeed(registryReads === 1 ? snapYaml : otherYaml)
+            }
+            return fs.readFileString(path, options)
+          },
+        }),
+      })
+      yield* hub.add({
+        name: "a",
+        source: "memory",
+        config: { title: "SnapTitle", tasks: [{ title: "keep" }] },
+      })
+      registryReads = 0
+      const snapshot = yield* hub.dashboard()
+      const entry = snapshot.overview.projects[0]
+      expect(entry).toBeDefined()
+      if (entry === undefined || !("listing" in entry)) return
+      expect(entry.listing.title).toBe("SnapTitle")
+      expect(
+        entry.listing.sections.flatMap((section) => section.tasks).map((view) => view.task.title),
+      ).toEqual(["keep"])
+    }),
+    diskWith({}),
+  )
 })
 
 describe("projects", () => {

@@ -197,28 +197,28 @@ const make = (options: HubOptions) =>
     })
     const registryChanged = Effect.andThen(changes.reconcile, changes.publish({ kind: "registry" }))
 
+    const todoServiceLayer = (project: Project) =>
+      Effect.gen(function* () {
+        const { config } = project
+        if (config._tag === "Invalid") return yield* config.problem
+        const name = project.name
+        const opened = config.source.open(sourceProjectOf(project, config.value))
+        // Sources with `changes` report every change themselves; for the others, the hub
+        // reports its own mutations.
+        const store =
+          config.source.changes !== undefined
+            ? opened
+            : Layer.effect(
+                TodoStore,
+                Effect.map(TodoStore, (store) =>
+                  notifying(store, changes.publish({ kind: "changed", project: name })),
+                ),
+              ).pipe(Layer.provide(opened))
+        return Layer.fresh(TodoService.layer).pipe(Layer.provide(store))
+      })
+
     const services = yield* LayerMap.make(
-      (name: string) =>
-        Layer.unwrap(
-          Effect.gen(function* () {
-            const project = yield* find(name)
-            const { config } = project
-            if (config._tag === "Invalid") return yield* config.problem
-            const opened = config.source.open(sourceProjectOf(project, config.value))
-            // Sources with `changes` report every change themselves; for the others, the hub
-            // reports its own mutations.
-            const store =
-              config.source.changes !== undefined
-                ? opened
-                : Layer.effect(
-                    TodoStore,
-                    Effect.map(TodoStore, (store) =>
-                      notifying(store, changes.publish({ kind: "changed", project: name })),
-                    ),
-                  ).pipe(Layer.provide(opened))
-            return Layer.fresh(TodoService.layer).pipe(Layer.provide(store))
-          }),
-        ),
+      (name: string) => Layer.unwrap(Effect.flatMap(find(name), todoServiceLayer)),
       { idleTimeToLive: Duration.infinity },
     )
 
@@ -243,6 +243,14 @@ const make = (options: HubOptions) =>
         // A failed build is cached like a success; drop it so the next call retries.
         Effect.tapError(() => forget(project.name)),
       )
+
+    /** Opens `project` as given, without re-reading the registry (for dashboard snapshots). */
+    const serviceFromSnapshot = (project: Project) =>
+      Effect.gen(function* () {
+        const layer = yield* todoServiceLayer(project)
+        const context = yield* Effect.scoped(Layer.build(layer).pipe(Effect.provideContext(env)))
+        return Context.get(context, TodoService)
+      })
 
     // Another process changed `projects.yaml`: close services built from changed or removed entries.
     const refreshServices: Effect.Effect<void> = Effect.gen(function* () {
@@ -503,7 +511,7 @@ const make = (options: HubOptions) =>
             projects: Effect.map(registered, (projects) => [...projects, ...unregistered.all()]),
             describe,
             listing: (project, filter) =>
-              Effect.flatMap(serviceOf(project), (service) => service.list(filter)),
+              Effect.flatMap(serviceFromSnapshot(project), (service) => service.list(filter)),
           },
           options,
         ),
