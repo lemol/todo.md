@@ -1,10 +1,15 @@
-import { expect, test } from "bun:test"
+import { afterEach, expect, test } from "bun:test"
 import { localBack } from "../../src/web/app/actions/forms.ts"
 import { statusFor } from "../../src/web/app/actions/respond.tsx"
 import { createAssets } from "../../src/web/app/assets.ts"
 import { routes } from "../../src/web/app/routes.ts"
 import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
 import { makeRouter } from "./harness.ts"
+
+const cleanup: Array<() => Promise<void>> = []
+afterEach(async () => {
+  await Promise.all(cleanup.splice(0).map((close) => close()))
+})
 
 test("renders Markdown without raw HTML", () => {
   const html = markdownHtml("**safe** <script>alert(1)</script>")
@@ -23,10 +28,12 @@ test("removes unsafe Markdown link protocols", () => {
 })
 
 test("accepts only unambiguously local redirect targets", () => {
-  expect(localBack("/?state=ready")).toBe("/?state=ready")
-  expect(localBack("//evil.example")).toBe(routes.board.href())
-  expect(localBack("/\\evil.example")).toBe(routes.board.href())
-  expect(localBack("/ok\r\nLocation: https://evil.example")).toBe(routes.board.href())
+  expect(localBack("/?state=ready", "acme")).toBe("/?state=ready")
+  expect(localBack("//evil.example", "acme")).toBe(routes.project.board.href({ project: "acme" }))
+  expect(localBack("/\\evil.example", "acme")).toBe(routes.project.board.href({ project: "acme" }))
+  expect(localBack("/ok\r\nLocation: https://evil.example", "acme")).toBe(
+    routes.project.board.href({ project: "acme" }),
+  )
 })
 
 test("maps unclaimed domain failures to their specified status", () => {
@@ -51,11 +58,11 @@ test("compiles the browser entry with its workspace import map", async () => {
   }
 })
 
-test("renders the shared document shell", async () => {
-  const response = await makeRouter().fetch(
-    new Request(`http://localhost${routes.board.href()}`, {
-      headers: { Host: "localhost" },
-    }),
+test("renders the shared document shell with the project badge", async () => {
+  const { router, project, close } = makeRouter()
+  cleanup.push(close)
+  const response = await router.fetch(
+    new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
   )
   const html = await response.text()
   expect(html).toMatch(/^<!doctype html>/i)
@@ -63,9 +70,10 @@ test("renders the shared document shell", async () => {
   expect(html).toContain('name="viewport"')
   expect(html).toContain(routes.assets.href({ path: "app/ui/styles.css" }))
   expect(html).toContain("Acme")
+  expect(html).toContain(`>${project}<`)
   expect(html).toContain("Board")
   expect(html).toContain("Done")
   expect(html).toContain("Check")
-  expect(html).toContain("data-live-region")
+  expect(html).toContain(`data-project="${project}"`)
   expect(html).toContain("diagnostic")
 })

@@ -183,7 +183,9 @@ const eventsAction =
     const fiber = await runtime.runPromise(
       Effect.gen(function* () {
         const hub = yield* Hub
-        return yield* Effect.fork(Stream.runForEach(hub.changes, (change) => Effect.sync(() => send(change))))
+        return yield* Effect.forkDetach(
+          Stream.runForEach(hub.changes, (change) => Effect.sync(() => send(change))),
+        )
       }),
     )
     const cleanup = () => {
