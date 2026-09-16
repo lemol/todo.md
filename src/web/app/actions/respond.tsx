@@ -1,6 +1,6 @@
 /** @jsxImportSource remix/ui */
 import { ErrorPage } from "../ui/document.tsx"
-import { renderPage, scriptEntryOf, type WebContext } from "./page.ts"
+import { projectOf, renderPage, scriptEntryOf, type WebContext } from "./page.ts"
 
 type TaggedFailure = { readonly _tag: string } & Record<string, unknown>
 
@@ -56,6 +56,7 @@ export const respond = (context: WebContext, error: unknown): Response => {
     <ErrorPage
       status={status}
       message={errorDescription(error)}
+      project={projectOf(context)}
       scriptEntry={scriptEntryOf(context)}
     />,
     { status },
@@ -68,6 +69,7 @@ export const respondDefect = (context: WebContext, defect: unknown): Response =>
     <ErrorPage
       status={500}
       message={errorDescription(defect)}
+      project={projectOf(context)}
       scriptEntry={scriptEntryOf(context)}
     />,
     { status: 500 },

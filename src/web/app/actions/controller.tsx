@@ -1,12 +1,15 @@
 /** @jsxImportSource remix/ui */
 
+import { Effect, Fiber, Stream } from "effect"
+import { redirect } from "remix/response/redirect"
 import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
 import type { TaskFilter } from "../../../core/index.ts"
-import { assetsContext } from "../assets.ts"
-import { changesContext } from "../middleware/changes.ts"
-import { runTodo } from "../middleware/todo.ts"
+import { Hub, type HubChange } from "../../../hub/index.ts"
+import type { HubRuntime } from "../middleware/project.tsx"
+import { loadProject } from "../middleware/project.tsx"
 import { routes } from "../routes.ts"
+import { assetsContext } from "../assets.ts"
 import { type AddValues, BoardPage } from "../ui/board.tsx"
 import { Document, ErrorPage } from "../ui/document.tsx"
 import { diagnosticCounts } from "../ui/format.ts"
@@ -14,6 +17,7 @@ import { CheckPage, DonePage } from "../ui/secondary.tsx"
 import { parseTaskFilter } from "./forms.ts"
 import {
   capabilitiesOf,
+  projectOf,
   renderPage,
   runtimeContext,
   scriptEntryOf,
@@ -21,6 +25,7 @@ import {
   type WebContext,
 } from "./page.ts"
 import { respond, respondDefect } from "./respond.tsx"
+import { runTodo } from "../middleware/todo.ts"
 
 export const renderBoard = async (
   context: WebContext,
@@ -29,6 +34,7 @@ export const renderBoard = async (
   addIssues?: ReadonlyArray<string>,
 ): Promise<Response> => {
   try {
+    const project = projectOf(context)
     let filter: TaskFilter
     try {
       filter = parseTaskFilter(new URL(context.request.url))
@@ -38,6 +44,7 @@ export const renderBoard = async (
         <ErrorPage
           status={400}
           message="Invalid state filter."
+          project={project}
           scriptEntry={scriptEntryOf(context)}
         />,
         { status: 400 },
@@ -57,7 +64,9 @@ export const renderBoard = async (
       context,
       <Document
         title={listing.value.title}
+        project={project}
         content={BoardPage({
+          project,
           listing: listing.value,
           nextIds: new Set(next.value.slice(0, 1).map((item) => item.task.id)),
           capabilities: capabilitiesOf(context),
@@ -78,6 +87,7 @@ export const renderBoard = async (
 
 const done = async (context: WebContext): Promise<Response> => {
   try {
+    const project = projectOf(context)
     const [listing, diagnostics] = await Promise.all([
       runTodo(runtimeContext(context), (todo) => todo.list({ status: "done" })),
       runTodo(runtimeContext(context), (todo) => todo.check()),
@@ -89,8 +99,9 @@ const done = async (context: WebContext): Promise<Response> => {
       context,
       <Document
         title={listing.value.title}
+        project={project}
         pageTitle={`Done · ${listing.value.title}`}
-        content={DonePage(listing.value.done)}
+        content={DonePage(project, listing.value.done)}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
         {...(flash === undefined ? {} : { flash })}
@@ -103,6 +114,7 @@ const done = async (context: WebContext): Promise<Response> => {
 
 const check = async (context: WebContext): Promise<Response> => {
   try {
+    const project = projectOf(context)
     const [listing, diagnostics] = await Promise.all([
       runTodo(runtimeContext(context), (todo) => todo.list()),
       runTodo(runtimeContext(context), (todo) => todo.check()),
@@ -114,8 +126,9 @@ const check = async (context: WebContext): Promise<Response> => {
       context,
       <Document
         title={listing.value.title}
+        project={project}
         pageTitle={`Check · ${listing.value.title}`}
-        content={CheckPage(diagnostics.value)}
+        content={CheckPage(project, diagnostics.value)}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
         {...(flash === undefined ? {} : { flash })}
@@ -126,66 +139,98 @@ const check = async (context: WebContext): Promise<Response> => {
   }
 }
 
-const events = (context: RequestContext): Response => {
-  const encoder = new TextEncoder()
-  let unsubscribe: () => void = () => undefined
-  let heartbeat: ReturnType<typeof setInterval> | undefined
-  let closed = false
-  const cleanup = () => {
-    if (closed) return
-    closed = true
-    unsubscribe()
-    if (heartbeat !== undefined) clearInterval(heartbeat)
-  }
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      const enqueue = (text: string) => {
-        if (closed) return
-        try {
-          controller.enqueue(encoder.encode(text))
-        } catch {
-          cleanup()
-        }
-      }
-      unsubscribe = (
-        context as {
-          get: (key: typeof changesContext) => {
-            subscribe: (listener: () => void) => () => void
-          }
-        }
-      )
-        .get(changesContext)
-        .subscribe(() => enqueue("event: changed\ndata: reload\n\n"))
-      heartbeat = setInterval(() => enqueue(": heartbeat\n\n"), 15_000)
-      context.request.signal.addEventListener("abort", cleanup, { once: true })
-      if (context.request.signal.aborted) cleanup()
-    },
-    cancel: cleanup,
+export const createRootController = (options: {
+  readonly runtime: HubRuntime
+  readonly author: string
+}) =>
+  createController(routes.project, {
+    middleware: [loadProject(options)],
+    actions: { board: (context) => renderBoard(context), done, check },
   })
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  })
-}
 
-export default createController(routes, {
-  actions: {
-    board: (context) => renderBoard(context),
-    done,
-    check,
-    events,
-    assets: async (context) => {
-      const assets = (
-        context as {
-          get: (key: typeof assetsContext) => {
-            fetch: (request: Request) => Promise<Response | null>
+/** `GET /`: redirects to the startup project's board until task 18 adds the dashboard. */
+const boardRedirect =
+  (startup: string) =>
+  (_context: RequestContext): Response =>
+    redirect(routes.project.board.href({ project: startup }), 302)
+
+/**
+ * Forks a `hub.changes` consumer and awaits the fork before returning, so
+ * the subscription (`PubSub.subscribe` inside `src/hub/changes.ts`'s stream)
+ * has at least started before this responds. Effect's fiber runtime runs a
+ * forked fiber's synchronous prefix eagerly, but nothing here *guarantees*
+ * the subscribe has completed by the time this returns — `test/web/events.test.ts`
+ * treats a missed first event as possible and retries the seed that should
+ * trigger it, the same way `test/hub/helpers.ts`'s `eventually` does for the
+ * identical PubSub-subscribe-vs-publish race inside the hub's own test suite.
+ */
+const eventsAction =
+  (runtime: HubRuntime) =>
+  async (context: RequestContext): Promise<Response> => {
+    const encoder = new TextEncoder()
+    let closed = false
+    let heartbeat: ReturnType<typeof setInterval> | undefined
+    let controllerRef: ReadableStreamDefaultController<Uint8Array> | undefined
+    const send = (change: HubChange) => {
+      if (closed || controllerRef === undefined) return
+      const data = change.kind === "registry" ? "{}" : JSON.stringify({ project: change.project })
+      try {
+        controllerRef.enqueue(encoder.encode(`event: ${change.kind}\ndata: ${data}\n\n`))
+      } catch {
+        closed = true
+      }
+    }
+    const fiber = await runtime.runPromise(
+      Effect.gen(function* () {
+        const hub = yield* Hub
+        return yield* Effect.fork(Stream.runForEach(hub.changes, (change) => Effect.sync(() => send(change))))
+      }),
+    )
+    const cleanup = () => {
+      if (closed) return
+      closed = true
+      if (heartbeat !== undefined) clearInterval(heartbeat)
+      Effect.runFork(Fiber.interrupt(fiber))
+    }
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controllerRef = controller
+        heartbeat = setInterval(() => {
+          if (closed) return
+          try {
+            controller.enqueue(encoder.encode(": heartbeat\n\n"))
+          } catch {
+            cleanup()
           }
-        }
-      ).get(assetsContext)
-      return (await assets.fetch(context.request)) ?? new Response("Not Found", { status: 404 })
+        }, 15_000)
+        context.request.signal.addEventListener("abort", cleanup, { once: true })
+        if (context.request.signal.aborted) cleanup()
+      },
+      cancel: cleanup,
+    })
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    })
+  }
+
+export const createTopController = (options: { readonly runtime: HubRuntime; readonly startup: string }) =>
+  createController(routes, {
+    actions: {
+      board: boardRedirect(options.startup),
+      events: eventsAction(options.runtime),
+      assets: async (context) => {
+        const assets = (
+          context as {
+            get: (key: typeof assetsContext) => {
+              fetch: (request: Request) => Promise<Response | null>
+            }
+          }
+        ).get(assetsContext)
+        return (await assets.fetch(context.request)) ?? new Response("Not Found", { status: 404 })
+      },
     },
-  },
-})
+  })
