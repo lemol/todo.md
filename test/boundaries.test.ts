@@ -89,15 +89,16 @@ const webPackages = [
 const webTodoPackages = [
   "@lemol/todo-md/spec",
   "@lemol/todo-md/core",
-  "@lemol/todo-md/fs",
+  "@lemol/todo-md/hub",
   "@lemol/todo-md/markdown",
   "@lemol/todo-md/spec/testing",
+  "@lemol/todo-md/hub/testing",
 ]
-const webModules = ["spec", "core", "fs"]
+const webModules = ["spec", "core", "hub"]
 
 export const webViolations = (file: string, source: string): string[] => {
   const isTest = file.startsWith("test/") || file.includes(".test.")
-  const serverOnly = file === "server.ts" || file === "watch.ts" || file === "app/assets.ts"
+  const serverOnly = file === "server.ts" || file === "app/assets.ts"
   return specifiersOf(source).flatMap((specifier) => {
     if (specifier.startsWith(".")) {
       const target = resolve(webRoot, file.includes("/") ? dirname(file) : ".", specifier)

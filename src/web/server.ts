@@ -1,43 +1,42 @@
 import { BunServices } from "@effect/platform-bun"
-import { Effect, Layer, ManagedRuntime, Option } from "effect"
-import { TodoService } from "../core/index.ts"
-import { FsTodoStore, findListRoot } from "../fs/index.ts"
-import { allCapabilities } from "../spec/index.ts"
+import { Effect, Layer, ManagedRuntime } from "effect"
+import { fsSource, Hub } from "../hub/index.ts"
+import type { HubRuntime } from "./app/middleware/project.tsx"
 import { createAppRouter } from "./app/router.ts"
-import { watchList } from "./watch.ts"
 
 export interface ServerOptions {
   readonly cwd: string
   readonly dir?: string
+  /** A registered project's name; exclusive with `dir`. */
+  readonly project?: string
   readonly port: number
   readonly host: string
   readonly env: Readonly<Record<string, string | undefined>>
   readonly username: string
-}
-
-export const resolveRoot = async (options: ServerOptions): Promise<string> => {
-  const dir = options.dir
-  if (dir !== undefined)
-    return await import("node:path").then(({ resolve }) => resolve(options.cwd, dir))
-  const found = await Effect.runPromise(
-    findListRoot(options.cwd).pipe(Effect.provide(BunServices.layer)),
-  )
-  if (Option.isNone(found))
-    throw new Error(`no todo.md list found from ${options.cwd}; run \`todo init\` or pass --dir`)
-  return found.value
+  /** The hub's directory: `$TODO_MD_HOME`, else `<userHome>/.todo-md`. */
+  readonly home: string
+  readonly userHome: string
 }
 
 export const startServer = async (options: ServerOptions) => {
-  const root = await resolveRoot(options)
   const runtime = ManagedRuntime.make(
-    TodoService.layer.pipe(
-      Layer.provide(FsTodoStore.layer({ root })),
+    Hub.layer({ home: options.home, userHome: options.userHome, sources: [fsSource] }).pipe(
       Layer.provide(BunServices.layer),
     ),
   )
-  let changes: ReturnType<typeof watchList>
+  const hubRuntime: HubRuntime = { runPromise: (effect) => runtime.runPromise(effect) }
+  let startup: string
   try {
-    changes = watchList(root)
+    const info = await runtime.runPromise(
+      Effect.flatMap(Hub, (hub) =>
+        hub.resolve({
+          ...(options.project !== undefined ? { project: options.project } : {}),
+          ...(options.dir !== undefined ? { dir: options.dir } : {}),
+          cwd: options.cwd,
+        }),
+      ),
+    )
+    startup = info.name
   } catch (error) {
     await runtime.dispose()
     throw error
@@ -45,14 +44,12 @@ export const startServer = async (options: ServerOptions) => {
   let app: ReturnType<typeof createAppRouter>
   try {
     app = createAppRouter({
-      runtime,
-      capabilities: allCapabilities,
-      changes,
+      runtime: hubRuntime,
+      startup,
       author: options.env.TODO_MD_AUTHOR ?? options.username,
       hosts: ["localhost", "127.0.0.1", "::1", options.host],
     })
   } catch (error) {
-    changes.close()
     await runtime.dispose()
     throw error
   }
@@ -71,19 +68,17 @@ export const startServer = async (options: ServerOptions) => {
   } catch (error) {
     await app.close()
     await runtime.dispose()
-    changes.close()
     throw error
   }
   let closed = false
   return {
     server,
-    port,
+    port: server.port,
     close: async () => {
       if (closed) return
       closed = true
       await app.close()
       await runtime.dispose()
-      changes.close()
       server.stop()
     },
   }
