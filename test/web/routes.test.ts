@@ -11,9 +11,7 @@ test("defines stable hrefs for every web route", () => {
   expect(routes.project.tasks.add.href({ project: "acme" })).toBe("/p/acme/tasks")
   expect(routes.project.tasks.show.href({ project: "acme", id: "007" })).toBe("/p/acme/tasks/007")
   expect(routes.project.tasks.edit.href({ project: "acme", id: "7" })).toBe("/p/acme/tasks/7/edit")
-  expect(routes.project.tasks.update.href({ project: "acme", id: "07" })).toBe(
-    "/p/acme/tasks/07",
-  )
+  expect(routes.project.tasks.update.href({ project: "acme", id: "07" })).toBe("/p/acme/tasks/07")
   expect(routes.project.tasks.complete.href({ project: "acme", id: "5" })).toBe(
     "/p/acme/tasks/5/complete",
   )
@@ -23,9 +21,7 @@ test("defines stable hrefs for every web route", () => {
   expect(routes.project.tasks.comments.href({ project: "acme", id: "9" })).toBe(
     "/p/acme/tasks/9/comments",
   )
-  expect(routes.project.tasks.move.href({ project: "acme", id: "9" })).toBe(
-    "/p/acme/tasks/9/move",
-  )
+  expect(routes.project.tasks.move.href({ project: "acme", id: "9" })).toBe("/p/acme/tasks/9/move")
   expect(routes.project.tasks.confirmRemove.href({ project: "acme", id: "9" })).toBe(
     "/p/acme/tasks/9/remove",
   )

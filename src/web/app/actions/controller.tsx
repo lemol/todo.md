@@ -6,10 +6,11 @@ import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
 import type { TaskFilter } from "../../../core/index.ts"
 import { Hub, type HubChange } from "../../../hub/index.ts"
+import { assetsContext } from "../assets.ts"
 import type { HubRuntime } from "../middleware/project.tsx"
 import { loadProject } from "../middleware/project.tsx"
+import { runTodo } from "../middleware/todo.ts"
 import { routes } from "../routes.ts"
-import { assetsContext } from "../assets.ts"
 import { type AddValues, BoardPage } from "../ui/board.tsx"
 import { Document, ErrorPage } from "../ui/document.tsx"
 import { diagnosticCounts } from "../ui/format.ts"
@@ -25,7 +26,6 @@ import {
   type WebContext,
 } from "./page.ts"
 import { respond, respondDefect } from "./respond.tsx"
-import { runTodo } from "../middleware/todo.ts"
 
 export const renderBoard = async (
   context: WebContext,
@@ -219,7 +219,10 @@ const eventsAction =
     })
   }
 
-export const createTopController = (options: { readonly runtime: HubRuntime; readonly startup: string }) =>
+export const createTopController = (options: {
+  readonly runtime: HubRuntime
+  readonly startup: string
+}) =>
   createController(routes, {
     actions: {
       board: boardRedirect(options.startup),

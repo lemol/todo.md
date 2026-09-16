@@ -37,10 +37,10 @@ const required = (value: string | null | undefined): string => {
   return value
 }
 
-const seedDocs = (
-  hubRuntime: ReturnType<typeof makeRouter>["hubRuntime"],
-  project: string,
-) => seed(hubRuntime, project, (todo) => todo.add({ title: "Write docs", tags: ["docs"], assignee: "lemol" }))
+const seedDocs = (hubRuntime: ReturnType<typeof makeRouter>["hubRuntime"], project: string) =>
+  seed(hubRuntime, project, (todo) =>
+    todo.add({ title: "Write docs", tags: ["docs"], assignee: "lemol" }),
+  )
 
 describe("board contract", () => {
   test("renders filters, capabilities, state summary, and linked blockers", async () => {
@@ -52,9 +52,7 @@ describe("board contract", () => {
     await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Ship UI", dependsOn: [blocker.id] }, { group: "Frontend" }),
     )
-    const html = await (
-      await fetchApp(router, routes.project.board.href({ project }))
-    ).text()
+    const html = await (await fetchApp(router, routes.project.board.href({ project }))).text()
 
     expect(html).toContain("3 open · 2 ready · 1 blocked")
     expect(html).toContain("?tag=docs")
@@ -159,10 +157,14 @@ describe("task forms and detail", () => {
     update.set("tags", "web release")
     update.set("assignee", "agent")
     update.set("dependsOn", dependency.id)
-    const updated = await fetchApp(router, routes.project.tasks.update.href({ project, id: task.id }), {
-      method: "POST",
-      body: update,
-    })
+    const updated = await fetchApp(
+      router,
+      routes.project.tasks.update.href({ project, id: task.id }),
+      {
+        method: "POST",
+        body: update,
+      },
+    )
     expect(updated.status).toBe(303)
     const updatedHtml = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
@@ -184,7 +186,9 @@ describe("task forms and detail", () => {
       ).status,
     ).toBe(303)
     expect(
-      await (await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))).text(),
+      await (
+        await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
+      ).text(),
     ).toContain("Newest")
   })
 
@@ -308,11 +312,7 @@ describe("lifecycle, flash, and secondary pages", () => {
   })
 })
 
-const post = (
-  router: ReturnType<typeof makeRouter>["router"],
-  path: string,
-  fields: object,
-) => {
+const post = (router: ReturnType<typeof makeRouter>["router"], path: string, fields: object) => {
   const body = new FormData()
   for (const [name, value] of Object.entries(fields)) body.set(name, String(value))
   return fetchApp(router, path, { method: "POST", body })
@@ -350,10 +350,14 @@ describe("move, remove, and group management", () => {
     expect(board).toContain('aria-label="Move One down"')
     expect(board).not.toContain('aria-label="Move One up"')
 
-    const moved = await post(router, routes.project.tasks.move.href({ project, id: required(two?.id) }), {
-      before: required(one?.id),
-      back: `${routes.project.board.href({ project })}?tag=x`,
-    })
+    const moved = await post(
+      router,
+      routes.project.tasks.move.href({ project, id: required(two?.id) }),
+      {
+        before: required(one?.id),
+        back: `${routes.project.board.href({ project })}?tag=x`,
+      },
+    )
     expect(moved.status).toBe(303)
     expect(moved.headers.get("location")).toBe(`${routes.project.board.href({ project })}?tag=x`)
     expect(await titlesOf(hubRuntime, project)).toEqual([

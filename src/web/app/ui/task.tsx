@@ -81,7 +81,13 @@ export const TaskPage = (options: {
     : ""
   const move =
     task.status === "open" && options.capabilities.reorder
-      ? MoveForm(project, task, options.capabilities, options.groups ?? [], options.moveIssues ?? [])
+      ? MoveForm(
+          project,
+          task,
+          options.capabilities,
+          options.groups ?? [],
+          options.moveIssues ?? [],
+        )
       : ""
   return `<div class="task-heading"><div><code>${showId(task.id)}</code><h1>${escapeHtml(task.title)}</h1></div><div class="actions">${transition}<a class="secondary" href="${routes.project.tasks.edit.href({ project, id: task.id })}">Edit</a><a class="secondary" href="${routes.project.tasks.confirmRemove.href({ project, id: task.id })}">Remove</a></div></div>${metadata(task, detail.view.state)}${task.description === "" ? "" : `<section><h2>Description</h2><div class="markdown">${markdownHtml(task.description)}</div></section>`}<section><h2>Dependencies</h2>${dependencies === "" ? '<p class="empty">No dependencies.</p>' : `<ul>${dependencies}</ul>`}</section><section><h2>Blocks</h2>${blocks === "" ? '<p class="empty">Blocks nothing.</p>' : `<ul>${blocks}</ul>`}</section>${move}<section><h2>Comments</h2>${comments || '<p class="empty">No comments.</p>'}${commentForm}</section>`
 }

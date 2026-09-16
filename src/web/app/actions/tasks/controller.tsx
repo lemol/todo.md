@@ -194,7 +194,8 @@ export const createTasksController = (options: {
         try {
           const id = idOf(context)
           const values = parseEditForm(formOf(context))
-          if (values.title === "") return renderEdit(context, id, values, ["Title is required"], 422)
+          if (values.title === "")
+            return renderEdit(context, id, values, ["Title is required"], 422)
           const result = await runTodo(runtimeContext(context), (todo) =>
             todo.update(id, {
               title: values.title,

@@ -9,8 +9,8 @@ import {
   authorContext,
   capabilitiesContext,
   projectInfoContext,
-  todoRuntimeContext,
   type TodoRuntime,
+  todoRuntimeContext,
 } from "./todo.ts"
 
 /** Runs effects that only need `Hub`; built once in `server.ts` from `Hub.layer`. */
@@ -43,7 +43,11 @@ export const loadProject =
       const status = error._tag === "ProjectNotFound" ? 404 : 500
       return renderPage(
         context as WebContext,
-        <ErrorPage status={status} message={error.message} scriptEntry={scriptEntryOf(context as WebContext)} />,
+        <ErrorPage
+          status={status}
+          message={error.message}
+          scriptEntry={scriptEntryOf(context as WebContext)}
+        />,
         { status },
       )
     }

@@ -71,7 +71,9 @@ export const createGroupsController = (options: {
           const { from, to } = parseRenameForm(context.get(FormData) as FormData)
           if (to === "") return renderRename(context, from, to, ["Name is required"], 422)
           if (to === from) return redirect(routes.project.board.href({ project }), 303)
-          const result = await runTodo(runtimeContext(context), (todo) => todo.renameGroup(from, to))
+          const result = await runTodo(runtimeContext(context), (todo) =>
+            todo.renameGroup(from, to),
+          )
           if (!result.ok) {
             if (result.error._tag === "ValidationError")
               return renderRename(context, from, to, result.error.issues, 422)

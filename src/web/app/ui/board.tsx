@@ -59,7 +59,10 @@ export const TaskRow = (
     view.blockedBy.length === 0
       ? ""
       : `<div class="blocked-by">blocked by ${view.blockedBy
-          .map((id) => `<a href="${routes.project.tasks.show.href({ project, id })}">${showId(id)}</a>`)
+          .map(
+            (id) =>
+              `<a href="${routes.project.tasks.show.href({ project, id })}">${showId(id)}</a>`,
+          )
           .join(", ")}</div>`
   const moves =
     options.moves === undefined

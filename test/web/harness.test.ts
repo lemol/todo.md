@@ -17,7 +17,9 @@ test("makeRouter serves the default project's board", async () => {
 })
 
 test("makeRouter can reduce a project's capabilities", async () => {
-  const { router, project, close } = makeRouter({ capabilities: { groups: false, comments: false } })
+  const { router, project, close } = makeRouter({
+    capabilities: { groups: false, comments: false },
+  })
   cleanup.push(close)
   const response = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),

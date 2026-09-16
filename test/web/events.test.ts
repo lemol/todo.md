@@ -11,10 +11,16 @@ test("emits a changed event naming the project that changed, and unsubscribes on
   cleanup.push(close)
   const abort = new AbortController()
   const response = await router.fetch(
-    new Request("http://localhost/events", { headers: { Host: "localhost" }, signal: abort.signal }),
+    new Request("http://localhost/events", {
+      headers: { Host: "localhost" },
+      signal: abort.signal,
+    }),
   )
   expect(response.headers.get("content-type")).toContain("text/event-stream")
-  const reader = response.body!.getReader()
+  const body = response.body
+  expect(body).not.toBeNull()
+  if (body === null) throw new Error("expected SSE response body")
+  const reader = body.getReader()
 
   // The SSE handler's hub.changes subscription starts on a forked fiber, so
   // there is a small, unavoidable window where a seed lands before the

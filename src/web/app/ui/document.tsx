@@ -83,7 +83,11 @@ export function Document(handle: Handle<DocumentOptions>) {
           <div class="reload-notice info" data-reload-notice hidden>
             The list changed. <a href={boardHref}>Reload</a>
           </div>
-          <main data-live-region {...(project === undefined ? {} : { "data-project": project })} innerHTML={options.content} />
+          <main
+            data-live-region
+            {...(project === undefined ? {} : { "data-project": project })}
+            innerHTML={options.content}
+          />
         </body>
       </html>
     )
@@ -100,7 +104,8 @@ export interface ErrorPageOptions {
 export function ErrorPage(handle: Handle<ErrorPageOptions>) {
   return () => {
     const options = handle.props
-    const back = options.project === undefined ? "/" : routes.project.board.href({ project: options.project })
+    const back =
+      options.project === undefined ? "/" : routes.project.board.href({ project: options.project })
     return (
       <Document
         title="todo.md"

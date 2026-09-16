@@ -1,14 +1,13 @@
 import { afterEach, expect, test } from "bun:test"
-import { mkdtemp, readdir, readFile, rm, writeFile, mkdir } from "node:fs/promises"
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Layer, ManagedRuntime } from "effect"
-import { Hub } from "../../src/hub/index.ts"
-import { fsSource } from "../../src/hub/index.ts"
+import { fsSource, Hub } from "../../src/hub/index.ts"
+import type { HubRuntime } from "../../src/web/app/middleware/project.tsx"
 import { createAppRouter } from "../../src/web/app/router.ts"
 import { routes } from "../../src/web/app/routes.ts"
-import type { HubRuntime } from "../../src/web/app/middleware/project.tsx"
 import { makeFakeAssets } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -86,13 +85,20 @@ test("moves, renames a group, and removes a task through the router over FsTodoS
     const body = new FormData()
     for (const [name, value] of Object.entries(fields)) body.set(name, value)
     const response = await router.fetch(
-      new Request(`http://localhost${path}`, { method: "POST", headers: { Host: "localhost" }, body }),
+      new Request(`http://localhost${path}`, {
+        method: "POST",
+        headers: { Host: "localhost" },
+        body,
+      }),
     )
     expect(response.status).toBe(303)
   }
 
   await post(routes.project.tasks.move.href({ project, id: "2" }), { before: "1" })
-  await post(routes.project.tasks.move.href({ project, id: "1" }), { group: "Backend", position: "top" })
+  await post(routes.project.tasks.move.href({ project, id: "1" }), {
+    group: "Backend",
+    position: "top",
+  })
   await post(routes.project.groups.rename.href({ project }), { from: "Backend", to: "Server" })
   await post(routes.project.tasks.remove.href({ project, id: "3" }), {})
   expect(await readFile(join(root, "TODO.md"), "utf8")).toBe(

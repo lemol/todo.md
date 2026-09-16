@@ -1,17 +1,19 @@
 import { mkdirSync, writeFileSync } from "node:fs"
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
-import type { AnySource } from "../../src/hub/index.ts"
+import type { TodoService } from "../../src/core/index.ts"
+import type { AnySource, Source } from "../../src/hub/index.ts"
 import { Hub } from "../../src/hub/index.ts"
-import { memorySource } from "../../src/hub/testing.ts"
-import { TodoService } from "../../src/core/index.ts"
-import { TodoStore, type Capabilities } from "../../src/spec/index.ts"
+import { type MemoryConfig, memorySource } from "../../src/hub/testing.ts"
+import { type Capabilities, TodoStore } from "../../src/spec/index.ts"
 import type { AppAssets } from "../../src/web/app/assets.ts"
 import type { HubRuntime } from "../../src/web/app/middleware/project.tsx"
 import { createAppRouter } from "../../src/web/app/router.ts"
 
 /** A `memorySource` whose store reports `capabilities` overridden for a test. */
-export const memoryWithCapabilities = (capabilities: Partial<Capabilities>): AnySource => {
+export const memoryWithCapabilities = (
+  capabilities: Partial<Capabilities>,
+): Source<MemoryConfig> => {
   const base = memorySource()
   return {
     ...base,
