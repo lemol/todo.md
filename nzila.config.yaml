@@ -1,0 +1,4 @@
+review:
+  reviewerFix: true
+  changesBeforeReviewerFix: 1
+  changesBeforePerson: 2
