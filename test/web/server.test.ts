@@ -50,6 +50,18 @@ test("starts over a registered fs project by name", async () => {
   expect(started.project).toBe("acme")
 })
 
+test("rejects --project together with --dir", async () => {
+  const home = await mkdtemp(join(tmpdir(), "todo-md-home-"))
+  const cwd = await mkdtemp(join(tmpdir(), "todo-md-empty-"))
+  cleanup.push(async () => {
+    await rm(home, { recursive: true, force: true })
+    await rm(cwd, { recursive: true, force: true })
+  })
+  await expect(
+    startServer({ ...base, cwd, dir: cwd, project: "acme", home, userHome: home }),
+  ).rejects.toThrow("use --project or --dir, not both")
+})
+
 test("throws with the standard message when no list is found and no project is given", async () => {
   const home = await mkdtemp(join(tmpdir(), "todo-md-home-"))
   const cwd = await mkdtemp(join(tmpdir(), "todo-md-empty-"))

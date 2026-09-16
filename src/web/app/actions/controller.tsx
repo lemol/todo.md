@@ -156,13 +156,11 @@ const boardRedirect =
 
 /**
  * Forks a `hub.changes` consumer and awaits the fork before returning, so
- * the subscription (`PubSub.subscribe` inside `src/hub/changes.ts`'s stream)
- * has at least started before this responds. Effect's fiber runtime runs a
- * forked fiber's synchronous prefix eagerly, but nothing here *guarantees*
- * the subscribe has completed by the time this returns — `test/web/events.test.ts`
- * treats a missed first event as possible and retries the seed that should
- * trigger it, the same way `test/hub/helpers.ts`'s `eventually` does for the
- * identical PubSub-subscribe-vs-publish race inside the hub's own test suite.
+ * the subscription starts before this responds. The hub subscribes to its
+ * sources before reporting watcher starts, so a test that waits for a
+ * source watcher to start (see `test/hub/helpers.ts`'s `makeWatchers`) never
+ * misses a later source event; aborting the request interrupts the fiber,
+ * which ends the source watcher.
  */
 const eventsAction =
   (runtime: HubRuntime) =>

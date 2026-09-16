@@ -19,6 +19,9 @@ export interface ServerOptions {
 }
 
 export const startServer = async (options: ServerOptions) => {
+  if (options.project !== undefined && options.dir !== undefined) {
+    throw new Error("use --project or --dir, not both")
+  }
   const runtime = ManagedRuntime.make(
     Hub.layer({ home: options.home, userHome: options.userHome, sources: [fsSource] }).pipe(
       Layer.provide(BunServices.layer),

@@ -13,8 +13,9 @@ import { createAppRouter } from "../../src/web/app/router.ts"
 /** A `memorySource` whose store reports `capabilities` overridden for a test. */
 export const memoryWithCapabilities = (
   capabilities: Partial<Capabilities>,
+  changes?: MemoryHooks["changes"],
 ): Source<MemoryConfig> => {
-  const base = memorySource()
+  const base = memorySource(changes === undefined ? {} : { changes })
   return {
     ...base,
     open: (project) =>
@@ -60,7 +61,7 @@ export const makeHub = (options: MakeHubOptions = {}) => {
   const source =
     options.capabilities === undefined
       ? memorySource(options.changes === undefined ? {} : { changes: options.changes })
-      : memoryWithCapabilities(options.capabilities)
+      : memoryWithCapabilities(options.capabilities, options.changes)
   const hubRuntime = ManagedRuntime.make(
     Hub.layer({ home, userHome: home, sources: [source, ...(options.extraSources ?? [])] }).pipe(
       Layer.provide(BunServices.layer),
