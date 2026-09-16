@@ -16,6 +16,8 @@ export interface DocumentOptions {
   readonly title: string
   readonly pageTitle?: string
   readonly content: string
+  /** The project this page belongs to; omitted only for a page with no project (e.g. an unknown-project 404). */
+  readonly project?: string
   readonly diagnostics?: { readonly error: number; readonly warning: number }
   readonly flash?: { readonly message: string; readonly tone: "info" | "warning" | "error" }
   readonly scriptEntry?: ScriptEntry
@@ -36,6 +38,18 @@ export function Document(handle: Handle<DocumentOptions>) {
           {warnings}
         </span>
       ) : null
+    const project = options.project
+    const boardHref = project === undefined ? "/" : routes.project.board.href({ project })
+    const nav =
+      project === undefined ? null : (
+        <nav aria-label="Todo list">
+          <a href={boardHref}>Board</a>
+          <a href={routes.project.done.href({ project })}>Done</a>
+          <a class="diagnostic-link" href={routes.project.check.href({ project })}>
+            Check {badge}
+          </a>
+        </nav>
+      )
     return (
       <html lang="en">
         <head>
@@ -55,16 +69,11 @@ export function Document(handle: Handle<DocumentOptions>) {
         </head>
         <body>
           <header>
-            <a class="list-name" href={routes.board.href()}>
+            <a class="list-name" href={boardHref}>
               {options.title}
             </a>
-            <nav aria-label="Todo list">
-              <a href={routes.board.href()}>Board</a>
-              <a href={routes.done.href()}>Done</a>
-              <a class="diagnostic-link" href={routes.check.href()}>
-                Check {badge}
-              </a>
-            </nav>
+            {project === undefined ? null : <span class="project-badge">{project}</span>}
+            {nav}
           </header>
           {options.flash === undefined ? null : (
             <div class={`flash ${options.flash.tone}`} role="status">
@@ -72,9 +81,9 @@ export function Document(handle: Handle<DocumentOptions>) {
             </div>
           )}
           <div class="reload-notice info" data-reload-notice hidden>
-            The list changed. <a href={routes.board.href()}>Reload</a>
+            The list changed. <a href={boardHref}>Reload</a>
           </div>
-          <main data-live-region innerHTML={options.content} />
+          <main data-live-region {...(project === undefined ? {} : { "data-project": project })} innerHTML={options.content} />
         </body>
       </html>
     )
@@ -84,17 +93,20 @@ export function Document(handle: Handle<DocumentOptions>) {
 export interface ErrorPageOptions {
   readonly status: number
   readonly message: string
+  readonly project?: string
   readonly scriptEntry?: ScriptEntry
 }
 
 export function ErrorPage(handle: Handle<ErrorPageOptions>) {
   return () => {
     const options = handle.props
+    const back = options.project === undefined ? "/" : routes.project.board.href({ project: options.project })
     return (
       <Document
         title="todo.md"
         pageTitle={`${options.status} error`}
-        content={`<h1>${options.status}</h1><p>${escapeHtml(options.message)}</p><a href="${routes.board.href()}">Back to board</a>`}
+        content={`<h1>${options.status}</h1><p>${escapeHtml(options.message)}</p><a href="${back}">Back to board</a>`}
+        {...(options.project === undefined ? {} : { project: options.project })}
         {...(options.scriptEntry === undefined ? {} : { scriptEntry: options.scriptEntry })}
       />
     )

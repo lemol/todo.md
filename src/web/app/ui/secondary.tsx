@@ -4,12 +4,12 @@ import { routes } from "../routes.ts"
 import { escapeHtml } from "./document.tsx"
 import { formatDate, showId } from "./format.ts"
 
-export const DonePage = (tasks: ReadonlyArray<TaskView>): string => {
+export const DonePage = (project: string, tasks: ReadonlyArray<TaskView>): string => {
   if (tasks.length === 0) return '<h1>Done</h1><p class="empty">Nothing done.</p>'
   const rows = tasks
     .map(({ task }) => {
       const group = task.group === undefined ? "Ungrouped" : task.group
-      return `<article class="done-row"><code>${showId(task.id)}</code><a href="${routes.tasks.show.href({ id: task.id })}">${escapeHtml(task.title)}</a><span><code>${formatDate(task.completedAt)}</code> · ${escapeHtml(group)}</span><form method="post" action="${routes.tasks.reopen.href({ id: task.id })}"><button class="secondary" type="submit">Reopen</button></form></article>`
+      return `<article class="done-row"><code>${showId(task.id)}</code><a href="${routes.project.tasks.show.href({ project, id: task.id })}">${escapeHtml(task.title)}</a><span><code>${formatDate(task.completedAt)}</code> · ${escapeHtml(group)}</span><form method="post" action="${routes.project.tasks.reopen.href({ project, id: task.id })}"><button class="secondary" type="submit">Reopen</button></form></article>`
     })
     .join("")
   return `<h1>Done</h1>${rows}`
@@ -17,7 +17,7 @@ export const DonePage = (tasks: ReadonlyArray<TaskView>): string => {
 
 const severities = ["error", "warning", "info"] as const
 
-export const CheckPage = (diagnostics: ReadonlyArray<Diagnostic>): string => {
+export const CheckPage = (project: string, diagnostics: ReadonlyArray<Diagnostic>): string => {
   if (diagnostics.length === 0) return '<h1>Check</h1><p class="empty">No diagnostics.</p>'
   const groups = severities
     .flatMap((severity) => {
@@ -30,7 +30,7 @@ export const CheckPage = (diagnostics: ReadonlyArray<Diagnostic>): string => {
             const task =
               item.taskId === undefined
                 ? ""
-                : ` <a href="${routes.tasks.show.href({ id: item.taskId })}">task ${showId(item.taskId)}</a>`
+                : ` <a href="${routes.project.tasks.show.href({ project, id: item.taskId })}">task ${showId(item.taskId)}</a>`
             const location =
               item.file === undefined
                 ? ""
