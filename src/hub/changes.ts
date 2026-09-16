@@ -5,6 +5,7 @@
  */
 
 import {
+  Deferred,
   Effect,
   FiberMap,
   FileSystem,
@@ -41,6 +42,8 @@ export interface ChangesOptions {
 }
 
 export interface Changes {
+  /** Acquires a pubsub subscription and starts source watchers before returning. */
+  readonly subscribe: Effect.Effect<Stream.Stream<HubChange>, never, Scope.Scope>
   readonly stream: Stream.Stream<HubChange>
   publish(change: HubChange): Effect.Effect<void>
   /** Starts and stops project watchers to match `watched`; a no-op while none run. */
@@ -70,9 +73,18 @@ export const makeChanges = (
       const fibers = yield* FiberMap.make<string>()
       const keys = new Map<string, string>()
       const lock = yield* Semaphore.make(1)
-      const watch = (project: Watched) =>
-        project.changes.pipe(
-          Stream.runForEach(() => publish({ kind: "changed", project: project.name })),
+      const watch = (project: Watched, ready: Deferred.Deferred<void>) =>
+        Effect.scoped(
+          Effect.gen(function* () {
+            // Acquire the source stream before announcing readiness. This makes
+            // the hub subscription handshake observable to callers.
+            const pull = yield* Stream.toPull(project.changes)
+            yield* Deferred.succeed(ready, undefined)
+            yield* Stream.runForEach(Stream.fromPull(Effect.succeed(pull)), () =>
+              publish({ kind: "changed", project: project.name }),
+            )
+          }),
+        ).pipe(
           Effect.catchDefect((defect) =>
             Effect.logWarning(`stopped watching ${project.name}`, defect),
           ),
@@ -90,7 +102,11 @@ export const makeChanges = (
           for (const project of wanted) {
             if (keys.get(project.name) === project.key) continue
             keys.set(project.name, project.key)
-            yield* FiberMap.run(fibers, project.name, watch(project))
+            const ready = yield* Deferred.make<void>()
+            yield* FiberMap.run(fibers, project.name, { startImmediately: true })(
+              watch(project, ready),
+            )
+            yield* Deferred.await(ready)
           }
         }).pipe(
           // An unreadable registry keeps the watchers that run.
@@ -122,15 +138,16 @@ export const makeChanges = (
     })
     const watchers = yield* RcRef.make({ acquire: start })
 
+    const subscribe = Effect.gen(function* () {
+      // Subscribe before starting watchers, so their first events are not missed.
+      const subscription = yield* PubSub.subscribe(pubsub)
+      yield* RcRef.get(watchers)
+      return Stream.fromSubscription(subscription)
+    })
+
     return {
-      // Subscribed before the watchers start, so their first events are not missed.
-      stream: Stream.unwrap(
-        Effect.gen(function* () {
-          const subscription = yield* PubSub.subscribe(pubsub)
-          yield* RcRef.get(watchers)
-          return Stream.fromSubscription(subscription)
-        }),
-      ),
+      subscribe,
+      stream: Stream.unwrap(subscribe),
       publish,
       reconcile: Effect.suspend(() => running ?? Effect.void),
     }

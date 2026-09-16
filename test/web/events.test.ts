@@ -28,7 +28,8 @@ test("emits a changed event for the source change and unsubscribes on abort", as
   if (body === null) throw new Error("expected SSE response body")
   const reader = body.getReader()
 
-  await hubRuntime.runPromise(Queue.take(watchers.started))
+  // The response must not resolve until hub.changes has acquired its source
+  // watcher; emit immediately to prove the public boundary has no first-event race.
   await hubRuntime.runPromise(watchers.emit("acme"))
   const event = await reader.read()
   expect(event.done).toBe(false)

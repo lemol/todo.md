@@ -1,6 +1,6 @@
 /** @jsxImportSource remix/ui */
 
-import { Effect, Fiber, Stream } from "effect"
+import { Deferred, Effect, Fiber, Stream } from "effect"
 import { redirect } from "remix/response/redirect"
 import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
@@ -155,12 +155,9 @@ const boardRedirect =
     redirect(routes.project.board.href({ project: startup }), 302)
 
 /**
- * Forks a `hub.changes` consumer and awaits the fork before returning, so
- * the subscription starts before this responds. The hub subscribes to its
- * sources before reporting watcher starts, so a test that waits for a
- * source watcher to start (see `test/hub/helpers.ts`'s `makeWatchers`) never
- * misses a later source event; aborting the request interrupts the fiber,
- * which ends the source watcher.
+ * Acquires the hub change subscription before returning the response. This
+ * handshake ensures a source event immediately after fetch resolves cannot be
+ * lost; aborting the request interrupts the consumer and ends the watcher.
  */
 const eventsAction =
   (runtime: HubRuntime) =>
@@ -185,14 +182,21 @@ const eventsAction =
         cleanup()
       }
     }
+    const ready = await runtime.runPromise(Deferred.make<void>())
     fiber = await runtime.runPromise(
       Effect.gen(function* () {
         const hub = yield* Hub
-        return yield* Effect.forkDetach(
-          Stream.runForEach(hub.changes, (change) => Effect.sync(() => send(change))),
+        const consumer = Effect.scoped(
+          Effect.gen(function* () {
+            const changes = yield* hub.subscribeChanges
+            yield* Deferred.succeed(ready, undefined)
+            yield* Stream.runForEach(changes, (change) => Effect.sync(() => send(change)))
+          }),
         )
+        return yield* Effect.forkDetach(consumer)
       }),
     )
+    await runtime.runPromise(Deferred.await(ready))
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         controllerRef = controller

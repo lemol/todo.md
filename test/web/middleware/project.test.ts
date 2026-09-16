@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync } from "node:fs"
+import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
@@ -21,7 +21,7 @@ const makeHubRuntime = () => {
     userHome: tmpdir(),
     sources: [memorySource()],
   }).pipe(Layer.provide(BunServices.layer))
-  return ManagedRuntime.make(layer)
+  return { runtime: ManagedRuntime.make(layer), home }
 }
 
 class FakeContext {
@@ -41,7 +41,7 @@ class FakeContext {
 }
 
 test("loads the project's runtime, capabilities and info onto the context", async () => {
-  const runtime = makeHubRuntime()
+  const { runtime, home } = makeHubRuntime()
   await runtime.runPromise(
     Effect.gen(function* () {
       const hub = yield* Hub
@@ -67,10 +67,11 @@ test("loads the project's runtime, capabilities and info onto the context", asyn
   expect(context.get(authorContext)).toBe("tester")
   expect(context.get(todoRuntimeContext)).toBeDefined()
   await runtime.dispose()
+  rmSync(home, { recursive: true, force: true })
 })
 
 test("renders a 404 page for an unknown project without calling next", async () => {
-  const runtime = makeHubRuntime()
+  const { runtime, home } = makeHubRuntime()
   const middleware = loadProject({ runtime, author: "tester" })
   const context = new FakeContext("ghost")
   let nextCalled = false
@@ -81,4 +82,5 @@ test("renders a 404 page for an unknown project without calling next", async () 
   expect(nextCalled).toBe(false)
   expect(response.status).toBe(404)
   await runtime.dispose()
+  rmSync(home, { recursive: true, force: true })
 })

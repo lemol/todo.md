@@ -8,6 +8,7 @@ import {
   Path,
   type PlatformError,
   Random,
+  type Scope,
   type Stream,
 } from "effect"
 import { TodoService } from "../core/index.ts"
@@ -98,6 +99,8 @@ export class Hub extends Context.Service<
     overview(query?: OverviewQuery): Effect.Effect<Overview, RegistryError>
     /** Project, sync and registry changes. Watchers run only while something consumes it. */
     readonly changes: Stream.Stream<HubChange>
+    /** Acquires the change subscription and starts source watchers before returning. */
+    readonly subscribeChanges: Effect.Effect<Stream.Stream<HubChange>, never, Scope.Scope>
   }
 >()("@lemol/todo-md/hub/Hub") {
   /** Requires `FileSystem` and `Path`. Dies if two sources share a kind. */
@@ -456,5 +459,6 @@ const make = (options: HubOptions) =>
             Effect.flatMap(serviceOf(project), (service) => service.list(filter)),
         }),
       changes: changes.stream,
+      subscribeChanges: changes.subscribe,
     })
   })

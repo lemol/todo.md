@@ -1,4 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
 import type { TodoService } from "../../src/core/index.ts"
@@ -34,7 +36,7 @@ export const memoryWithCapabilities = (
 
 /** A fresh hub home with one registered `memory` project, written synchronously. */
 const homeFor = (project: string, title: string): string => {
-  const home = `/tmp/todo-md-web-test-${crypto.randomUUID()}`
+  const home = join(tmpdir(), `todo-md-web-test-${crypto.randomUUID()}`)
   mkdirSync(home, { recursive: true })
   writeFileSync(
     `${home}/projects.yaml`,
@@ -67,7 +69,7 @@ export const makeHub = (options: MakeHubOptions = {}) => {
       Layer.provide(BunServices.layer),
     ),
   )
-  return { hubRuntime, project }
+  return { hubRuntime, project, home }
 }
 
 /** Runs `use` against `project`'s `TodoService` through the hub. */
@@ -97,7 +99,7 @@ export interface MakeRouterOptions extends MakeHubOptions {
  * `close()` disposes both the router and the hub runtime.
  */
 export const makeRouter = (options: MakeRouterOptions = {}) => {
-  const { hubRuntime, project } = makeHub(options)
+  const { hubRuntime, project, home } = makeHub(options)
   const runtime: HubRuntime = { runPromise: (effect) => hubRuntime.runPromise(effect) }
   const router = createAppRouter({
     runtime,
@@ -114,6 +116,7 @@ export const makeRouter = (options: MakeRouterOptions = {}) => {
     close: async () => {
       await router.close()
       await hubRuntime.dispose()
+      rmSync(home, { recursive: true, force: true })
     },
   }
 }
