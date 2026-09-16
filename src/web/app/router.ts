@@ -5,24 +5,21 @@ import { render } from "remix/middleware/render"
 import { session } from "remix/middleware/session"
 import { createRouter } from "remix/router"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
-import type { Capabilities } from "../../spec/index.ts"
-import rootController from "./actions/controller.tsx"
-import groupsController from "./actions/groups/controller.tsx"
-import tasksController from "./actions/tasks/controller.tsx"
+import { createGroupsController } from "./actions/groups/controller.tsx"
+import { createRootController, createTopController } from "./actions/controller.tsx"
+import { createTasksController } from "./actions/tasks/controller.tsx"
 import { type AppAssets, createAssets, loadAssets } from "./assets.ts"
 import { loadAssetEntry } from "./middleware/assets.ts"
-import type { ListChanges } from "./middleware/changes.ts"
-import { loadChanges } from "./middleware/changes.ts"
 import { localOnly } from "./middleware/local.ts"
-import { loadTodo, type TodoRuntime } from "./middleware/todo.ts"
+import type { HubRuntime } from "./middleware/project.tsx"
 import { routes } from "./routes.ts"
 
 export interface RouterOptions {
-  readonly runtime: TodoRuntime
-  readonly capabilities: Capabilities
-  readonly changes: ListChanges
+  readonly runtime: HubRuntime
   readonly author: string
   readonly hosts: ReadonlyArray<string>
+  /** The startup project's name; `GET /` redirects to its board. */
+  readonly startup: string
   readonly sessionSecret?: string
   readonly assets?: AppAssets
 }
@@ -42,15 +39,15 @@ export const createAppRouter = (options: RouterOptions) => {
       loadAssets(assets),
       formData(),
       session(cookie, createMemorySessionStorage()),
-      loadTodo(options),
-      loadChanges(options.changes),
       loadAssetEntry(assets),
       render({ assets }),
     ],
   })
-  router.map(routes, rootController)
-  router.map(routes.tasks, tasksController)
-  router.map(routes.groups, groupsController)
+  const controllerOptions = { runtime: options.runtime, author: options.author }
+  router.map(routes.project, createRootController(controllerOptions))
+  router.map(routes.project.tasks, createTasksController(controllerOptions))
+  router.map(routes.project.groups, createGroupsController(controllerOptions))
+  router.map(routes, createTopController({ runtime: options.runtime, startup: options.startup }))
   return Object.assign(router, {
     close: async () => {
       await assets.close()
