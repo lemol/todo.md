@@ -1,9 +1,11 @@
 import type { RenderFunction } from "remix/middleware/render"
 import type { RequestContext } from "remix/router"
+import type { ProjectInfo } from "../../../hub/index.ts"
 import type { Capabilities, Diagnostic } from "../../../spec/index.ts"
 import { type assetEntryContext, assetEntryOf } from "../middleware/assets.ts"
 import {
   capabilitiesContext,
+  projectInfoContext,
   runTodo,
   type TodoRuntime,
   type todoRuntimeContext,
@@ -35,6 +37,11 @@ export const capabilitiesOf = (context: WebContext) =>
   (context as { readonly get: (key: typeof capabilitiesContext) => Capabilities }).get(
     capabilitiesContext,
   )
+
+export const projectOf = (context: WebContext): string =>
+  (context as { readonly get: (key: typeof projectInfoContext) => ProjectInfo }).get(
+    projectInfoContext,
+  ).name
 
 export const sessionOf = (context: WebContext): WebSession =>
   (context as WebContext & { readonly session: WebSession }).session

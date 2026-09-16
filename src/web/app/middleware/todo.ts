@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect"
 import { createContextKey, type Middleware } from "remix/router"
 import { TodoService } from "../../../core/index.ts"
+import type { ProjectInfo } from "../../../hub/index.ts"
 import type { Capabilities } from "../../../spec/index.ts"
 
 export interface TodoRuntime {
@@ -13,6 +14,7 @@ export type TodoResult<A, E> =
 
 export const todoRuntimeContext = createContextKey<TodoRuntime>()
 export const capabilitiesContext = createContextKey<Capabilities>()
+export const projectInfoContext = createContextKey<ProjectInfo>()
 export const authorContext = createContextKey<string>()
 
 export const runTodo = async <A, E>(

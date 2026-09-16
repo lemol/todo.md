@@ -77,7 +77,7 @@ export const parseRenameForm = (form: FormData) => ({
   to: value(form, "to"),
 })
 
-export const localBack = (value_: string | undefined): string =>
+export const localBack = (value_: string | undefined, project: string): string =>
   value_?.startsWith("/") &&
   !value_.startsWith("//") &&
   !value_.includes("\\") &&
@@ -86,7 +86,7 @@ export const localBack = (value_: string | undefined): string =>
     return code <= 31 || code === 127
   })
     ? value_
-    : routes.board.href()
+    : routes.project.board.href({ project })
 
 export const normalizeDependencies = (value_: string): ReadonlyArray<string> =>
   splitList(value_).map(taskId)
