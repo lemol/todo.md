@@ -26,3 +26,30 @@ export const shouldRefresh = (region: LiveRegion, event: LiveEvent): boolean =>
   region.events.length > 0
     ? region.events.includes(event.kind)
     : region.project !== null && event.project === region.project
+
+export type LiveRegionLoader = (signal: AbortSignal) => Promise<string>
+export type LiveRegionApply = (html: string) => void
+
+/**
+ * Coalesces overlapping hub live refreshes: a newer event aborts the previous
+ * fetch and stale completions never apply.
+ */
+export const createLiveRegionRefresher = () => {
+  let generation = 0
+  let abort: AbortController | undefined
+
+  return async (load: LiveRegionLoader, apply: LiveRegionApply): Promise<void> => {
+    abort?.abort()
+    const controller = new AbortController()
+    abort = controller
+    const current = ++generation
+    try {
+      const html = await load(controller.signal)
+      if (current !== generation) return
+      apply(html)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      throw error
+    }
+  }
+}

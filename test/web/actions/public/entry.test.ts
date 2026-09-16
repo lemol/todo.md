@@ -13,4 +13,5 @@ test("entry.ts only reacts to changed/synced events for its own project", () => 
   expect(source).toContain('addEventListener("changed"')
   expect(source).toContain('addEventListener("synced"')
   expect(source).toContain('addEventListener("registry"')
+  expect(source).toContain("createLiveRegionRefresher")
 })

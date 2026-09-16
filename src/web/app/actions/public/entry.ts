@@ -1,9 +1,15 @@
 import { run } from "remix/ui"
 import { routes } from "../../routes.ts"
-import { markDirtyOnInput, refreshDecision, shouldRefresh } from "./refresh.ts"
+import {
+  createLiveRegionRefresher,
+  markDirtyOnInput,
+  refreshDecision,
+  shouldRefresh,
+} from "./refresh.ts"
 
 export const startLiveRefresh = () => {
   let dirty = false
+  const refreshLiveRegion = createLiveRegionRefresher()
   document.addEventListener(
     "input",
     (event) => {
@@ -38,15 +44,24 @@ export const startLiveRefresh = () => {
       return
     }
     try {
-      const response = await fetch(location.href, { headers: { Accept: "text/html" } })
-      if (!response.ok) throw new Error(`refresh failed with ${response.status}`)
-      const html = await response.text()
-      const parsed = new DOMParser().parseFromString(html, "text/html")
-      const next = parsed.querySelector("[data-live-region]")
-      const current = document.querySelector("[data-live-region]")
-      if (!next || !current) throw new Error("refresh response has no live region")
-      current.replaceWith(next)
-      dirty = false
+      await refreshLiveRegion(
+        async (signal) => {
+          const response = await fetch(location.href, {
+            headers: { Accept: "text/html" },
+            signal,
+          })
+          if (!response.ok) throw new Error(`refresh failed with ${response.status}`)
+          return await response.text()
+        },
+        (html) => {
+          const parsed = new DOMParser().parseFromString(html, "text/html")
+          const next = parsed.querySelector("[data-live-region]")
+          const current = document.querySelector("[data-live-region]")
+          if (!next || !current) throw new Error("refresh response has no live region")
+          current.replaceWith(next)
+          dirty = false
+        },
+      )
     } catch {
       document.querySelector("[data-reload-notice]")?.removeAttribute("hidden")
     }

@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test"
-import { markDirtyOnInput, refreshDecision, shouldRefresh } from "./refresh.ts"
+import {
+  createLiveRegionRefresher,
+  markDirtyOnInput,
+  refreshDecision,
+  shouldRefresh,
+} from "./refresh.ts"
 
 test("chooses reload for clean pages and notice for dirty pages", () => {
   expect(refreshDecision(false)).toBe("reload")
@@ -32,4 +37,32 @@ test("a page with neither a project nor an event list never refreshes", () => {
   expect(shouldRefresh({ project: null, events: [] }, { kind: "changed", project: "x" })).toBe(
     false,
   )
+})
+
+test("an older live refresh cannot replace a newer one", async () => {
+  const refresh = createLiveRegionRefresher()
+  const applied: Array<string> = []
+  let releaseFirst: (html: string) => void = () => {}
+  const firstFetch = new Promise<string>((resolve) => {
+    releaseFirst = resolve
+  })
+
+  const older = refresh(
+    () => firstFetch,
+    (html) => {
+      applied.push(html)
+    },
+  )
+  const newer = refresh(
+    async () => "<main data-live-region>new</main>",
+    (html) => {
+      applied.push(html)
+    },
+  )
+
+  await newer
+  releaseFirst("<main data-live-region>old</main>")
+  await older
+
+  expect(applied).toEqual(["<main data-live-region>new</main>"])
 })
