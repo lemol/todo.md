@@ -1,20 +1,24 @@
 import { expect, test } from "bun:test"
+import { mkdtempSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
 import { Hub } from "../../../src/hub/index.ts"
 import { memorySource } from "../../../src/hub/testing.ts"
+import { loadProject } from "../../../src/web/app/middleware/project.tsx"
 import {
   authorContext,
   capabilitiesContext,
+  projectInfoContext,
   todoRuntimeContext,
 } from "../../../src/web/app/middleware/todo.ts"
-import { loadProject } from "../../../src/web/app/middleware/project.tsx"
-import { projectInfoContext } from "../../../src/web/app/middleware/todo.ts"
 
 const makeHubRuntime = () => {
+  const home = mkdtempSync(join(tmpdir(), "todo-md-project-mw-"))
   const layer = Hub.layer({
-    home: "/tmp/does-not-exist-project-test",
-    userHome: "/tmp",
+    home,
+    userHome: tmpdir(),
     sources: [memorySource()],
   }).pipe(Layer.provide(BunServices.layer))
   return ManagedRuntime.make(layer)
