@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect, Layer, Schema } from "effect"
 import { type AnySource, fsSource, Hub, SourceError } from "../../src/hub/index.ts"
+import { memorySource } from "../../src/hub/testing.ts"
 import { TodoStore } from "../../src/spec/index.ts"
 import { makeRouter, seed } from "./harness.ts"
 
@@ -219,6 +220,33 @@ describe("dashboard", () => {
     expect(html).toContain("cannot open")
     expect(html).toContain("project-error")
     expect(html).toContain('action="/p/bad/sync"')
+  })
+
+  test("a syncable project whose open fails shows one Sync control in the error entry", async () => {
+    const flaky: AnySource = {
+      ...memorySource({
+        kind: "flaky",
+        sync: () => Effect.succeed({ summary: "ok" }),
+      }),
+      open: () =>
+        Layer.effect(
+          TodoStore,
+          Effect.fail(new SourceError({ name: "bad", message: "cannot open" })),
+        ),
+    }
+    const app = await open({
+      projects: [
+        { name: "acme", fields: { title: "Acme" } },
+        { name: "bad", source: "flaky" },
+      ],
+      extraSources: [flaky],
+    })
+    const html = await (await fetchApp(app.router, "/")).text()
+    const section = html.slice(html.indexOf('class="project project-error"'))
+    const end = section.indexOf("</section>")
+    const errorSection = end === -1 ? section : section.slice(0, end)
+    expect(errorSection.match(/action="\/p\/bad\/sync"/g)?.length).toBe(1)
+    expect(errorSection.match(/>Sync</g)?.length).toBe(1)
   })
 
   test("the dashboard's live region listens to every hub event", async () => {

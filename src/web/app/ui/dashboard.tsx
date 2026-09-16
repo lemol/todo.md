@@ -52,7 +52,8 @@ const nextRow = (project: string, view: TaskView): string =>
 const projectSection = (entry: OverviewEntry, now: DateTime.Utc, back: string): string => {
   const heading = projectHeading(entry, now, back)
   if (!("listing" in entry)) {
-    return `<section class="project project-error">${heading}<p class="badge error">${escapeHtml(entry.error.message)}</p>${syncForm(entry.project.name, back)}</section>`
+    const retry = entry.project.syncable ? "" : syncForm(entry.project.name, back)
+    return `<section class="project project-error">${heading}<p class="badge error">${escapeHtml(entry.error.message)}</p>${retry}</section>`
   }
   const tasks = openTasks(entry)
   const ready = tasks.filter((view) => view.state === "ready")
