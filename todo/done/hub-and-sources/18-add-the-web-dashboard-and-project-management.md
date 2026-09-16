@@ -120,3 +120,12 @@ Router tests over a hub with `memorySource` projects in a temporary home:
   add, rename and remove projects.
 - Every page and form works without JavaScript.
 - `bun run check` passes.
+
+## Comments
+
+### @nzila at 2026-09-16 12:48:47 +00:00
+
+Done: Review#5 fix: added createLiveRegionRefresher in refresh.ts (abort previous fetch, monotonic generation gate before apply). entry.ts uses it for all hub live-region reloads. Unit test simulates slow-then-fast refresh and asserts only the newer HTML applies; entry.test checks wiring. Verified: bun test src/web/app/actions/public/refresh.test.ts test/web/actions/public/entry.test.ts; bun run check (588 tests, 76 files).
+Branch: nzila/01M2MD62FA0YK7K5FW3QXTWWBZ
+
+nzila run 01M2MD62FA0YK7K5FW3QXTWWBZ
