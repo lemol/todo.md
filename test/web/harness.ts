@@ -1,14 +1,77 @@
-import { Layer, ManagedRuntime } from "effect"
+import { mkdirSync, writeFileSync } from "node:fs"
+import { BunServices } from "@effect/platform-bun"
+import { Effect, Layer, ManagedRuntime } from "effect"
+import type { AnySource } from "../../src/hub/index.ts"
+import { Hub } from "../../src/hub/index.ts"
+import { memorySource } from "../../src/hub/testing.ts"
 import { TodoService } from "../../src/core/index.ts"
-import { allCapabilities, MemoryTodoStore } from "../../src/spec/index.ts"
+import { TodoStore, type Capabilities } from "../../src/spec/index.ts"
 import type { AppAssets } from "../../src/web/app/assets.ts"
-import { makeFakeChanges } from "../../src/web/app/middleware/changes.ts"
+import type { HubRuntime } from "../../src/web/app/middleware/project.tsx"
 import { createAppRouter } from "../../src/web/app/router.ts"
 
-export const makeRuntime = () => {
-  const store = MemoryTodoStore.layer({ title: "Acme", description: "Ship deliberately." })
-  return ManagedRuntime.make(TodoService.layer.pipe(Layer.provide(store)))
+/** A `memorySource` whose store reports `capabilities` overridden for a test. */
+export const memoryWithCapabilities = (capabilities: Partial<Capabilities>): AnySource => {
+  const base = memorySource()
+  return {
+    ...base,
+    open: (project) =>
+      Layer.effect(
+        TodoStore,
+        Effect.gen(function* () {
+          const store = yield* TodoStore
+          return TodoStore.of({
+            ...store,
+            capabilities: { ...store.capabilities, ...capabilities },
+          })
+        }),
+      ).pipe(Layer.provide(base.open(project))),
+  }
 }
+
+/** A fresh hub home with one registered `memory` project, written synchronously. */
+const homeFor = (project: string, title: string): string => {
+  const home = `/tmp/todo-md-web-test-${crypto.randomUUID()}`
+  mkdirSync(home, { recursive: true })
+  writeFileSync(
+    `${home}/projects.yaml`,
+    `projects:\n  ${project}:\n    source: memory\n    title: ${JSON.stringify(title)}\n`,
+  )
+  return home
+}
+
+export interface MakeHubOptions {
+  readonly project?: string
+  readonly title?: string
+  readonly capabilities?: Partial<Capabilities>
+  readonly extraSources?: ReadonlyArray<AnySource>
+}
+
+/**
+ * A `ManagedRuntime<Hub>` over a fresh home with one registered project
+ * (default name `acme`, title `Acme`).
+ */
+export const makeHub = (options: MakeHubOptions = {}) => {
+  const project = options.project ?? "acme"
+  const home = homeFor(project, options.title ?? "Acme")
+  const source =
+    options.capabilities === undefined
+      ? memorySource()
+      : memoryWithCapabilities(options.capabilities)
+  const hubRuntime = ManagedRuntime.make(
+    Hub.layer({ home, userHome: home, sources: [source, ...(options.extraSources ?? [])] }).pipe(
+      Layer.provide(BunServices.layer),
+    ),
+  )
+  return { hubRuntime, project }
+}
+
+/** Runs `use` against `project`'s `TodoService` through the hub. */
+export const seed = <A, E>(
+  hubRuntime: ReturnType<typeof makeHub>["hubRuntime"],
+  project: string,
+  use: (todo: TodoService["Service"]) => Effect.Effect<A, E, never>,
+) => hubRuntime.runPromise(Effect.flatMap(Hub, (hub) => Effect.flatMap(hub.todo(project), use)))
 
 export const makeFakeAssets = (): AppAssets => ({
   getScriptEntry: async (path) => ({
@@ -20,15 +83,33 @@ export const makeFakeAssets = (): AppAssets => ({
   close: async () => undefined,
 })
 
-export const makeRouter = () => {
-  const runtime = makeRuntime()
-  return createAppRouter({
+export interface MakeRouterOptions extends MakeHubOptions {
+  readonly assets?: AppAssets
+}
+
+/**
+ * A ready-to-fetch router over one registered `memorySource` project (default
+ * name `acme`, title `Acme`, no tasks — use `seed` to add what a test needs).
+ * `close()` disposes both the router and the hub runtime.
+ */
+export const makeRouter = (options: MakeRouterOptions = {}) => {
+  const { hubRuntime, project } = makeHub(options)
+  const runtime: HubRuntime = { runPromise: (effect) => hubRuntime.runPromise(effect) }
+  const router = createAppRouter({
     runtime,
-    capabilities: allCapabilities,
-    changes: makeFakeChanges(),
+    startup: project,
     author: "tester",
     hosts: ["localhost", "127.0.0.1", "::1"],
     sessionSecret: "test-secret-at-least-32-characters",
-    assets: makeFakeAssets(),
+    assets: options.assets ?? makeFakeAssets(),
   })
+  return {
+    router,
+    project,
+    hubRuntime,
+    close: async () => {
+      await router.close()
+      await hubRuntime.dispose()
+    },
+  }
 }
