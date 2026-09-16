@@ -12,6 +12,11 @@ export const escapeHtml = (value: unknown): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;")
 
+export interface SwitcherProject {
+  readonly name: string
+  readonly registered: boolean
+}
+
 export interface DocumentOptions {
   readonly title: string
   readonly pageTitle?: string
@@ -21,6 +26,13 @@ export interface DocumentOptions {
   readonly diagnostics?: { readonly error: number; readonly warning: number }
   readonly flash?: { readonly message: string; readonly tone: "info" | "warning" | "error" }
   readonly scriptEntry?: ScriptEntry
+  /** Every project, for the header switcher; omitted hides it (e.g. an error page). */
+  readonly switcher?: ReadonlyArray<SwitcherProject>
+  /**
+   * The hub event kinds this page's live region listens to. Omitted means
+   * "this page's project's own `changed` and `synced`", which is `data-project`.
+   */
+  readonly liveEvents?: ReadonlyArray<string>
 }
 
 export function Document(handle: Handle<DocumentOptions>) {
@@ -40,16 +52,43 @@ export function Document(handle: Handle<DocumentOptions>) {
       ) : null
     const project = options.project
     const boardHref = project === undefined ? "/" : routes.project.board.href({ project })
-    const nav =
-      project === undefined ? null : (
-        <nav aria-label="Todo list">
-          <a href={boardHref}>Board</a>
-          <a href={routes.project.done.href({ project })}>Done</a>
-          <a class="diagnostic-link" href={routes.project.check.href({ project })}>
-            Check {badge}
-          </a>
-        </nav>
+    const switcher =
+      options.switcher === undefined || options.switcher.length === 0 ? null : (
+        <form class="switcher" method="get" action={routes.go.href()}>
+          <label class="visually-hidden" for="switch-project">
+            Project
+          </label>
+          <select id="switch-project" name="project" data-submit-on-change>
+            {options.switcher.map((entry) => (
+              <option
+                value={entry.name}
+                key={entry.name}
+                {...(entry.name === project ? { selected: true } : {})}
+              >
+                {entry.registered ? entry.name : `${entry.name} (not registered)`}
+              </option>
+            ))}
+          </select>
+          <button class="secondary" type="submit">
+            Go
+          </button>
+        </form>
       )
+    const nav = (
+      <nav aria-label="Projects">
+        <a href={routes.dashboard.href()}>Dashboard</a>
+        <a href={routes.projects.index.href()}>Projects</a>
+        {project === undefined ? null : (
+          <>
+            <a href={boardHref}>Board</a>
+            <a href={routes.project.done.href({ project })}>Done</a>
+            <a class="diagnostic-link" href={routes.project.check.href({ project })}>
+              Check {badge}
+            </a>
+          </>
+        )}
+      </nav>
+    )
     return (
       <html lang="en">
         <head>
@@ -73,6 +112,7 @@ export function Document(handle: Handle<DocumentOptions>) {
               {options.title}
             </a>
             {project === undefined ? null : <span class="project-badge">{project}</span>}
+            {switcher}
             {nav}
           </header>
           {options.flash === undefined ? null : (
@@ -86,6 +126,9 @@ export function Document(handle: Handle<DocumentOptions>) {
           <main
             data-live-region
             {...(project === undefined ? {} : { "data-project": project })}
+            {...(options.liveEvents === undefined
+              ? {}
+              : { "data-live-events": options.liveEvents.join(" ") })}
             innerHTML={options.content}
           />
         </body>

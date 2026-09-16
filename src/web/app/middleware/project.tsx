@@ -8,6 +8,7 @@ import { ErrorPage } from "../ui/document.tsx"
 import {
   authorContext,
   capabilitiesContext,
+  hubRuntimeContext,
   projectInfoContext,
   type TodoRuntime,
   todoRuntimeContext,
@@ -18,6 +19,14 @@ export interface HubRuntime {
   readonly runPromise: <A, E>(effect: Effect.Effect<A, E, Hub>) => Promise<A>
 }
 
+/** Puts the hub runtime on the context for routes that have no single project. */
+export const provideHub =
+  (runtime: HubRuntime): Middleware =>
+  (context, next) => {
+    context.set(hubRuntimeContext, runtime)
+    return next()
+  }
+
 /**
  * For routes under `/p/:project`: resolves the project (same errors as the
  * CLI's `withTodo`), then puts its `TodoRuntime`, `Capabilities`, author and
@@ -27,6 +36,14 @@ export interface HubRuntime {
 export const loadProject =
   (options: { readonly runtime: HubRuntime; readonly author: string }): Middleware =>
   async (context, next) => {
+    const request = (context as WebContext).request
+    if (
+      request !== undefined &&
+      request.method === "POST" &&
+      new URL(request.url).pathname.endsWith("/sync")
+    ) {
+      return next()
+    }
     const name = String((context as WebContext).params.project ?? "")
     const result = await options.runtime.runPromise(
       Effect.result(

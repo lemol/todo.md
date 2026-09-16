@@ -2,7 +2,14 @@ import { expect, test } from "bun:test"
 import { routes } from "../../src/web/app/routes.ts"
 
 test("defines stable hrefs for every web route", () => {
-  expect(routes.board.href()).toBe("/")
+  expect(routes.dashboard.href()).toBe("/")
+  expect(routes.go.href()).toBe("/go")
+  expect(routes.sync.href()).toBe("/sync")
+  expect(routes.projects.index.href()).toBe("/projects")
+  expect(routes.projects.add.href()).toBe("/projects")
+  expect(routes.projects.rename.href({ name: "acme" })).toBe("/projects/acme/rename")
+  expect(routes.projects.remove.href({ name: "acme" })).toBe("/projects/acme/remove")
+  expect(routes.project.sync.href({ project: "acme" })).toBe("/p/acme/sync")
   expect(routes.events.href()).toBe("/events")
   expect(routes.assets.href({ path: "app/ui/styles.css" })).toBe("/assets/app/ui/styles.css")
   expect(routes.project.board.href({ project: "acme" })).toBe("/p/acme")

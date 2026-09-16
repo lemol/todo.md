@@ -33,20 +33,27 @@ const gitUrls = [
  * `cwd` unless it starts with `~`. `options.source` overrides the inference;
  * kinds other than `fs` and `git` get an empty config for the frontend to fill.
  */
+export const projectInputFrom = (
+  target: string,
+  options: ProjectInputOptions,
+  resolve: (cwd: string, path: string) => string,
+): AddInput => {
+  const source = options.source ?? (gitUrls.some((pattern) => pattern.test(target)) ? "git" : "fs")
+  const home = target === "~" || target.startsWith("~/")
+  const config =
+    source === "fs"
+      ? { path: home ? target : resolve(options.cwd, target) }
+      : source === "git"
+        ? { url: githubWithoutScheme.test(target) ? `https://${target}` : target }
+        : {}
+  return { name: options.name, source, config }
+}
+
 export const projectInput = (
   target: string,
   options: ProjectInputOptions,
 ): Effect.Effect<AddInput, never, Path.Path> =>
   Effect.gen(function* () {
     const path = yield* Path.Path
-    const source =
-      options.source ?? (gitUrls.some((pattern) => pattern.test(target)) ? "git" : "fs")
-    const home = target === "~" || target.startsWith("~/")
-    const config =
-      source === "fs"
-        ? { path: home ? target : path.resolve(options.cwd, target) }
-        : source === "git"
-          ? { url: githubWithoutScheme.test(target) ? `https://${target}` : target }
-          : {}
-    return { name: options.name, source, config }
+    return projectInputFrom(target, options, (cwd, relative) => path.resolve(cwd, relative))
   })

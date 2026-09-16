@@ -77,7 +77,8 @@ export const parseRenameForm = (form: FormData) => ({
   to: value(form, "to"),
 })
 
-export const localBack = (value_: string | undefined, project: string): string =>
+/** `localBack` for hub routes, which have no project to fall back to. */
+export const hubBack = (value_: string | undefined, fallback: string): string =>
   value_?.startsWith("/") &&
   !value_.startsWith("//") &&
   !value_.includes("\\") &&
@@ -86,7 +87,25 @@ export const localBack = (value_: string | undefined, project: string): string =
     return code <= 31 || code === 127
   })
     ? value_
-    : routes.project.board.href({ project })
+    : fallback
+
+export const localBack = (value_: string | undefined, project: string): string =>
+  hubBack(value_, routes.project.board.href({ project }))
+
+/** The add-a-project form: a path or URL, an optional name and a source kind. */
+export const parseProjectForm = (form: FormData) => {
+  const target = value(form, "target")
+  const name = value(form, "name")
+  const source = value(form, "source")
+  return {
+    target,
+    name,
+    source: source === "" || source === "infer" ? undefined : source,
+    issues: target === "" ? ["A path or URL is required"] : [],
+  }
+}
+
+export type ProjectValues = ReturnType<typeof parseProjectForm>
 
 export const normalizeDependencies = (value_: string): ReadonlyArray<string> =>
   splitList(value_).map(taskId)

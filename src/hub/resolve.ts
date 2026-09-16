@@ -21,6 +21,10 @@ export interface Unregistered {
   get(name: string): Project | undefined
   all(): ReadonlyArray<Project>
   forget(name: string): void
+  /** The list paths currently open, for sources that can say which list is theirs. */
+  lists(): ReadonlyArray<string>
+  byList(list: string): Project | undefined
+  forgetList(list: string): void
   /** The project over `list`, opened on first use with a name that is not in `registered` or already open. */
   open(list: string, registered: ReadonlyArray<string>): Project
 }
@@ -33,6 +37,11 @@ export const makeUnregistered = (): Unregistered => {
     all,
     forget: (name) => {
       for (const [list, project] of byPath) if (project.name === name) byPath.delete(list)
+    },
+    lists: () => [...byPath.keys()],
+    byList: (list) => byPath.get(list),
+    forgetList: (list) => {
+      byPath.delete(list)
     },
     open: (list, registered) => {
       const existing = byPath.get(list)

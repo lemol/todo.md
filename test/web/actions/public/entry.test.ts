@@ -8,6 +8,9 @@ test("entry.ts only reacts to changed/synced events for its own project", () => 
     "utf8",
   )
   expect(source).toContain("data-project")
+  expect(source).toContain("data-live-events")
+  expect(source).toContain("shouldRefresh")
   expect(source).toContain('addEventListener("changed"')
   expect(source).toContain('addEventListener("synced"')
+  expect(source).toContain('addEventListener("registry"')
 })

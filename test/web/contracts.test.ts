@@ -76,6 +76,12 @@ describe("board contract", () => {
     )
   })
 
+  test("shows no sync button on a non-syncable project", async () => {
+    const { router, project } = open()
+    const html = await (await fetchApp(router, routes.project.board.href({ project }))).text()
+    expect(html).not.toContain('action="/p/acme/sync"')
+  })
+
   test("hides unsupported controls", async () => {
     const { router, hubRuntime, project } = openWith({ groups: false, comments: false })
     const task = await seedDocs(hubRuntime, project)

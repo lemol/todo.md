@@ -22,6 +22,8 @@ process builds its own `Hub` over the shared home.
 | `fsSource`, `FsConfig` | Local lists: `{ path }`, an absolute path (or `~/…`). |
 | `watchList(root)` | Watches a list directory recursively (debounced 100 ms, ignoring locks and tmp files). |
 | `projectInput(target, { cwd, source?, name? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`; anything else is `fs` with `{ path }` resolved against `cwd`. An explicit `source` other than `fs` or `git` gets an empty config. |
+| `projectInputFrom(target, options, resolve)` | The same rules without `Path`; frontends pass a `resolve(cwd, path)` callback. |
+| `statusText` | A `ProjectStatus` as one line for people, shared by every frontend (`status.ts`). |
 | `isValidName` | The name rule, `[a-z0-9][a-z0-9-]*`. |
 | Errors | `ProjectNotFound`, `NoListFound`, `InvalidProjectConfig`, `SourceUnavailable`, `SourceError`, `RegistryError`, and `SyncError` (for `Source.sync`). Each has a readable `message`. |
 | `@lemol/todo-md/hub/testing` | `memorySource(hooks?)`, for tests only. |
@@ -31,7 +33,7 @@ process builds its own `Hub` over the shared home.
 | Method | Behavior |
 | --- | --- |
 | `projects()` | Registered projects in registry order, then the unregistered projects opened in this hub. A broken entry (unknown source, rejected config, invalid name) is listed with an error status; the others still load. |
-| `add({ name?, source, config })` | Validates `config` with the source's schema (after `~` expansion). The name defaults to the source's `defaultName`. Creates `<home>/projects/<name>/` exclusively — an existing directory is a `RegistryError` naming it, and nothing is deleted — then runs `prepare`, then writes the entry as given. On failure after that, only the directory this call created is removed; the entry never stays. |
+| `add({ name?, source, config })` | Validates `config` with the source's schema (after `~` expansion). The name defaults to the source's `defaultName`. Creates `<home>/projects/<name>/` exclusively — an existing directory is a `RegistryError` naming it, and nothing is deleted — then runs `prepare`, then writes the entry as given. On failure after that, only the directory this call created is removed; the entry never stays. Registering a list that is already open unregistered replaces that entry: `add` asks the source `owns(config, list)` for each open list and forgets the match, so the same list is never two projects. |
 | `remove(name, { force? })` | Runs `beforeRemove` (which may refuse), then deletes the entry and, under the lock, moves the data directory aside to `projects/.removed-<name>-<token>`; after the write it deletes that. Works on broken entries too, but `beforeRemove` cannot run for an unknown source or a rejected config, and an entry with an invalid name has no data directory to delete. |
 | `rename(from, to)` | Renames the entry in place, keeping its comments, and moves the data directory. An existing `projects/<to>` directory is refused, like in `add`. An entry with an invalid name can be renamed, to repair it. |
 | `resolve({ project?, dir?, cwd })` | The current project (below). |

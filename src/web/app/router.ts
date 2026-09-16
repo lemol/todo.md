@@ -7,18 +7,22 @@ import { createRouter } from "remix/router"
 import { createMemorySessionStorage } from "remix/session-storage/memory"
 import { createRootController, createTopController } from "./actions/controller.tsx"
 import { createGroupsController } from "./actions/groups/controller.tsx"
+import { createProjectsController } from "./actions/projects/controller.tsx"
 import { createTasksController } from "./actions/tasks/controller.tsx"
 import { type AppAssets, createAssets, loadAssets } from "./assets.ts"
 import { loadAssetEntry } from "./middleware/assets.ts"
 import { localOnly } from "./middleware/local.ts"
 import type { HubRuntime } from "./middleware/project.tsx"
+import { provideHub } from "./middleware/project.tsx"
 import { routes } from "./routes.ts"
 
 export interface RouterOptions {
   readonly runtime: HubRuntime
   readonly author: string
   readonly hosts: ReadonlyArray<string>
-  /** The startup project's name; `GET /` redirects to its board. */
+  /** Resolves relative paths in the add-project form. */
+  readonly cwd: string
+  /** The startup project's name; shown first on the dashboard when unregistered. */
   readonly startup: string
   readonly sessionSecret?: string
   readonly assets?: AppAssets
@@ -41,9 +45,14 @@ export const createAppRouter = (options: RouterOptions) => {
       session(cookie, createMemorySessionStorage()),
       loadAssetEntry(assets),
       render({ assets }),
+      provideHub(options.runtime),
     ],
   })
   const controllerOptions = { runtime: options.runtime, author: options.author }
+  router.map(
+    routes.projects,
+    createProjectsController({ runtime: options.runtime, cwd: options.cwd }),
+  )
   router.map(routes.project, createRootController(controllerOptions))
   router.map(routes.project.tasks, createTasksController(controllerOptions))
   router.map(routes.project.groups, createGroupsController(controllerOptions))

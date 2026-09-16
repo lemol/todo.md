@@ -49,6 +49,7 @@ export const startServer = async (options: ServerOptions) => {
     app = createAppRouter({
       runtime: hubRuntime,
       startup,
+      cwd: options.cwd,
       author: options.env.TODO_MD_AUTHOR ?? options.username,
       hosts: ["localhost", "127.0.0.1", "::1", options.host],
     })

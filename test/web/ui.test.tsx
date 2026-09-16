@@ -1,10 +1,19 @@
+/** @jsxImportSource remix/ui */
+
 import { afterEach, expect, test } from "bun:test"
+import { DateTime } from "effect"
+import { renderToString } from "remix/ui/server"
 import { localBack } from "../../src/web/app/actions/forms.ts"
 import { statusFor } from "../../src/web/app/actions/respond.tsx"
 import { createAssets } from "../../src/web/app/assets.ts"
 import { routes } from "../../src/web/app/routes.ts"
+import { Document } from "../../src/web/app/ui/document.tsx"
 import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
+import { statusTone, syncStatusBadge } from "../../src/web/app/ui/status.tsx"
 import { makeRouter } from "./harness.ts"
+
+const renderDocument = async (options: Parameters<typeof Document>[0]["props"]) =>
+  await renderToString(<Document {...options} />)
 
 const cleanup: Array<() => Promise<void>> = []
 afterEach(async () => {
@@ -56,6 +65,36 @@ test("compiles the browser entry with its workspace import map", async () => {
   } finally {
     await assets.close()
   }
+})
+
+test("the header carries the switcher, hub links and the live event list", async () => {
+  const html = await renderDocument({
+    title: "Acme",
+    content: "<p>body</p>",
+    switcher: [
+      { name: "acme", registered: true },
+      { name: "list", registered: false },
+    ],
+    liveEvents: ["registry", "synced"],
+  })
+  expect(html).toContain(`action="/go"`)
+  expect(html).toContain(`<option value="acme"`)
+  expect(html).toContain(`list (not registered)`)
+  expect(html).toContain(`href="/"`)
+  expect(html).toContain(`href="/projects"`)
+  expect(html).toContain(`data-live-events="registry synced"`)
+  expect(html).not.toContain("data-project")
+})
+
+test("the sync badge carries the hub's words and a matching pastel", () => {
+  const now = DateTime.makeUnsafe("2026-09-16T12:00:00.000Z")
+  expect(syncStatusBadge({ result: "never" }, now)).toContain("never synced")
+  expect(syncStatusBadge({ result: "never" }, now)).toContain('class="badge muted sync-status"')
+  expect(statusTone({ result: "error", error: "auth" })).toBe("error")
+  expect(statusTone({ result: "ok", diverged: true })).toBe("error")
+  expect(statusTone({ result: "ok", ahead: 2 })).toBe("blocked")
+  expect(statusTone({ result: "ok", lastSync: now })).toBe("ready")
+  expect(syncStatusBadge({ result: "error", error: "<script>" }, now)).toContain("&lt;script&gt;")
 })
 
 test("renders the shared document shell with the project badge", async () => {

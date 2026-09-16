@@ -1,24 +1,34 @@
 # todo.md web app
 
 Run `todo web --dir <list>` or `todo web --project <name>` (or `bun src/cli/bin.ts web
---dir <list>` from source) to serve a project's board at `/p/<name>`. Defaults
-are `127.0.0.1:4400`; `--port` selects the starting port and an occupied port
-is followed by the next available port. `--host` can widen binding; widening
-it prints a warning because anyone who can reach the address can edit the
-list. `--project` and `--dir` are exclusive.
+--dir <list>` from source). Defaults are `127.0.0.1:4400`; `--port` selects the
+starting port and an occupied port is followed by the next available port.
+`--host` can widen binding; widening it prints a warning because anyone who can
+reach the address can edit the list. `--project` and `--dir` are exclusive.
 
-The server serves every project registered in the hub's home
-(`$TODO_MD_HOME`, else `~/.todo-md`), plus the one project resolved at
-startup if it isn't registered. `GET /` redirects to the startup project's
-board; task 18 replaces it with a cross-project dashboard.
+The server serves every project registered in the hub's home (`$TODO_MD_HOME`,
+else `~/.todo-md`), plus the startup project when it is not registered yet.
+`GET /` is the cross-project dashboard; each project's board is at
+`/p/<name>`.
 
-Each project's pages live under `/p/:project`: Board (`/p/:project`), task
-detail/edit and mutations under `/p/:project/tasks`, group rename under
-`/p/:project/groups`, Done (`/p/:project/done`) and diagnostics
-(`/p/:project/check`). Live changes (`/events`) and source assets
-(`/assets/*path`) are shared across every project; each SSE event names the
-project it belongs to, and the browser only re-renders when that matches the
-page it's showing. HTML forms use POST/303 and work without JavaScript.
+| Route | Page |
+| --- | --- |
+| `GET /` | Dashboard: a section per project with counts and next ready tasks, a filter bar, **Sync all**. `view=flat` lists every matching task with qualified IDs. |
+| `GET /go?project=` | The header switcher's redirect; works without JavaScript. |
+| `POST /sync` | `hub.syncAll`, then 303 back with a flash summary. |
+| `GET /projects` | Every project: name, source, location, status; **Sync**, **Rename**, **Remove**; an add form. |
+| `POST /projects` | Adds a project; 303 to its board, or 422 with the form and the reason. |
+| `POST /projects/:name/rename`, `POST /projects/:name/remove` | Rename and remove; a refused removal answers 422 with **Remove anyway**. |
+| `GET /p/:project`, `/p/:project/done`, `/p/:project/check`, `/p/:project/tasks/…` | One project's pages. |
+| `POST /p/:project/sync` | Syncs one project, 303 back with a flash. |
+| `GET /events` | `hub.changes` as SSE: `changed`, `synced`, `registry`. |
+
+Each project's pages live under `/p/:project`. Live changes (`/events`) and
+source assets (`/assets/*path`) are shared. A page's `<main>` declares either
+`data-project` (that project's `changed`/`synced`) or `data-live-events` (hub
+event kinds); `shouldRefresh` in `app/actions/public/refresh.ts` is the rule, and
+a dirty form downgrades a refresh to a notice. HTML forms use POST/303 and work
+without JavaScript.
 
 - **Move.** Board rows have ↑/↓ buttons that move a task before the row above
   or after the row below (in the view as shown, filters included). The task
@@ -36,8 +46,7 @@ or `comments` simply hides that UI.
 
 `server.ts` is the composition root: it builds a `Hub.layer` runtime and
 resolves the startup project the same way the CLI does. `app/middleware`
-supplies request capabilities, including the new `loadProject` middleware
-that resolves `/p/:project` through the hub; `app/actions` owns routes;
-`app/ui` owns shared rendering and styles. Hosting/authentication and
-GitHub-backed storage are deferred (task 09); the project dashboard and
-project management UI are deferred (task 18).
+supplies request capabilities, including `loadProject` for `/p/:project` and
+`provideHub` for hub-level routes; `app/actions` owns routes; `app/ui` owns
+shared rendering and styles. Hosting/authentication and GitHub-backed storage
+are deferred (task 09).

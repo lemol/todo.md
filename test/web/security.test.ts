@@ -8,7 +8,7 @@ import { makeRouter } from "./harness.ts"
 test("rejects foreign hosts, including the event stream", async () => {
   const { router, project, close } = makeRouter()
   try {
-    for (const path of [`/p/${project}`, "/events"]) {
+    for (const path of [`/p/${project}`, "/events", "/", "/projects", "/go?project=acme"]) {
       const response = await router.fetch(
         new Request(`http://foreign.example${path}`, { headers: { Host: "foreign.example" } }),
       )
@@ -19,17 +19,26 @@ test("rejects foreign hosts, including the event stream", async () => {
   }
 })
 
-test("rejects cross-origin POSTs", async () => {
+test("rejects cross-origin POSTs on every route", async () => {
   const { router, project, close } = makeRouter()
   try {
-    const response = await router.fetch(
-      new Request(`http://localhost/p/${project}/tasks`, {
-        method: "POST",
-        headers: { Host: "localhost", Origin: "http://foreign.example" },
-        body: new FormData(),
-      }),
-    )
-    expect(response.status).toBe(403)
+    for (const path of [
+      `/p/${project}/tasks`,
+      `/p/${project}/sync`,
+      "/sync",
+      "/projects",
+      "/projects/acme/rename",
+      "/projects/acme/remove",
+    ]) {
+      const response = await router.fetch(
+        new Request(`http://localhost${path}`, {
+          method: "POST",
+          headers: { Host: "localhost", Origin: "http://foreign.example" },
+          body: new FormData(),
+        }),
+      )
+      expect(response.status).toBe(403)
+    }
   } finally {
     await close()
   }

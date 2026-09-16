@@ -1,6 +1,6 @@
 import { run } from "remix/ui"
 import { routes } from "../../routes.ts"
-import { markDirtyOnInput, refreshDecision } from "./refresh.ts"
+import { markDirtyOnInput, refreshDecision, shouldRefresh } from "./refresh.ts"
 
 export const startLiveRefresh = () => {
   let dirty = false
@@ -21,14 +21,18 @@ export const startLiveRefresh = () => {
   const events = new EventSource(routes.events.href())
   const onChange = async (event: MessageEvent) => {
     const page = document.querySelector("[data-live-region]")
-    const project = page?.getAttribute("data-project")
+    if (page === null) return
+    const region = {
+      project: page.getAttribute("data-project"),
+      events: (page.getAttribute("data-live-events") ?? "").split(" ").filter(Boolean),
+    }
     let payload: { readonly project?: string } = {}
     try {
       payload = JSON.parse(event.data)
     } catch {
-      // Malformed payloads are treated as "not this page's project".
+      // Malformed payloads are treated as "not for this page".
     }
-    if (project === null || project === undefined || payload.project !== project) return
+    if (!shouldRefresh(region, { kind: event.type, ...payload })) return
     if (refreshDecision(dirty) === "notice") {
       document.querySelector("[data-reload-notice]")?.removeAttribute("hidden")
       return
@@ -49,6 +53,14 @@ export const startLiveRefresh = () => {
   }
   events.addEventListener("changed", onChange)
   events.addEventListener("synced", onChange)
+  events.addEventListener("registry", onChange)
+
+  document.addEventListener("change", (event) => {
+    const target = event.target
+    if (target instanceof HTMLSelectElement && target.hasAttribute("data-submit-on-change")) {
+      target.form?.submit()
+    }
+  })
 }
 
 if (typeof document !== "undefined") {

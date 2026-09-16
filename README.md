@@ -90,10 +90,13 @@ the [cli README](src/cli/README.md).
 
 ## Using the web app
 
-Run `todo web --dir todo` (`bun src/cli/bin.ts web --dir todo` from source) to open the local board at
-`127.0.0.1:4400`. It supports Board, task detail/edit, Done, Check, add,
-complete, reopen and comments. Pages and forms work without JavaScript; an
-optional browser entry refreshes clean pages when the list changes.
+Run `todo web --dir todo` (`bun src/cli/bin.ts web --dir todo` from source) to open the
+local app at `127.0.0.1:4400`. `/` is the dashboard over every registered project;
+`/p/<name>` is that project's board. You can add, rename, remove and sync projects
+from the browser. Pages and forms work without JavaScript; an optional browser entry
+refreshes clean pages when the list changes. The server stays bound to localhost with
+a Host allowlist and rejects cross-origin POSTs, which is what makes registry
+management from a browser acceptable.
 
 ## Development
 

@@ -99,6 +99,7 @@ export const BoardPage = (options: {
   readonly back: string
   readonly addValues?: AddValues
   readonly addIssues?: ReadonlyArray<string>
+  readonly syncChrome?: string
 }): string => {
   const { project } = options
   const views = options.listing.sections.flatMap((section) => section.tasks)
@@ -132,5 +133,9 @@ export const BoardPage = (options: {
       return `<section class="task-section"><h2>${heading}</h2>${section.description === "" ? "" : `<div class="section-description markdown">${markdownHtml(section.description)}</div>`}${rows.join("")}</section>`
     })
     .join("")
-  return `<h1>${escapeHtml(options.listing.title)}</h1>${options.listing.description === "" ? "" : `<div class="list-description markdown">${markdownHtml(options.listing.description)}</div>`}<p class="summary">${views.length} open · ${ready} ready · ${blocked} blocked</p>${AddTaskForm(project, options.listing, options.capabilities, options.addValues, options.addIssues)}${sections || '<p class="empty">Nothing open. Add a task above.</p>'}`
+  const sync =
+    options.syncChrome === undefined || options.syncChrome === ""
+      ? ""
+      : `<p class="board-sync">${options.syncChrome}</p>`
+  return `<h1>${escapeHtml(options.listing.title)}</h1>${sync}${options.listing.description === "" ? "" : `<div class="list-description markdown">${markdownHtml(options.listing.description)}</div>`}<p class="summary">${views.length} open · ${ready} ready · ${blocked} blocked</p>${AddTaskForm(project, options.listing, options.capabilities, options.addValues, options.addIssues)}${sections || '<p class="empty">Nothing open. Add a task above.</p>'}`
 }

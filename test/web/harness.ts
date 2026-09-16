@@ -34,20 +34,37 @@ export const memoryWithCapabilities = (
   }
 }
 
-/** A fresh hub home with one registered `memory` project, written synchronously. */
-const homeFor = (project: string, title: string): string => {
+export interface HubProject {
+  readonly name: string
+  /** The registry entry's `source`; default `memory`. */
+  readonly source?: string
+  /** Extra entry fields, e.g. `{ title: "Acme" }`. */
+  readonly fields?: Readonly<Record<string, unknown>>
+}
+
+/** A fresh hub home whose registry lists `projects`, written synchronously. */
+const homeFor = (projects: ReadonlyArray<HubProject>): string => {
   const home = join(tmpdir(), `todo-md-web-test-${crypto.randomUUID()}`)
   mkdirSync(home, { recursive: true })
-  writeFileSync(
-    `${home}/projects.yaml`,
-    `projects:\n  ${project}:\n    source: memory\n    title: ${JSON.stringify(title)}\n`,
-  )
+  const body = projects
+    .map((project) =>
+      [
+        `  ${project.name}:`,
+        `    source: ${project.source ?? "memory"}`,
+        ...Object.entries(project.fields ?? {}).map(
+          ([key, value]) => `    ${key}: ${JSON.stringify(value)}`,
+        ),
+      ].join("\n"),
+    )
+    .join("\n")
+  writeFileSync(`${home}/projects.yaml`, `projects:\n${body}\n`)
   return home
 }
 
 export interface MakeHubOptions {
   readonly project?: string
   readonly title?: string
+  readonly projects?: ReadonlyArray<HubProject>
   readonly capabilities?: Partial<Capabilities>
   readonly extraSources?: ReadonlyArray<AnySource>
   readonly changes?: MemoryHooks["changes"]
@@ -58,8 +75,11 @@ export interface MakeHubOptions {
  * (default name `acme`, title `Acme`).
  */
 export const makeHub = (options: MakeHubOptions = {}) => {
-  const project = options.project ?? "acme"
-  const home = homeFor(project, options.title ?? "Acme")
+  const entries = options.projects ?? [
+    { name: options.project ?? "acme", fields: { title: options.title ?? "Acme" } },
+  ]
+  const project = entries[0]?.name ?? "acme"
+  const home = homeFor(entries)
   const source =
     options.capabilities === undefined
       ? memorySource(options.changes === undefined ? {} : { changes: options.changes })
@@ -104,6 +124,7 @@ export const makeRouter = (options: MakeRouterOptions = {}) => {
   const router = createAppRouter({
     runtime,
     startup: project,
+    cwd: process.cwd(),
     author: "tester",
     hosts: ["localhost", "127.0.0.1", "::1"],
     sessionSecret: "test-secret-at-least-32-characters",

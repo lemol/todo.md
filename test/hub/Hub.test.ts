@@ -239,6 +239,24 @@ describe("add", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "registering an open list under another name replaces its unregistered entry",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      const hub = yield* hubOn([fsSource])
+      const opened = yield* hub.resolve({ dir: `${root}/lists/acme`, cwd: root })
+      expect(opened.registered).toBe(false)
+      expect((yield* hub.projects()).map((info) => info.name)).toEqual([opened.name])
+
+      yield* hub.add({ name: "work", source: "fs", config: { path: `${root}/lists/acme` } })
+
+      const after = yield* hub.projects()
+      expect(after.map((info) => info.name)).toEqual(["work"])
+      expect(after[0]?.registered).toBe(true)
+    }),
+    diskWith({ "lists/acme/TODO.md": md("# Acme") }),
+  )
 })
 
 test("concurrent adds of one name keep the winner's directory", () =>

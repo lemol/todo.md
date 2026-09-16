@@ -3,8 +3,10 @@ import type { RequestContext } from "remix/router"
 import type { ProjectInfo } from "../../../hub/index.ts"
 import type { Capabilities, Diagnostic } from "../../../spec/index.ts"
 import { type assetEntryContext, assetEntryOf } from "../middleware/assets.ts"
+import type { HubRuntime } from "../middleware/project.tsx"
 import {
   capabilitiesContext,
+  hubRuntimeContext,
   projectInfoContext,
   runTodo,
   type TodoRuntime,
@@ -38,10 +40,32 @@ export const capabilitiesOf = (context: WebContext) =>
     capabilitiesContext,
   )
 
-export const projectOf = (context: WebContext): string =>
+/** The project this request resolved, or `undefined` on hub-level routes. */
+export const currentProject = (context: WebContext): string | undefined => {
+  try {
+    return (
+      context as { readonly get: (key: typeof projectInfoContext) => ProjectInfo | undefined }
+    ).get(projectInfoContext)?.name
+  } catch {
+    return undefined
+  }
+}
+
+export const projectOf = (context: WebContext): string => {
+  const name = currentProject(context)
+  if (name === undefined) throw new Error("no project on this request")
+  return name
+}
+
+export const projectInfoOf = (context: WebContext): ProjectInfo =>
   (context as { readonly get: (key: typeof projectInfoContext) => ProjectInfo }).get(
     projectInfoContext,
-  ).name
+  )
+
+export const hubRuntimeOf = (context: WebContext): HubRuntime =>
+  (context as { readonly get: (key: typeof hubRuntimeContext) => HubRuntime }).get(
+    hubRuntimeContext,
+  )
 
 export const sessionOf = (context: WebContext): WebSession =>
   (context as WebContext & { readonly session: WebSession }).session

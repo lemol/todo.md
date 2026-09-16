@@ -31,6 +31,7 @@ const setUp = async (todoMd: string) => {
   const router = createAppRouter({
     runtime,
     startup: "disk",
+    cwd: root,
     author: "tester",
     hosts: ["localhost"],
     sessionSecret: "test-secret-at-least-32-characters",

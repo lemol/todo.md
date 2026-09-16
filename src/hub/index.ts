@@ -1,7 +1,12 @@
 export type { HubChange } from "./changes.ts"
 export * from "./errors.ts"
 export { Hub, type HubOptions } from "./Hub.ts"
-export { type AddInput, type ProjectInputOptions, projectInput } from "./input.ts"
+export {
+  type AddInput,
+  type ProjectInputOptions,
+  projectInput,
+  projectInputFrom,
+} from "./input.ts"
 export { isValidName } from "./names.ts"
 export type {
   Overview,
@@ -22,4 +27,5 @@ export type {
   SyncOutcome,
 } from "./Source.ts"
 export { FsConfig, fsSource, watchList } from "./sources/fs.ts"
+export { statusText } from "./status.ts"
 export type { SyncFailure, SyncResult } from "./sync.ts"

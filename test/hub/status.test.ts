@@ -1,6 +1,6 @@
-import { describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
 import { DateTime, Effect } from "effect"
-import { fsSource, type ProjectStatus } from "../../src/hub/index.ts"
+import { fsSource, type ProjectStatus, statusText } from "../../src/hub/index.ts"
 import { memorySource } from "../../src/hub/testing.ts"
 import { effectTest } from "../../src/spec/testing.ts"
 import { Disk, diskWith, hubOn, md } from "./helpers.ts"
@@ -115,4 +115,42 @@ describe("status", () => {
     }),
     diskWith({ ...registry, ".todo-md/projects/m/state.json": stateJson }),
   )
+
+  describe("statusText", () => {
+    const now = DateTime.makeUnsafe("2026-09-16T12:00:00.000Z")
+    const at = (iso: string) => DateTime.makeUnsafe(iso)
+
+    test("reads a never-synced project", () => {
+      expect(statusText({ result: "never" }, now)).toBe("never synced")
+      expect(statusText({ result: "ok" }, now)).toBe("never synced")
+    })
+
+    test("reads elapsed time in the largest whole unit", () => {
+      expect(statusText({ result: "ok", lastSync: at("2026-09-16T11:59:30.000Z") }, now)).toBe(
+        "synced just now",
+      )
+      expect(statusText({ result: "ok", lastSync: at("2026-09-16T11:45:00.000Z") }, now)).toBe(
+        "synced 15m ago",
+      )
+      expect(statusText({ result: "ok", lastSync: at("2026-09-16T09:00:00.000Z") }, now)).toBe(
+        "synced 3h ago",
+      )
+      expect(statusText({ result: "ok", lastSync: at("2026-09-14T12:00:00.000Z") }, now)).toBe(
+        "synced 2d ago",
+      )
+    })
+
+    test("prefers diverged, then ahead, then an error", () => {
+      expect(statusText({ result: "ok", diverged: true, ahead: 2 }, now)).toBe("diverged")
+      expect(statusText({ result: "error", ahead: 1 }, now)).toBe("ahead 1")
+      expect(statusText({ result: "error" }, now)).toBe("error: unknown error")
+      expect(statusText({ result: "error", error: "auth failed" }, now)).toBe("error: auth failed")
+    })
+
+    test("never reports a negative age", () => {
+      expect(statusText({ result: "ok", lastSync: at("2026-09-16T12:30:00.000Z") }, now)).toBe(
+        "synced just now",
+      )
+    })
+  })
 })

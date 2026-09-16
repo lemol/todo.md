@@ -270,6 +270,27 @@ const make = (options: HubOptions) =>
       )
     }
 
+    /**
+     * A list that was open unregistered is now a registered project: drop the
+     * unregistered entry whatever name it was opened under, so the same list
+     * never shows up as two projects (task 14's review).
+     */
+    const forgetOpenList = (source: AnySource, config: unknown) => {
+      const owns = source.owns
+      if (owns === undefined) return Effect.void
+      return Effect.forEach(
+        unregistered.lists(),
+        (list) =>
+          Effect.flatMap(inEnv(owns(config, list)), (owned) => {
+            if (!owned) return Effect.void
+            const open = unregistered.byList(list)
+            unregistered.forgetList(list)
+            return open === undefined ? Effect.void : forget(open.name)
+          }),
+        { discard: true },
+      )
+    }
+
     return Hub.of({
       projects: () =>
         Effect.flatMap(registered, (projects) =>
@@ -316,6 +337,7 @@ const make = (options: HubOptions) =>
                 : Effect.sync(() => edit.add(name, { source: source.kind, ...fields })),
             )
           }).pipe(Effect.onError(() => Effect.ignore(fs.remove(dir, { recursive: true }))))
+          yield* forgetOpenList(source, config)
           unregistered.forget(name)
           yield* forget(name)
           yield* registryChanged

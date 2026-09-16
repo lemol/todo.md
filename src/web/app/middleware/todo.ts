@@ -3,6 +3,7 @@ import { createContextKey, type Middleware } from "remix/router"
 import { TodoService } from "../../../core/index.ts"
 import type { ProjectInfo } from "../../../hub/index.ts"
 import type { Capabilities } from "../../../spec/index.ts"
+import type { HubRuntime } from "./project.tsx"
 
 export interface TodoRuntime {
   readonly runPromise: <A, E>(effect: Effect.Effect<A, E, TodoService>) => Promise<A>
@@ -16,6 +17,7 @@ export const todoRuntimeContext = createContextKey<TodoRuntime>()
 export const capabilitiesContext = createContextKey<Capabilities>()
 export const projectInfoContext = createContextKey<ProjectInfo>()
 export const authorContext = createContextKey<string>()
+export const hubRuntimeContext = createContextKey<HubRuntime>()
 
 export const runTodo = async <A, E>(
   context: { readonly get: (key: typeof todoRuntimeContext) => TodoRuntime },

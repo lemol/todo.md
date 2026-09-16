@@ -16,14 +16,14 @@ test("allowed GET requests reach the board controller", async () => {
   expect(await response.text()).toContain("Acme")
 })
 
-test("GET / redirects to the startup project's board", async () => {
-  const { router, project, close } = makeRouter()
+test("GET / renders the dashboard", async () => {
+  const { router, close } = makeRouter()
   cleanup.push(close)
   const response = await router.fetch(
-    new Request("http://localhost/", { headers: { Host: "localhost" }, redirect: "manual" }),
+    new Request("http://localhost/", { headers: { Host: "localhost" } }),
   )
-  expect(response.status).toBe(302)
-  expect(response.headers.get("location")).toBe(`/p/${project}`)
+  expect(response.status).toBe(200)
+  expect(await response.text()).toContain("Projects")
 })
 
 test("an unknown project renders 404", async () => {

@@ -82,9 +82,9 @@ routes live under `/p/:project`.
   the startup project the same way the CLI does, and hands it to
   `createAppRouter`. `loadProject` middleware resolves `/p/:project` through
   the hub.
-- **Routes.** Board, tasks, groups, Done and diagnostics sit under
-  `/p/:project`. `GET /` redirects to the startup project's board; a
-  cross-project dashboard and project management UI are deferred (task 18).
+- **Routes.** `GET /` is the cross-project dashboard; `/projects` manages the
+  registry; board, tasks, groups, Done and diagnostics sit under `/p/:project`.
+  The CLI and the web share `statusText` from the hub for sync-status wording.
 - **Live changes.** `/events` streams `hub.changes` as server-sent events.
   Each event names its project; the browser only re-renders when that
   matches the page. There is no `watch.ts` or `ListChanges`.

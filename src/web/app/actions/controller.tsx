@@ -1,7 +1,6 @@
 /** @jsxImportSource remix/ui */
 
-import { Deferred, Effect, Fiber, Stream } from "effect"
-import { redirect } from "remix/response/redirect"
+import { DateTime, Deferred, Effect, Fiber, Stream } from "effect"
 import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
 import type { TaskFilter } from "../../../core/index.ts"
@@ -12,12 +11,16 @@ import { loadProject } from "../middleware/project.tsx"
 import { runTodo } from "../middleware/todo.ts"
 import { routes } from "../routes.ts"
 import { type AddValues, BoardPage } from "../ui/board.tsx"
-import { Document, ErrorPage } from "../ui/document.tsx"
+import { Document, ErrorPage, escapeHtml } from "../ui/document.tsx"
 import { diagnosticCounts } from "../ui/format.ts"
 import { CheckPage, DonePage } from "../ui/secondary.tsx"
+import { syncStatusBadge } from "../ui/status.tsx"
+import { dashboardAction, goAction } from "./dashboard/controller.tsx"
 import { parseTaskFilter } from "./forms.ts"
 import {
   capabilitiesOf,
+  hubRuntimeOf,
+  projectInfoOf,
   projectOf,
   renderPage,
   runtimeContext,
@@ -26,6 +29,18 @@ import {
   type WebContext,
 } from "./page.ts"
 import { respond, respondDefect } from "./respond.tsx"
+import { projectSyncAction, syncAllAction } from "./sync/controller.tsx"
+
+const switcherOf = async (runtime: HubRuntime) => {
+  const projects = await runtime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))
+  return projects.map((info) => ({ name: info.name, registered: info.registered }))
+}
+
+const boardSyncChrome = (project: string, info: ReturnType<typeof projectInfoOf>, back: string) => {
+  if (!info.syncable) return ""
+  const now = DateTime.nowUnsafe()
+  return `${syncStatusBadge(info.status, now)} <form method="post" action="${routes.project.sync.href({ project })}" class="inline"><input type="hidden" name="back" value="${escapeHtml(back)}"><button class="secondary" type="submit">Sync</button></form>`
+}
 
 export const renderBoard = async (
   context: WebContext,
@@ -59,7 +74,10 @@ export const renderBoard = async (
     if (!next.ok) return respond(context, next.error)
     if (!diagnostics.ok) return respond(context, diagnostics.error)
     const url = new URL(context.request.url)
+    const back = `${url.pathname}${url.search}`
+    const info = projectInfoOf(context)
     const flash = takeFlash(context)
+    const switcher = await switcherOf(hubRuntimeOf(context))
     return renderPage(
       context,
       <Document
@@ -70,10 +88,12 @@ export const renderBoard = async (
           listing: listing.value,
           nextIds: new Set(next.value.slice(0, 1).map((item) => item.task.id)),
           capabilities: capabilitiesOf(context),
-          back: `${url.pathname}${url.search}`,
+          back,
+          syncChrome: boardSyncChrome(project, info, back),
           ...(addValues === undefined ? {} : { addValues }),
           ...(addIssues === undefined ? {} : { addIssues }),
         })}
+        switcher={switcher}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
         {...(flash === undefined ? {} : { flash })}
@@ -95,6 +115,7 @@ const done = async (context: WebContext): Promise<Response> => {
     if (!listing.ok) return respond(context, listing.error)
     if (!diagnostics.ok) return respond(context, diagnostics.error)
     const flash = takeFlash(context)
+    const switcher = await switcherOf(hubRuntimeOf(context))
     return renderPage(
       context,
       <Document
@@ -102,6 +123,7 @@ const done = async (context: WebContext): Promise<Response> => {
         project={project}
         pageTitle={`Done · ${listing.value.title}`}
         content={DonePage(project, listing.value.done)}
+        switcher={switcher}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
         {...(flash === undefined ? {} : { flash })}
@@ -122,6 +144,7 @@ const check = async (context: WebContext): Promise<Response> => {
     if (!listing.ok) return respond(context, listing.error)
     if (!diagnostics.ok) return respond(context, diagnostics.error)
     const flash = takeFlash(context)
+    const switcher = await switcherOf(hubRuntimeOf(context))
     return renderPage(
       context,
       <Document
@@ -129,6 +152,7 @@ const check = async (context: WebContext): Promise<Response> => {
         project={project}
         pageTitle={`Check · ${listing.value.title}`}
         content={CheckPage(project, diagnostics.value)}
+        switcher={switcher}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
         {...(flash === undefined ? {} : { flash })}
@@ -145,14 +169,13 @@ export const createRootController = (options: {
 }) =>
   createController(routes.project, {
     middleware: [loadProject(options)],
-    actions: { board: (context) => renderBoard(context), done, check },
+    actions: {
+      board: (context) => renderBoard(context),
+      done,
+      check,
+      sync: projectSyncAction(options),
+    },
   })
-
-/** `GET /`: redirects to the startup project's board until task 18 adds the dashboard. */
-const boardRedirect =
-  (startup: string) =>
-  (_context: RequestContext): Response =>
-    redirect(routes.project.board.href({ project: startup }), 302)
 
 /**
  * Acquires the hub change subscription before returning the response. This
@@ -228,7 +251,9 @@ export const createTopController = (options: {
 }) =>
   createController(routes, {
     actions: {
-      board: boardRedirect(options.startup),
+      dashboard: dashboardAction(options),
+      go: goAction(options),
+      sync: syncAllAction(options),
       events: eventsAction(options.runtime),
       assets: async (context) => {
         const assets = (
