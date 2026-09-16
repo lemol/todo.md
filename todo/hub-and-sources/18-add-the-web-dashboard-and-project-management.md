@@ -3,6 +3,11 @@ title: Add the web dashboard and project management
 tags: [web, hub]
 depends_on: [17]
 ---
+
+## Plan
+
+Follow the plan at docs/superpowers/plans/2026-09-16-web-dashboard-and-projects.md
+
 ## Goal
 
 Make the web app the place to see every project: a dashboard at `/` with
@@ -52,12 +57,12 @@ duplicate row. Decide how "Register" replaces it.
 
 **Projects (`/projects`)**:
 
-| Route | Behavior |
-| --- | --- |
-| `GET /projects` | Table: name, source, location, status; per row **Sync**, **Rename** (inline form), **Remove**. An add form: target (path or URL), optional name, source select (the loaded sources' kinds, default "infer"). |
-| `POST /projects` | `projectInput` + `hub.add`; 303 to `/p/:name` with a flash; errors (invalid name, duplicate, config, prepare failure) → 422 with the form and message. Adding a git project clones synchronously. |
-| `POST /projects/:name/rename` | `hub.rename`, 303 to `/projects`, flash. |
-| `POST /projects/:name/remove` | `hub.remove(name, { force })`; a `beforeRemove` refusal (git with unpushed commits) → 422 explaining it, with a **Remove anyway** form that sends `force=1`. |
+| Route                         | Behavior                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /projects`               | Table: name, source, location, status; per row **Sync**, **Rename** (inline form), **Remove**. An add form: target (path or URL), optional name, source select (the loaded sources' kinds, default "infer"). |
+| `POST /projects`              | `projectInput` + `hub.add`; 303 to `/p/:name` with a flash; errors (invalid name, duplicate, config, prepare failure) → 422 with the form and message. Adding a git project clones synchronously.            |
+| `POST /projects/:name/rename` | `hub.rename`, 303 to `/projects`, flash.                                                                                                                                                                     |
+| `POST /projects/:name/remove` | `hub.remove(name, { force })`; a `beforeRemove` refusal (git with unpushed commits) → 422 explaining it, with a **Remove anyway** form that sends `force=1`.                                                 |
 
 **Sync**: `POST /sync` → `hub.syncAll()`, 303 back (a `back` field, as the
 complete form does) with a flash summarizing (`2 synced, 1 failed: work
