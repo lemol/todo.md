@@ -47,6 +47,7 @@ test("starts over a registered fs project by name", async () => {
   })
   const response = await fetch(`http://127.0.0.1:${started.port}/`, { redirect: "manual" })
   expect(response.headers.get("location")).toBe("/p/acme")
+  expect(started.project).toBe("acme")
 })
 
 test("throws with the standard message when no list is found and no project is given", async () => {

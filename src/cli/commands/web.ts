@@ -55,7 +55,7 @@ export const web = Command.make(
           ),
           (handle) => Effect.promise(() => handle.close()),
         )
-        const url = `http://${host}:${started.port}`
+        const url = `http://${host}:${started.port}/p/${started.project}`
         yield* output(undefined, { url }, () =>
           loopback(host)
             ? [url]

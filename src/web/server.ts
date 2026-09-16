@@ -74,6 +74,7 @@ export const startServer = async (options: ServerOptions) => {
   return {
     server,
     port: server.port,
+    project: startup,
     close: async () => {
       if (closed) return
       closed = true
