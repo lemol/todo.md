@@ -19,7 +19,16 @@ export const startLiveRefresh = () => {
     true,
   )
   const events = new EventSource(routes.events.href())
-  events.addEventListener("changed", async () => {
+  const onChange = async (event: MessageEvent) => {
+    const page = document.querySelector("[data-live-region]")
+    const project = page?.getAttribute("data-project")
+    let payload: { readonly project?: string } = {}
+    try {
+      payload = JSON.parse(event.data)
+    } catch {
+      // Malformed payloads are treated as "not this page's project".
+    }
+    if (project === null || project === undefined || payload.project !== project) return
     if (refreshDecision(dirty) === "notice") {
       document.querySelector("[data-reload-notice]")?.removeAttribute("hidden")
       return
@@ -37,7 +46,9 @@ export const startLiveRefresh = () => {
     } catch {
       document.querySelector("[data-reload-notice]")?.removeAttribute("hidden")
     }
-  })
+  }
+  events.addEventListener("changed", onChange)
+  events.addEventListener("synced", onChange)
 }
 
 if (typeof document !== "undefined") {
