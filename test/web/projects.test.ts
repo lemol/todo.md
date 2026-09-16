@@ -43,6 +43,13 @@ const required = (value: string | null | undefined): string => {
 }
 
 describe("projects page", () => {
+  test("the add form lists every loaded source kind", async () => {
+    const app = open({ extraSources: [fsSource] })
+    const html = await (await fetchApp(app.router, "/projects")).text()
+    expect(html).toContain('<option value="memory"')
+    expect(html).toContain('<option value="fs"')
+  })
+
   test("lists every project with its source, location and status", async () => {
     const app = open({
       projects: [

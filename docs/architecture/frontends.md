@@ -86,8 +86,12 @@ routes live under `/p/:project`.
   registry; board, tasks, groups, Done and diagnostics sit under `/p/:project`.
   The CLI and the web share `statusText` from the hub for sync-status wording.
 - **Live changes.** `/events` streams `hub.changes` as server-sent events.
-  Each event names its project; the browser only re-renders when that
-  matches the page. There is no `watch.ts` or `ListChanges`.
+  Project pages declare their project on the live region; the browser
+  re-renders only when an event names that project. Hub pages (dashboard,
+  `/projects`) declare the event kinds they listen to instead
+  (`data-live-events`); they refresh on any event of those kinds, including
+  `registry` events whose payload names no project. There is no `watch.ts` or
+  `ListChanges`.
 - **Forms work without JavaScript** (POST, then redirect). The only browser
   entry refreshes the page's live region when the list changes.
 - **Security.** Localhost binding, a `Host` allowlist against DNS

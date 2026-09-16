@@ -20,7 +20,12 @@ const renderProjects = async (
   extra: Omit<ProjectsOptions, "projects" | "sources" | "now"> = {},
   status = 200,
 ): Promise<Response> => {
-  const projects = await runtime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))
+  const { projects, kinds } = await runtime.runPromise(
+    Effect.gen(function* () {
+      const hub = yield* Hub
+      return { projects: yield* hub.projects(), kinds: yield* hub.sourceKinds() }
+    }),
+  )
   const flash = takeFlash(context)
   return renderPage(
     context,
@@ -29,7 +34,7 @@ const renderProjects = async (
       pageTitle="Projects · todo.md"
       content={ProjectsPage({
         projects,
-        sources: [...new Set(projects.map((info) => info.source).filter((kind) => kind !== ""))],
+        sources: kinds,
         now: DateTime.nowUnsafe(),
         ...extra,
       })}

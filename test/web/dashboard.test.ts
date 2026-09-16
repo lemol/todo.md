@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { Effect, Layer, Schema } from "effect"
-import { type AnySource, SourceError } from "../../src/hub/index.ts"
+import { type AnySource, fsSource, SourceError } from "../../src/hub/index.ts"
 import { TodoStore } from "../../src/spec/index.ts"
 import { makeRouter, seed } from "./harness.ts"
 
@@ -48,6 +48,13 @@ describe("dashboard", () => {
     expect(html).toContain("Task 5")
     expect(html).not.toContain("Task 6")
     expect(html).toContain("1 more")
+  })
+
+  test("the source filter lists every loaded source kind", async () => {
+    const app = open({ extraSources: [fsSource] })
+    const html = await (await fetchApp(app.router, "/")).text()
+    expect(html).toContain('name="source" value="memory"')
+    expect(html).toContain('name="source" value="fs"')
   })
 
   test("each filter narrows the results", async () => {

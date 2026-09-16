@@ -35,6 +35,7 @@ export const dashboardAction =
         Effect.gen(function* () {
           const hub = yield* Hub
           const all = yield* hub.projects()
+          const kinds = yield* hub.sourceKinds()
           const startup = all.find((info) => info.name === options.startup)
           const unregisteredStartup =
             startup !== undefined && !startup.registered ? [startup.name] : []
@@ -53,7 +54,7 @@ export const dashboardAction =
           return {
             projects: all,
             overview: view,
-            kinds: [...new Set(all.map((info) => info.source).filter((kind) => kind !== ""))],
+            kinds,
           }
         }),
       )

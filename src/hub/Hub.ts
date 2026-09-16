@@ -64,6 +64,8 @@ export class Hub extends Context.Service<
   {
     /** Registered projects in registry order, then unregistered ones opened in this hub. */
     projects(): Effect.Effect<ReadonlyArray<ProjectInfo>, RegistryError>
+    /** The kinds of every source passed to `Hub.layer`, in that order. */
+    sourceKinds(): Effect.Effect<ReadonlyArray<string>>
     add(
       input: AddInput,
     ): Effect.Effect<
@@ -296,6 +298,8 @@ const make = (options: HubOptions) =>
         Effect.flatMap(registered, (projects) =>
           Effect.forEach([...projects, ...unregistered.all()], describe, { concurrency: 4 }),
         ),
+
+      sourceKinds: () => Effect.succeed([...sources.keys()]),
 
       add: (input) =>
         Effect.gen(function* () {

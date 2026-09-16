@@ -21,6 +21,17 @@ describe("Hub.layer", () => {
   )
 })
 
+describe("sourceKinds", () => {
+  effectTest(
+    "lists every loaded source kind in hub order",
+    Effect.gen(function* () {
+      const hub = yield* hubOn([fsSource, memorySource()])
+      expect(yield* hub.sourceKinds()).toEqual(["fs", "memory"])
+    }),
+    diskWith({}),
+  )
+})
+
 describe("projects", () => {
   effectTest(
     "an empty home has no projects",
