@@ -21,7 +21,7 @@ effectTest(
   "web rejects --project together with --dir",
   Effect.gen(function* () {
     const both = yield* todo("web", "--project", "acme", "--dir", "todo")
-    expect(both.code).toBe(2)
+    expect(both.code).toBe(1)
     expect(both.stderr).toContain("use --project or --dir, not both")
   }),
   diskWith({}),

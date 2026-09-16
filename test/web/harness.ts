@@ -4,7 +4,7 @@ import { Effect, Layer, ManagedRuntime } from "effect"
 import type { TodoService } from "../../src/core/index.ts"
 import type { AnySource, Source } from "../../src/hub/index.ts"
 import { Hub } from "../../src/hub/index.ts"
-import { type MemoryConfig, memorySource } from "../../src/hub/testing.ts"
+import { type MemoryConfig, type MemoryHooks, memorySource } from "../../src/hub/testing.ts"
 import { type Capabilities, TodoStore } from "../../src/spec/index.ts"
 import type { AppAssets } from "../../src/web/app/assets.ts"
 import type { HubRuntime } from "../../src/web/app/middleware/project.tsx"
@@ -47,6 +47,7 @@ export interface MakeHubOptions {
   readonly title?: string
   readonly capabilities?: Partial<Capabilities>
   readonly extraSources?: ReadonlyArray<AnySource>
+  readonly changes?: MemoryHooks["changes"]
 }
 
 /**
@@ -58,7 +59,7 @@ export const makeHub = (options: MakeHubOptions = {}) => {
   const home = homeFor(project, options.title ?? "Acme")
   const source =
     options.capabilities === undefined
-      ? memorySource()
+      ? memorySource(options.changes === undefined ? {} : { changes: options.changes })
       : memoryWithCapabilities(options.capabilities)
   const hubRuntime = ManagedRuntime.make(
     Hub.layer({ home, userHome: home, sources: [source, ...(options.extraSources ?? [])] }).pipe(

@@ -40,12 +40,15 @@ the package. Each module is a directory under `src/` and a subpath export
 Today:
 
 ```
-                ┌───────── cli (`todo`) ─────────┐        web
-                │  composition root: wires the    │
-                │  fs adapter into core           │
-                └──────┬───────────────────┬──────┘
-                       ▼                   ▼
-                     core                  fs ────────► markdown
+                ┌───────── cli (`todo`) ─────────┐   ┌──── web ────┐
+                │  composition root              │   │ composition │
+                └──────┬────────────────────────┘   │ root        │
+                       │                            └─────┬───────┘
+                       ▼                                  │
+                     core                                ▼
+                       ▲                            hub ───────► fs ───► markdown
+                       │                            ▲
+                       └────────────────────────────┘
           (queries, ready/blocked,   (TodoStore on disk)   (pure parse +
            validation, guards)                              splice writer)
                        │                   │                   │
@@ -76,7 +79,7 @@ tui ─┘    ▲      ▲
 | `src/git` *(planned)*           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md`               |
 | `src/jira` *(planned)*          | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror                                |
 | [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, web, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary                     |
-| [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `fs` (+ `effect`, Remix, Markdown renderers; `node:`/`bun` only in `server.ts`, `watch.ts`, `app/assets.ts`) | Local web UI over one list |
+| [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `hub` (+ `effect`, Remix, Markdown renderers; `node:`/`bun` only in `server.ts`, `app/assets.ts`) | Local web UI over hub projects |
 
 Planned rows are not enforced yet; each task that builds one adds its rule to
 the boundaries test.

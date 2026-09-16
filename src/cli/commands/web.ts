@@ -24,7 +24,7 @@ export const web = Command.make(
     const dir = yield* Dir
     const project = yield* Project
     if (Option.isSome(dir) && Option.isSome(project)) {
-      return yield* new UsageError({ message: "use --project or --dir, not both" })
+      return yield* Effect.fail(new Error("use --project or --dir, not both"))
     }
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       return yield* new UsageError({ message: "port must be an integer from 1 to 65535" })
