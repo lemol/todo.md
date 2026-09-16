@@ -74,27 +74,28 @@ main(process.argv.slice(2), { cwd, env, username, color, home, userHome, sources
 
 ## web
 
-`src/web` ships in the published package and is served by the `todo web` command (`src/cli/commands/web.ts`), which builds the `ManagedRuntime` (TodoService + FsTodoStore + BunServices), creates the file watcher and hands both to `createAppRouter`. The router never sees `FsTodoStore`.
+`src/web` ships in the published package and is served by the `todo web`
+command (`src/cli/commands/web.ts`). Composition goes through `Hub.layer`;
+routes live under `/p/:project`.
 
-- **Composition root.** `server.ts` resolves the list root like the CLI,
-  builds a `ManagedRuntime` from `TodoService.layer` over `FsTodoStore`, and
-  hands it to `createAppRouter`. The router never sees `FsTodoStore`.
-- **Live changes.** `watch.ts` debounces a recursive `fs.watch` of the list
-  into a `ListChanges` subscription, streamed to the page as server-sent
-  events on `/events`.
+- **Composition root.** `server.ts` builds a `Hub.layer` runtime, resolves
+  the startup project the same way the CLI does, and hands it to
+  `createAppRouter`. `loadProject` middleware resolves `/p/:project` through
+  the hub.
+- **Routes.** Board, tasks, groups, Done and diagnostics sit under
+  `/p/:project`. `GET /` redirects to the startup project's board; a
+  cross-project dashboard and project management UI are deferred (task 18).
+- **Live changes.** `/events` streams `hub.changes` as server-sent events.
+  Each event names its project; the browser only re-renders when that
+  matches the page. There is no `watch.ts` or `ListChanges`.
 - **Forms work without JavaScript** (POST, then redirect). The only browser
   entry refreshes the page's live region when the list changes.
 - **Security.** Localhost binding, a `Host` allowlist against DNS
   rebinding, and cross-origin protection for unsafe requests.
 
 Details: [src/web/README.md](../../src/web/README.md) and the
-[web app design](../superpowers/specs/2026-09-12-web-app-design.md).
-
-**Planned (tasks 17, 18):** the web app builds a hub instead. `watch.ts`
-and `ListChanges` go away in favor of `hub.changes`, pages move under
-`/p/:project`, and `/` becomes a dashboard across projects with project
-management. See the
-[hub design](../superpowers/specs/2026-09-13-hub-design.md#web).
+[web app design](../superpowers/specs/2026-09-12-web-app-design.md). See
+also the [hub design](../superpowers/specs/2026-09-13-hub-design.md#web).
 
 ## tui
 
