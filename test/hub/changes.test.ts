@@ -88,6 +88,40 @@ describe("changes", () => {
   )
 
   liveTest(
+    "a defecting watcher does not block healthy change subscriptions",
+    Effect.gen(function* () {
+      const watchers = yield* makeWatchers
+      const brokenStarted = yield* Queue.unbounded<void>()
+      const hub = yield* hubOn([
+        memorySource({
+          kind: "broken",
+          changes: () =>
+            Stream.unwrap(
+              Effect.gen(function* () {
+                yield* Queue.offer(brokenStarted, undefined)
+                return yield* Effect.die("broken watcher")
+              }),
+            ),
+        }),
+        memorySource({ kind: "healthy", changes: watchers.changes }),
+      ])
+      const subscription = yield* Effect.timeoutOption(hub.subscribeChanges, "1 second")
+      expect(yield* Queue.size(brokenStarted)).toBe(1)
+      expect(Option.isSome(subscription)).toBe(true)
+      if (Option.isNone(subscription)) return
+
+      const events = yield* Queue.unbounded<HubChange>()
+      yield* subscription.value.pipe(
+        Stream.runForEach((change) => Queue.offer(events, change)),
+        Effect.forkScoped,
+      )
+      yield* watchers.emit("healthy")
+      expect(yield* Queue.take(events)).toEqual({ kind: "changed", project: "healthy" })
+    }),
+    withProbe("  healthy:", "    source: healthy", "  broken:", "    source: broken"),
+  )
+
+  liveTest(
     "a registry edit from another hub publishes registry",
     Effect.gen(function* () {
       const [watching, editing] = [

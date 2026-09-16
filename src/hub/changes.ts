@@ -85,6 +85,9 @@ export const makeChanges = (
             )
           }),
         ).pipe(
+          // A failed acquisition must still release the subscription handshake;
+          // otherwise one broken source blocks every subscriber forever.
+          Effect.ensuring(Deferred.succeed(ready, undefined)),
           Effect.catchDefect((defect) =>
             Effect.logWarning(`stopped watching ${project.name}`, defect),
           ),
