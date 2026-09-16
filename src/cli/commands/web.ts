@@ -1,9 +1,9 @@
 import { Effect, Option, Path } from "effect"
 import { Command, Flag } from "effect/unstable/cli"
-import { findListRoot } from "../../fs/index.ts"
+import { Hub } from "../../hub/index.ts"
 import { startServer } from "../../web/server.ts"
 import { CliContext, Dir, output, Project } from "../context.ts"
-import { NoListFound, UsageError } from "../errors.ts"
+import { UsageError } from "../errors.ts"
 
 const loopback = (host: string) => host === "127.0.0.1" || host === "localhost" || host === "::1"
 
@@ -20,35 +20,37 @@ export const web = Command.make(
     ),
   },
   Effect.fn(function* ({ port, host }) {
-    const { cwd, env, username } = yield* CliContext
+    const { cwd, env, username, home, userHome } = yield* CliContext
     const dir = yield* Dir
     const project = yield* Project
-    if (Option.isSome(project)) {
-      return yield* new UsageError({ message: "todo web works on local lists; use --dir" })
+    if (Option.isSome(dir) && Option.isSome(project)) {
+      return yield* new UsageError({ message: "use --project or --dir, not both" })
     }
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       return yield* new UsageError({ message: "port must be an integer from 1 to 65535" })
     }
     const path = yield* Path.Path
-    // Fail fast with the CLI's tagged NoListFound; startServer re-resolves the same root.
-    yield* Option.isSome(dir)
-      ? Effect.succeed(path.resolve(cwd, dir.value))
-      : findListRoot(cwd).pipe(
-          Effect.flatMap((found) =>
-            Option.isSome(found) ? Effect.succeed(found.value) : new NoListFound({ cwd }),
-          ),
-        )
+    // Fail fast with the CLI's tagged errors; startServer re-resolves the same project.
+    const hub = yield* Hub
+    yield* hub.resolve({
+      ...(Option.isSome(project) ? { project: project.value } : {}),
+      ...(Option.isSome(dir) ? { dir: path.resolve(cwd, dir.value) } : {}),
+      cwd,
+    })
     yield* Effect.scoped(
       Effect.gen(function* () {
         const started = yield* Effect.acquireRelease(
           Effect.promise(() =>
             startServer({
               cwd,
-              ...(Option.isSome(dir) ? { dir: dir.value } : {}),
+              ...(Option.isSome(dir) ? { dir: path.resolve(cwd, dir.value) } : {}),
+              ...(Option.isSome(project) ? { project: project.value } : {}),
               port,
               host,
               env,
               username,
+              home,
+              userHome,
             }),
           ),
           (handle) => Effect.promise(() => handle.close()),
@@ -64,9 +66,10 @@ export const web = Command.make(
     )
   }),
 ).pipe(
-  Command.withDescription("Start the local web UI over the current list"),
+  Command.withDescription("Start the local web UI over the hub"),
   Command.withExamples([
     { command: "todo web --dir todo", description: "Serve the board for ./todo/TODO.md" },
+    { command: "todo web --project acme", description: "Serve the registered acme project" },
     { command: "todo web --port 4410", description: "Serve on port 4410" },
   ]),
 )

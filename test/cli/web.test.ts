@@ -18,15 +18,22 @@ effectTest(
 )
 
 effectTest(
-  "web rejects --project and bad ports without serving",
+  "web rejects --project together with --dir",
   Effect.gen(function* () {
-    const project = yield* todo("web", "--project", "x")
-    expect(project.code).toBe(2)
-    expect(project.stderr).toContain("works on local lists")
+    const both = yield* todo("web", "--project", "acme", "--dir", "todo")
+    expect(both.code).toBe(2)
+    expect(both.stderr).toContain("use --project or --dir, not both")
+  }),
+  diskWith({}),
+)
+
+effectTest(
+  "web rejects bad ports without serving",
+  Effect.gen(function* () {
     const port = yield* todo("web", "--port", "0")
     expect(port.code).toBe(2)
     expect(port.stderr).toContain("port must be an integer from 1 to 65535")
-    const json = yield* todo("web", "--project", "x", "--json")
+    const json = yield* todo("web", "--port", "0", "--json")
     expect(json.code).toBe(2)
     expect(JSON.parse(json.stderr)).toMatchObject({ error: { tag: "UsageError" } })
   }),
