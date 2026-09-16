@@ -171,16 +171,23 @@ const eventsAction =
     let closed = false
     let heartbeat: ReturnType<typeof setInterval> | undefined
     let controllerRef: ReadableStreamDefaultController<Uint8Array> | undefined
+    let fiber: Fiber.Fiber<void, never> | undefined
+    const cleanup = () => {
+      if (closed) return
+      closed = true
+      if (heartbeat !== undefined) clearInterval(heartbeat)
+      if (fiber !== undefined) Effect.runFork(Fiber.interrupt(fiber))
+    }
     const send = (change: HubChange) => {
       if (closed || controllerRef === undefined) return
       const data = change.kind === "registry" ? "{}" : JSON.stringify({ project: change.project })
       try {
         controllerRef.enqueue(encoder.encode(`event: ${change.kind}\ndata: ${data}\n\n`))
       } catch {
-        closed = true
+        cleanup()
       }
     }
-    const fiber = await runtime.runPromise(
+    fiber = await runtime.runPromise(
       Effect.gen(function* () {
         const hub = yield* Hub
         return yield* Effect.forkDetach(
@@ -188,12 +195,6 @@ const eventsAction =
         )
       }),
     )
-    const cleanup = () => {
-      if (closed) return
-      closed = true
-      if (heartbeat !== undefined) clearInterval(heartbeat)
-      Effect.runFork(Fiber.interrupt(fiber))
-    }
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         controllerRef = controller
