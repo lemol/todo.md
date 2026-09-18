@@ -96,4 +96,14 @@ describe("file-backed tasks", () => {
       "- [ ] [03 - Fix login redirect](./backend/03-fix-login-redirect.md)",
     ])
   })
+
+  test("an open item's file outcome is ignored, not carried into the model", () => {
+    const file = parseTaskFile(
+      formatTaskFile({ ...taskFileFor(task), outcome: "cancelled", cancelledReason: "Why not." }),
+      "backend/03-fix-login-redirect.md",
+    )
+    expect(
+      fileTask("3", file, { title: "ignored", status: "open", group: "Backend" }),
+    ).toMatchObject({ outcome: undefined, cancelledReason: undefined })
+  })
 })

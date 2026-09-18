@@ -398,8 +398,8 @@ YAML between `---` lines at the start of the file.
 | `outcome`      | `completed` \| `cancelled` | Done files only. Absent means `completed`. Any other value is `invalid-frontmatter`. |
 | `cancelled_reason` | string            | Cancelled files only.                                                   |
 
-Either key in an open task's file is `invalid-frontmatter` (error), and the
-field is ignored.
+Either key is meaningful only in a done task's file; parsers ignore it on an
+open task.
 
 - Any other field goes to `extra` and MUST be preserved, including comments
   and key order where possible.

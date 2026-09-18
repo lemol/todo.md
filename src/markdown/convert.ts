@@ -24,7 +24,9 @@ export const inlineTask = (item: TodoItem, id: TaskId, group: string | undefined
 /**
  * The model task for a task file. `title` is the fallback when the frontmatter
  * has none (the link text); `group` is the `TODO.md` section for open tasks and
- * the recorded `group` for done ones.
+ * the recorded `group` for done ones. `outcome` and `cancelledReason` are read
+ * from the file only when `status` is done, so a still-open item cannot carry
+ * a contradictory outcome.
  */
 export const fileTask = (
   id: TaskId,
@@ -45,8 +47,8 @@ export const fileTask = (
   comments: file.comments,
   group: options.group,
   completedAt: file.completedAt,
-  outcome: file.outcome,
-  cancelledReason: file.cancelledReason,
+  outcome: options.status === "done" ? file.outcome : undefined,
+  cancelledReason: options.status === "done" ? file.cancelledReason : undefined,
   extra: file.extra,
 })
 
