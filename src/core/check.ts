@@ -18,6 +18,9 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
       })
     }
   }
+  const cancelled = new Set(
+    tasks.filter((task) => task.outcome === "cancelled").map((task) => task.id),
+  )
   for (const task of tasks) {
     for (const dependency of task.dependsOn) {
       if (dependency === task.id) {
@@ -32,6 +35,13 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
           severity: "error",
           code: "unknown-dependency",
           message: `task ${task.id} depends on unknown task ${dependency}`,
+          taskId: task.id,
+        })
+      } else if (cancelled.has(dependency)) {
+        diagnostics.push({
+          severity: "warning",
+          code: "cancelled-dependency",
+          message: `task ${task.id} depends on cancelled task ${dependency}`,
           taskId: task.id,
         })
       }

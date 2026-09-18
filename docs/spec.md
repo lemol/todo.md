@@ -199,6 +199,9 @@ can report them (for example `todo check`). The model-level checks are:
 | `unknown-dependency` | error    | `dependsOn` refers to an ID that doesn't exist.  |
 | `self-dependency`    | error    | A task depends on itself.                        |
 | `dependency-cycle`   | error    | Dependencies form a cycle.                       |
+| `cancelled-dependency` | warning  | `dependsOn` refers to a cancelled task.          |
+
+A dependency on a cancelled task is a warning, not an error: cancelling upstream work is a decision for its dependents, not a broken list. `add` and `update` MUST NOT reject it.
 
 `add` and `update` MUST fail with `ValidationError` rather than introduce a
 self-dependency or a cycle.

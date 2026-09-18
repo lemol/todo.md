@@ -35,6 +35,29 @@ describe("modelDiagnostics", () => {
       taskId: "1",
     })
   })
+
+  test("a dependency on a cancelled task is a warning, not an error", () => {
+    const tasks = [
+      task({ id: "1", status: "done", outcome: "cancelled", cancelledReason: "Dropped." }),
+      task({ id: "2", dependsOn: ["1"] }),
+    ]
+    expect(modelDiagnostics(tasks)).toEqual([
+      {
+        severity: "warning",
+        code: "cancelled-dependency",
+        message: "task 2 depends on cancelled task 1",
+        taskId: "2",
+      },
+    ])
+  })
+
+  test("a dependency on a completed task is not reported", () => {
+    const tasks = [
+      task({ id: "1", status: "done", outcome: "completed" }),
+      task({ id: "2", dependsOn: ["1"] }),
+    ]
+    expect(modelDiagnostics(tasks)).toEqual([])
+  })
 })
 
 test("mergeDiagnostics skips model diagnostics the store already reported", () => {

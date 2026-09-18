@@ -15,7 +15,7 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 | `list(filter?)` | A `Listing`: title, description, every section (ungrouped first) with its matching open tasks, and matching done tasks (most recent first) when `status` is `"done"` or `"all"`. |
 | `next(filter?)` | Ready open tasks in priority order (spec §1.3): "what should I work on?" |
 | `show(id)` | A `TaskDetail`: the task with its state, each dependency's title and state (`"unknown"` for missing IDs), and the open tasks it blocks. |
-| `check()` | The store's diagnostics plus the model checks of spec §1.6 (`duplicate-id`, `unknown-dependency`, `self-dependency`, `dependency-cycle`), skipping any the store already reported. |
+| `check()` | The store's diagnostics plus the model checks of spec §1.6 (`duplicate-id`, `unknown-dependency`, `self-dependency`, `dependency-cycle`, `cancelled-dependency`), skipping any the store already reported. |
 | `complete(id)` | A `Completion`: the done task, and the open tasks it made ready. |
 | `remove(id, { force? })` | Fails with `HasDependents` while open tasks depend on the task, unless `force`. |
 | `add`, `update`, `move`, `reopen`, `renameGroup`, `comment`, `promote` | Delegate to the store, after the capability guard. |
