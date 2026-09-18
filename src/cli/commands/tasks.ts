@@ -3,7 +3,7 @@ import { Argument, Command, Flag } from "effect/unstable/cli"
 import { type Placement, type TaskPatch, unique } from "../../spec/index.ts"
 import { author, output, projectOfRefs, refOf, textOf, warnUnpushed, withTodo } from "../context.ts"
 import { UsageError } from "../errors.ts"
-import { label, renderCompletions, showId } from "../render.ts"
+import { label, renderCancellation, renderCompletions, showId } from "../render.ts"
 
 const idArgument = Argument.string("id").pipe(
   Argument.withDescription("The task's ID, e.g. 7 or 07, or <project>:<id> for another project"),
@@ -300,6 +300,44 @@ export const done = Command.make(
     {
       command: "todo done 2 3 --json",
       description: "Complete two tasks; print what they unblocked",
+    },
+  ]),
+)
+
+export const cancel = Command.make(
+  "cancel",
+  {
+    id: idArgument,
+    reason: Flag.string("reason").pipe(
+      Flag.withDescription(`Why the task is being abandoned (required). ${orStdin}`),
+    ),
+  },
+  Effect.fn(function* ({ id, reason }) {
+    const ref = refOf(id)
+    const text = yield* textOf("reason", reason)
+    const refProject = yield* projectOfRefs([ref])
+    yield* withTodo(
+      (todo, project) =>
+        Effect.gen(function* () {
+          const cancelled = yield* todo.cancel(ref.id, text)
+          yield* output(project, cancelled, (style) => renderCancellation(cancelled, style))
+          yield* warnUnpushed(project)
+        }),
+      { project: refProject },
+    )
+  }),
+).pipe(
+  Command.withDescription(
+    "Abandon a task: it moves to done/ recorded as cancelled, with the reason, and satisfies no dependency",
+  ),
+  Command.withExamples([
+    {
+      command: 'todo cancel 12 --reason "Superseded: there is no apps/ directory."',
+      description: "Cancel task 12, recording why",
+    },
+    {
+      command: "todo cancel 12 --reason - <<'EOF'",
+      description: "Take the reason from stdin, so backticks and $(…) reach the task verbatim",
     },
   ]),
 )

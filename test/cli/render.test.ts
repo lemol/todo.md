@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { DateTime } from "effect"
 import {
   label,
+  renderCancellation,
   renderCompletions,
   renderDetail,
   renderDiagnostics,
@@ -62,6 +63,23 @@ describe("taskLines", () => {
       done,
     )
     expect(taskLines([finished], plain)).toEqual(["  05  Set up CI  2026-09-10"])
+  })
+
+  test("marks a cancelled task, so it does not read as finished work", () => {
+    const cancelled = viewOf(
+      task({
+        id: "6",
+        title: "Drop apps/ support",
+        status: "done",
+        completedAt: DateTime.makeUnsafe("2026-09-10T08:00:00Z"),
+        outcome: "cancelled",
+        cancelledReason: "Superseded by d47fcd2.",
+      }),
+      done,
+    )
+    expect(taskLines([cancelled], plain)).toEqual([
+      "  06  Drop apps/ support  2026-09-10 cancelled",
+    ])
   })
 })
 
@@ -134,6 +152,20 @@ test("renderCompletions lists each completed task, then the newly ready ones onc
     "Now ready:",
     "  03  Fix login redirect",
   ])
+})
+
+test("renderCancellation names the task and its reason; nothing becomes ready", () => {
+  expect(
+    renderCancellation(
+      task({
+        id: "6",
+        title: "Drop apps/ support",
+        outcome: "cancelled",
+        cancelledReason: "Superseded by d47fcd2.",
+      }),
+      plain,
+    ),
+  ).toEqual(["Cancelled 06  Drop apps/ support", "  Superseded by d47fcd2."])
 })
 
 describe("renderDiagnostics", () => {

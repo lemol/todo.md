@@ -48,7 +48,12 @@ export const taskLines = (
   const idWidth = Math.max(2, ...views.map((v) => idOf(v.task.id).length))
   const titleWidth = Math.min(50, Math.max(0, ...views.map((v) => v.task.title.length)))
   return views.flatMap((v) => {
-    const extra = v.state === "done" ? day(v.task) : meta(v.task)
+    const extra =
+      v.state === "done"
+        ? v.task.outcome === "cancelled"
+          ? `${day(v.task)} cancelled`
+          : day(v.task)
+        : meta(v.task)
     const title = extra === "" ? v.task.title : v.task.title.padEnd(titleWidth)
     const head = `  ${idOf(v.task.id).padEnd(idWidth)}  ${title}`
     const line = extra === "" ? head : `${head}  ${style.dim(extra)}`
@@ -188,6 +193,12 @@ export const renderCompletions = (
     ...(ready.size === 0 ? [] : ["Now ready:", ...taskLines([...ready.values()], style)]),
   ]
 }
+
+/** `todo cancel`: what was abandoned, and why. Nothing becomes ready (spec §1.3). */
+export const renderCancellation = (task: Task, _style: Style): string[] => [
+  `Cancelled ${label(task)}`,
+  ...(task.cancelledReason === undefined ? [] : [`  ${task.cancelledReason}`]),
+]
 
 const where = (d: Diagnostic): string => {
   if (d.file !== undefined) return d.line === undefined ? d.file : `${d.file}:${d.line}`

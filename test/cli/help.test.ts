@@ -34,6 +34,7 @@ effectTest(
       "edit",
       "done",
       "reopen",
+      "cancel",
       "mv",
       "rm",
       "promote",

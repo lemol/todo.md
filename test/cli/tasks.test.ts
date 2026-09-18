@@ -316,6 +316,48 @@ describe("todo done and reopen", () => {
   )
 })
 
+describe("todo cancel", () => {
+  effectTest(
+    "records the reason and takes the task off the list",
+    Effect.gen(function* () {
+      const result = yield* todo("cancel", "3", "--reason", "Superseded by d47fcd2.")
+      expect(result.stdout).toBe(
+        lines("Cancelled 03  Fix login redirect", "  Superseded by d47fcd2."),
+      )
+      const disk = yield* Disk
+      expect(yield* disk.read("done/backend/03-fix-login-redirect.md")).toContain(
+        "cancelled_reason: Superseded by d47fcd2.",
+      )
+      expect(yield* disk.read("TODO.md")).not.toContain("03 - Fix login redirect")
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "reads the reason from stdin when given -",
+    Effect.gen(function* () {
+      const result = yield* runTodo(["cancel", "3", "--reason", "-"], {
+        stdin: "Dropped: `apps/*` is gone.\n",
+      })
+      expect(result.stdout).toContain("Cancelled 03")
+      expect(yield* (yield* Disk).read("done/backend/03-fix-login-redirect.md")).toContain(
+        "Dropped: `apps/*` is gone.",
+      )
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "without a reason is a usage error",
+    Effect.gen(function* () {
+      const result = yield* todo("cancel", "3")
+      expect(result.code).not.toBe(0)
+      expect(result.stderr).toContain("--reason")
+    }),
+    diskWith(acme),
+  )
+})
+
 describe("todo mv", () => {
   effectTest(
     "moves a task to the top, to another group, or out of its group",

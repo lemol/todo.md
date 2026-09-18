@@ -28,6 +28,7 @@ examples. `todo --help` lists the commands.
 | `todo edit <id>` | Change a task: `--title`, `--description`, `--file`, `--tag`/`--untag`, `--assignee`/`--unassign`, `--depends-on`/`--drop-dependency`. | the `Task` |
 | `todo done <id…>` | Complete tasks and list those that became ready. | `[{ task, unblocked: TaskView[] }]` |
 | `todo reopen <id>` | Reopen a done task at the end of its group. | the `Task` |
+| `todo cancel <id> --reason <text>` | Abandon a task: it moves to `done/` recorded as cancelled, with the reason, and satisfies no dependency. | the `Task` |
 | `todo mv <id>` | Move a task: one of `--top`, `--bottom`, `--before <id>`, `--after <id>`, `--group <name>`, `--ungrouped`. | the `Task` |
 | `todo rm <id>` | Delete a task and its file; `--force` if open tasks depend on it. | `{ removed: id }` |
 | `todo promote <id>` | Move an inline task into its own file, leaving a link; does nothing if it has one. | the `Task` |
