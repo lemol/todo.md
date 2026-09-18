@@ -1,7 +1,16 @@
 import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 import { type Placement, type TaskPatch, unique } from "../../spec/index.ts"
-import { author, output, projectOfRefs, refOf, textOf, warnUnpushed, withTodo } from "../context.ts"
+import {
+  author,
+  output,
+  projectOfRefs,
+  refOf,
+  textOf,
+  warnUnpushed,
+  withTodo,
+  wordsText,
+} from "../context.ts"
 import { UsageError } from "../errors.ts"
 import { label, renderCancellation, renderCompletions, showId } from "../render.ts"
 
@@ -25,9 +34,9 @@ const some = <A>(key: string, value: Option.Option<A>) =>
 const flagged = (name: string, description: string) =>
   Flag.boolean(name).pipe(Flag.withDescription(description))
 
-/** What `-` does, said the same way wherever a text flag accepts it. */
-const orStdin =
-  "`-` reads it whole from stdin, as in `--description - <<'EOF'`, so quotes, backticks and $(…) reach the task verbatim instead of being run by the shell"
+/** What `-` does, said the same way wherever text accepts it; `as` shows the form. */
+const orStdin = (as: string) =>
+  `\`-\` reads it whole from stdin, as in \`${as} <<'EOF'\`, so quotes, backticks and $(…) reach the task verbatim instead of being run by the shell`
 
 export const add = Command.make(
   "add",
@@ -35,7 +44,10 @@ export const add = Command.make(
     title: words("title", "The task's title"),
     group: optional("group", "Add to this group (created if missing)"),
     noGroup: flagged("no-group", "Add it to the ungrouped tasks"),
-    description: optional("description", `A longer description (Markdown). ${orStdin}`),
+    description: optional(
+      "description",
+      `A longer description (Markdown). ${orStdin("--description -")}`,
+    ),
     noDescription: flagged("no-description", "Add it with no description"),
     file: flagged("file", "Give it its own task file (the default)"),
     inline: flagged("inline", "Keep the whole task in TODO.md instead of its own file"),
@@ -181,7 +193,10 @@ export const edit = Command.make(
   {
     id: idArgument,
     title: optional("title", "A new title"),
-    description: optional("description", `A new description (Markdown). ${orStdin}`),
+    description: optional(
+      "description",
+      `A new description (Markdown). ${orStdin("--description -")}`,
+    ),
     file: flagged("file", "Also move it into its own file, if it is still inline"),
     tag: repeated("tag", "Add a tag; repeat for several"),
     untag: repeated("untag", "Remove a tag; repeat for several"),
@@ -309,7 +324,7 @@ export const cancel = Command.make(
   {
     id: idArgument,
     reason: Flag.string("reason").pipe(
-      Flag.withDescription(`Why the task is being abandoned (required). ${orStdin}`),
+      Flag.withDescription(`Why the task is being abandoned (required). ${orStdin("--reason -")}`),
     ),
   },
   Effect.fn(function* ({ id, reason }) {
@@ -480,17 +495,21 @@ export const comment = Command.make(
   "comment",
   {
     id: idArgument,
-    text: words("text", "The comment (Markdown; quotes optional)"),
+    text: words(
+      "text",
+      `The comment (Markdown; quotes optional). On its own, ${orStdin("todo comment 3 -")}`,
+    ),
     author: optional("author", "Who is commenting (default: $TODO_MD_AUTHOR, then your user name)"),
   },
   Effect.fn(function* (flags) {
     const ref = refOf(flags.id)
     const refProject = yield* projectOfRefs([ref])
     const by = yield* author(flags.author)
+    const body = yield* wordsText("comment", flags.text)
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
-          const added = yield* todo.comment(ref.id, { author: by, body: flags.text.join(" ") })
+          const added = yield* todo.comment(ref.id, { author: by, body })
           yield* output(project, added, () => [`Commented on ${showId(ref.id)}`])
           yield* warnUnpushed(project)
         }),
@@ -505,5 +524,9 @@ export const comment = Command.make(
       description: "Comment as yourself",
     },
     { command: "todo comment 3 Started --author claude", description: "Comment as an agent" },
+    {
+      command: "todo comment 3 - <<'EOF'",
+      description: "Take the comment from stdin, so backticks and $(…) reach the task verbatim",
+    },
   ]),
 )

@@ -97,7 +97,7 @@ A list contains only **open** tasks. Done tasks are reachable through `get` and
 | -------- | -------- | ------------------------------------------------ |
 | `author` | string   | A handle: non-empty, no whitespace.              |
 | `at`     | DateTime | Includes a UTC offset.                           |
-| `body`   | Markdown | Non-empty.                                       |
+| `body`   | Markdown | Non-empty, and trimmed: the format cannot round-trip the whitespace around it (§2.6). |
 
 ## 1.2 Task identity
 

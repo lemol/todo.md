@@ -53,6 +53,9 @@ Where it helps, arguments are forgiving:
 - `--description -` reads the description whole from stdin, so quotes,
   backticks and `$(…)` reach the task verbatim instead of being run by the
   shell: `todo add "Record the cause" --group Ops --description - <<'EOF'`.
+  `todo cancel --reason -` and a `todo comment` whose text is a lone `-`
+  (`todo comment 3 - <<'EOF'`) read stdin the same way. A dash among other
+  words stays a dash.
 
 A `TaskView` is `{ task, state: "ready" | "blocked" | "done", blockedBy: id[] }`;
 see [`core`](../core).

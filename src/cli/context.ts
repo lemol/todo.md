@@ -34,23 +34,43 @@ export class CliContext extends Context.Service<
 >()("@lemol/todo-md/cli/CliContext") {}
 
 /**
- * A text flag's value, where `-` reads it whole from stdin (above). The text
- * is kept raw, leading and trailing whitespace and newlines included; only
- * nothing at all is refused, so a `-` that piped an empty file says so
- * instead of quietly writing an empty description.
+ * Stdin read whole (above), kept raw: leading and trailing whitespace and
+ * newlines included. A `-` that piped nothing says so instead of quietly
+ * writing an empty text; `refusal` comes from the caller because only it
+ * knows how the text was asked for, and `empty` because what counts as
+ * nothing depends on what the text becomes.
  */
+const stdinText = (refusal: string, empty: (text: string) => boolean = (text) => text === "") =>
+  Effect.flatMap(CliContext, (context) =>
+    Effect.flatMap(context.stdin, (text) =>
+      empty(text) ? new UsageError({ message: refusal }) : Effect.succeed(text),
+    ),
+  )
+
+/** A text flag's value, where `-` reads it whole from stdin (above). */
 export const textOf = (flag: string, value: string) =>
   value === "-"
-    ? Effect.flatMap(CliContext, (context) =>
-        Effect.flatMap(context.stdin, (text) =>
-          text === ""
-            ? new UsageError({
-                message: `--${flag} - got nothing on stdin; pipe the text in, or use --no-${flag} for none`,
-              })
-            : Effect.succeed(text),
-        ),
-      )
+    ? stdinText(`--${flag} - got nothing on stdin; pipe the text in, or use --no-${flag} for none`)
     : Effect.succeed(value)
+
+/**
+ * A variadic text argument's value: words joined with spaces, so quotes stay
+ * optional, except that a lone `-` reads the text whole from stdin (above).
+ * A dash among other words is just a dash, so only text that is nothing but
+ * `-` loses its literal reading — and that text is not worth a comment.
+ *
+ * The surrounding whitespace goes, since a comment body is trimmed (§1.1)
+ * and a heredoc always ends in a newline; everything between stays verbatim,
+ * which is what the shell would have eaten. Whitespace alone counts as
+ * nothing piped in rather than an empty comment.
+ */
+export const wordsText = (name: string, parts: ReadonlyArray<string>) =>
+  parts.length === 1 && parts[0] === "-"
+    ? Effect.map(
+        stdinText(`${name} - got nothing on stdin; pipe the text in`, (text) => text.trim() === ""),
+        (text) => text.trim(),
+      )
+    : Effect.succeed(parts.join(" ").trim())
 
 export const Json = GlobalFlag.setting("json")({
   flag: Flag.boolean("json").pipe(

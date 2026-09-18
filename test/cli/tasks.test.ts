@@ -446,3 +446,50 @@ describe("todo comment", () => {
     diskWith(acme),
   )
 })
+
+describe("todo comment -", () => {
+  const body = 'Found the cause: `git rev-parse` returned nothing, and $(date) is "off".\n'
+
+  effectTest(
+    "reads the body from stdin, keeping what the shell would have run",
+    Effect.gen(function* () {
+      const result = yield* runTodo(["comment", "1", "-", "--author", "claude"], { stdin: body })
+      expect(result).toEqual({ code: 0, stdout: "Commented on 01", stderr: "" })
+      expect(yield* (yield* Disk).read("01-write-changelog.md")).toBe(
+        md(
+          "---",
+          "title: Write changelog",
+          "---",
+          "## Comments",
+          "",
+          "### @claude at 1970-01-01 00:00 +00:00",
+          "",
+          body.trimEnd(),
+        ),
+      )
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "says so when nothing was piped in, rather than commenting nothing",
+    Effect.gen(function* () {
+      const result = yield* todo("comment", "1", "-")
+      expect(result.code).toBe(2)
+      expect(result.stderr).toBe("error: comment - got nothing on stdin; pipe the text in")
+      expect((yield* showJson("1")).comments).toEqual([])
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "leaves a dash among other words alone",
+    Effect.gen(function* () {
+      yield* runTodo(["comment", "1", "waiting", "-", "see", "03"], { stdin: body })
+      expect((yield* showJson("1")).comments).toEqual([
+        { author: "tester", at: "1970-01-01T00:00:00.000Z", body: "waiting - see 03" },
+      ])
+    }),
+    diskWith(acme),
+  )
+})
