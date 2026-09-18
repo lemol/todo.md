@@ -99,7 +99,7 @@ One row joins the table:
 
 | Operation              | Semantics                                                                                                                                     | Errors                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `cancel(id, reason)`   | open → done with outcome `cancelled`. Sets `completedAt` to now, records `group` and `cancelledReason`. Cancelling a blocked task MUST be allowed. | `TaskNotFound`, `InvalidTransition`, `ValidationError` (empty reason) |
+| `cancel(id, reason)`   | open → done with outcome `cancelled`. Sets `completedAt` to now, records `group` and `cancelledReason`. Cancelling a blocked task MUST be allowed. | `TaskNotFound`, `InvalidTransition`, `ValidationError` (empty reason), `Unsupported` |
 
 Amendments to existing rows:
 
@@ -115,12 +115,27 @@ Amendments to existing rows:
 
 ### §1.5 Capabilities
 
-`cancel` joins `load`, `get`, `listDone`, `add`, `update`, `complete`,
-`reopen` and `remove` in the always-required set. It is a field on a record
-the store already writes, not a backend API feature, so a store that can
-archive a done task can archive a cancelled one. Making it required means no
-consumer needs a no-cancel path, and "was this abandoned?" is a question the
-model can always answer.
+`cancel` is a capability, not a required operation. The always-required set
+is unchanged: `load`, `get`, `listDone`, `add`, `update`, `complete`,
+`reopen`, `remove`.
+
+| Capability | When absent                                                                       |
+| ---------- | --------------------------------------------------------------------------------- |
+| `cancel`   | `cancel` fails with `Unsupported`; no task has outcome `cancelled`.               |
+
+The second clause mirrors `comments`, which gates both the operation and the
+data it produces. A store that cannot record abandonment will not surface it
+either, so consumers can treat "this store has no cancel capability" as "every
+done task here is completed" without a second check.
+
+§1.5 already directs tools to hide unsupported operations rather than offer
+them and fail, so the CLI and web app gate the cancel action on the
+capability.
+
+**What this gives up.** "Was this abandoned?" becomes a question the model can
+answer per store rather than universally, which softens the honest-archive
+goal for backends that decline the capability. It holds for the file-system
+store, which is the reference implementation and the one the goal was about.
 
 ### §1.6 Diagnostics
 
@@ -202,16 +217,16 @@ Unchanged. Cancelled files live in `done_dir` under the existing convention,
 | Where | Change |
 | ----- | ------ |
 | `src/spec/model.ts` | `TaskOutcome` literal; two optional fields on `Task`. `TaskStatus` untouched. |
-| `src/spec/TodoStore.ts` | `cancel(id, reason)`, always required. |
-| `src/spec/MemoryTodoStore.ts` | Implement, mirroring `complete` at line 275. |
-| `src/spec/testing/conformance/lifecycle.ts` | Cancel cases. Required, so every store must pass. |
+| `src/spec/TodoStore.ts` | `cancel(id, reason)`; `cancel` joins `Capabilities`. |
+| `src/spec/MemoryTodoStore.ts` | Implement, mirroring `complete` at line 275. Add a `cancel: false` variant beside the `promote: false` one at line 183, to exercise the absent path. |
+| `src/spec/testing/conformance/cancelling.ts` | New file, following `promotion.ts`: cases marked `requires: ["cancel"]`, plus one asserting `Unsupported` when the capability is absent. `index.ts:38` already skips gated cases. |
 | `src/core/views.ts:44` | Satisfying set built from completed tasks only. |
 | `src/core/check.ts` | `cancelled-dependency`, beside `unknown-dependency` at line 33. |
 | `src/markdown/taskFile.ts`, `convert.ts` | Read and write the two keys. |
 | `src/fs/snapshot.ts`, `writing.ts` | Archive read and write. |
-| `src/cli/commands/tasks.ts` | `todo cancel <id> --reason <text>`, and `--reason -` for stdin. |
+| `src/cli/commands/tasks.ts` | `todo cancel <id> --reason <text>`, and `--reason -` for stdin. Gated on the capability per §1.5. |
 | `src/cli/render.ts` | Distinguish cancelled tasks in listings. |
-| `src/web/app/ui/task.tsx:15` | The hardcoded `"Completed"` label becomes outcome-aware; cancel action in the controller. |
+| `src/web/app/ui/task.tsx:15` | The hardcoded `"Completed"` label becomes outcome-aware; cancel action in the controller, hidden when the capability is absent. |
 
 Constraints from the repo's rules:
 
