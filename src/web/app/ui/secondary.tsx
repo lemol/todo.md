@@ -9,7 +9,11 @@ export const DonePage = (project: string, tasks: ReadonlyArray<TaskView>): strin
   const rows = tasks
     .map(({ task }) => {
       const group = task.group === undefined ? "Ungrouped" : task.group
-      return `<article class="done-row"><code>${showId(task.id)}</code><a href="${routes.project.tasks.show.href({ project, id: task.id })}">${escapeHtml(task.title)}</a><span><code>${formatDate(task.completedAt)}</code> · ${escapeHtml(group)}</span><form method="post" action="${routes.project.tasks.reopen.href({ project, id: task.id })}"><button class="secondary" type="submit">Reopen</button></form></article>`
+      // Absent `outcome` on a done task means completed (spec §1.1): branch on
+      // "cancelled" explicitly so every historical done task keeps reading as
+      // completed.
+      const outcome = task.outcome === "cancelled" ? "cancelled" : formatDate(task.completedAt)
+      return `<article class="done-row"><code>${showId(task.id)}</code><a href="${routes.project.tasks.show.href({ project, id: task.id })}">${escapeHtml(task.title)}</a><span><code>${outcome}</code> · ${escapeHtml(group)}</span><form method="post" action="${routes.project.tasks.reopen.href({ project, id: task.id })}"><button class="secondary" type="submit">Reopen</button></form></article>`
     })
     .join("")
   return `<h1>Done</h1>${rows}`

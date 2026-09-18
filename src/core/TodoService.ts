@@ -44,7 +44,7 @@ export interface Dependency {
   readonly id: TaskId
   /** `undefined` when no task has this ID. */
   readonly title: string | undefined
-  readonly state: TaskState | "unknown"
+  readonly state: TaskState | "unknown" | "cancelled"
 }
 
 /** What `show` returns. */
@@ -178,7 +178,12 @@ export class TodoService extends Context.Service<
                 return {
                   id: dependency,
                   title: found?.title,
-                  state: found === undefined ? ("unknown" as const) : view(b)(found).state,
+                  state:
+                    found === undefined
+                      ? ("unknown" as const)
+                      : found.outcome === "cancelled"
+                        ? ("cancelled" as const)
+                        : view(b)(found).state,
                 }
               }),
               blocks: inPriorityOrder(b.list)
@@ -217,7 +222,8 @@ export class TodoService extends Context.Service<
 
         reopen: (id) => store.reopen(id),
 
-        cancel: (id, reason) => store.cancel(id, reason),
+        cancel: (id, reason) =>
+          requires("cancel", "cancel").pipe(Effect.andThen(store.cancel(id, reason))),
 
         remove: (id, options = {}) =>
           Effect.gen(function* () {

@@ -97,12 +97,17 @@ export const renderDetail = (detail: TaskDetail, style: Style): string[] => {
     state === "blocked"
       ? style.yellow(`blocked by ${blockedBy.map(showId).join(", ")}`)
       : state === "done"
-        ? style.green(`done ${day(task)}`.trim())
+        ? task.outcome === "cancelled"
+          ? style.yellow(`cancelled ${day(task)}`.trim())
+          : style.green(`done ${day(task)}`.trim())
         : style.green("ready")
   const facts = [
     status,
     ...(task.group === undefined ? [] : [task.group]),
     ...(meta(task) === "" ? [] : [meta(task)]),
+    ...(task.outcome === "cancelled" && task.cancelledReason !== undefined
+      ? [task.cancelledReason]
+      : []),
   ]
   const lines = [style.bold(label(task)), `    ${facts.join(" · ")}`]
   if (task.description !== "") lines.push("", ...indented(task.description, 4))
@@ -195,9 +200,9 @@ export const renderCompletions = (
 }
 
 /** `todo cancel`: what was abandoned, and why. Nothing becomes ready (spec §1.3). */
-export const renderCancellation = (task: Task, _style: Style): string[] => [
+export const renderCancellation = (task: Task, style: Style): string[] => [
   `Cancelled ${label(task)}`,
-  ...(task.cancelledReason === undefined ? [] : [`  ${task.cancelledReason}`]),
+  ...(task.cancelledReason === undefined ? [] : [`  ${style.dim(task.cancelledReason)}`]),
 ]
 
 const where = (d: Diagnostic): string => {

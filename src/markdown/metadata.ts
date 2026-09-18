@@ -20,7 +20,7 @@ export interface ParsedMetadata {
 
 const word = /^[\p{L}\p{N}_\-/.]+$/u
 const keyValue = /^([a-z][a-z0-9_]*):([^\s/]\S*)$/
-const reserved = new Set(["title", "completed_at", "group", "id"])
+const reserved = new Set(["title", "completed_at", "group", "id", "outcome", "cancelled_reason"])
 const standard = new Set(["tags", "assignee", "depends_on"])
 
 const isToken = (token: string): boolean =>

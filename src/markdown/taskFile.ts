@@ -131,6 +131,10 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
   if (outcomeText !== undefined && outcome === undefined)
     invalid("outcome", "`completed` or `cancelled`")
 
+  const cancelledReasonText = stringField("cancelled_reason")
+  if (cancelledReasonText !== undefined && outcome !== "cancelled")
+    invalid("cancelled_reason", "absent unless outcome is `cancelled`")
+
   const comments: Comment[] = []
   if (commentsLine !== undefined) {
     const headings = tree.children.filter(
@@ -167,7 +171,7 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
     group: stringField("group"),
     completedAt: completedAt === undefined ? undefined : DateTime.toUtc(completedAt),
     outcome,
-    cancelledReason: stringField("cancelled_reason"),
+    cancelledReason: outcome === "cancelled" ? cancelledReasonText : undefined,
     diagnostics,
   }
 }
@@ -188,7 +192,7 @@ const entries = (content: Partial<TaskFileContent>): Array<readonly [string, unk
   ...(content.dependsOn === undefined || content.dependsOn.length === 0
     ? []
     : [["depends_on", content.dependsOn.map(Number)] as const]),
-  ...Object.entries(content.extra ?? {}),
+  ...Object.entries(content.extra ?? {}).filter(([key]) => !standardKeys.has(key)),
   ...(content.group === undefined ? [] : [["group", content.group] as const]),
   ...(content.completedAt === undefined
     ? []

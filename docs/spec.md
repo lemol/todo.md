@@ -114,8 +114,10 @@ A list contains only **open** tasks. Done tasks are reachable through `get` and
 These are computed, never stored:
 
 - A dependency is **satisfied** when it refers to a task that is done with
-  outcome `completed`. A dependency on a cancelled task is unsatisfied, and it
-  is also reported as a diagnostic (§1.6).
+  outcome `completed` (which includes every done task whose `outcome` is
+  absent, per §2.6 — never test `outcome === "completed"` to mean this). A
+  dependency on a cancelled task is unsatisfied, and it is also reported as a
+  diagnostic (§1.6).
 - A task is **ready** when it is open and all its dependencies are satisfied.
 - A task is **blocked** when it is open and not ready. A dependency on an
   unknown ID is unsatisfied, and it is also reported as a validation error
@@ -162,14 +164,14 @@ how recovery achieves this.
 Some backends cannot support every operation (Jira, for example, may have no
 ordering). An implementation declares a set of capabilities:
 
-| Capability    | When absent                                                                           |
-| ------------- | ------------------------------------------------------------------------------------- |
-| `groups`      | All tasks are ungrouped; a placement that names a group fails with `Unsupported`.     |
-| `reorder`     | `move` and placement anchors fail with `Unsupported`.                                 |
-| `renameGroup` | `renameGroup` fails with `Unsupported`.                                               |
-| `comments`    | `comment` fails with `Unsupported`; `comments` is always empty.                       |
+| Capability    | When absent                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `groups`      | All tasks are ungrouped; a placement that names a group fails with `Unsupported`.                     |
+| `reorder`     | `move` and placement anchors fail with `Unsupported`.                                                 |
+| `renameGroup` | `renameGroup` fails with `Unsupported`.                                                               |
+| `comments`    | `comment` fails with `Unsupported`; `comments` is always empty.                                       |
 | `promote`     | `promote` fails with `Unsupported`. A store whose tasks have no separate document declares it absent. |
-| `cancel`      | `cancel` fails with `Unsupported`; no task has outcome `cancelled`.                   |
+| `cancel`      | `cancel` fails with `Unsupported`; no task has outcome `cancelled`.                                   |
 
 `load`, `get`, `listDone`, `add`, `update`, `complete`, `reopen` and `remove`
 are always required. Tools SHOULD hide unsupported operations rather than
@@ -193,15 +195,17 @@ a `severity` (`error`, `warning` or `info`), a `code`, a `message`, and
 optionally a `taskId` and a location. Implementations expose them so tools
 can report them (for example `todo check`). The model-level checks are:
 
-| Code                 | Severity | Condition                                        |
-| -------------------- | -------- | ------------------------------------------------ |
-| `duplicate-id`       | error    | Two tasks share an ID.                           |
-| `unknown-dependency` | error    | `dependsOn` refers to an ID that doesn't exist.  |
-| `self-dependency`    | error    | A task depends on itself.                        |
-| `dependency-cycle`   | error    | Dependencies form a cycle.                       |
-| `cancelled-dependency` | warning  | `dependsOn` refers to a cancelled task.          |
+| Code                   | Severity | Condition                                         |
+| ---------------------- | -------- | ------------------------------------------------- |
+| `duplicate-id`         | error    | Two tasks share an ID.                            |
+| `unknown-dependency`   | error    | `dependsOn` refers to an ID that doesn't exist.   |
+| `self-dependency`      | error    | A task depends on itself.                         |
+| `dependency-cycle`     | error    | Dependencies form a cycle.                        |
+| `cancelled-dependency` | warning  | `dependsOn` refers to a cancelled task.           |
 
-A dependency on a cancelled task is a warning, not an error: cancelling upstream work is a decision for its dependents, not a broken list. `add` and `update` MUST NOT reject it.
+A dependency on a cancelled task is a warning, not an error: cancelling
+upstream work is a decision for its dependents, not a broken list. `add` and
+`update` MUST NOT reject it.
 
 `add` and `update` MUST fail with `ValidationError` rather than introduce a
 self-dependency or a cycle.
@@ -396,7 +400,7 @@ YAML between `---` lines at the start of the file.
 | `completed_at` | timestamp             | Done files only; REQUIRED there. ISO 8601 with offset.                   |
 | `group`        | string                | Done files only: the group display name at completion.                   |
 | `outcome`      | `completed` \| `cancelled` | Done files only. Absent means `completed`. Any other value is `invalid-frontmatter`. |
-| `cancelled_reason` | string            | Cancelled files only.                                                   |
+| `cancelled_reason` | string            | Cancelled files only. Present when `outcome` is not `cancelled` is `invalid-frontmatter`; the field is ignored. |
 
 Either key is meaningful only in a done task's file; parsers ignore it on an
 open task.

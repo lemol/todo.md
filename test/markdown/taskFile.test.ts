@@ -144,6 +144,21 @@ describe("parseTaskFile", () => {
     expect(invalid.outcome).toBeUndefined()
     expect(invalid.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
   })
+
+  test("a cancelled_reason without a cancelled outcome is invalid frontmatter and is ignored", () => {
+    const invalid = parseTaskFile(
+      md(
+        "---",
+        "title: T",
+        "completed_at: 2026-09-18T19:13:18Z",
+        "cancelled_reason: not applicable",
+        "---",
+      ),
+      "f.md",
+    )
+    expect(invalid.cancelledReason).toBeUndefined()
+    expect(invalid.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
+  })
 })
 
 describe("timestamps", () => {
@@ -237,6 +252,15 @@ describe("formatTaskFile", () => {
     expect(source).toContain("completed_at: 2026-09-18T19:13:18Z")
     expect(source).toContain("outcome: cancelled")
     expect(source).toContain("cancelled_reason: Superseded by d47fcd2.")
+  })
+
+  test("does not duplicate a standard key smuggled through extra", () => {
+    const source = formatTaskFile({
+      ...content,
+      extra: { estimate: 3, outcome: "cancelled" },
+      outcome: "completed",
+    })
+    expect(source.match(/^outcome:.*$/gm)).toEqual(["outcome: completed"])
   })
 })
 

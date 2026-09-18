@@ -57,6 +57,7 @@ export const cancellingCases: ReadonlyArray<ConformanceCase> = [
       const blocker = yield* store.add({ title: "First" })
       const blocked = yield* store.add({ title: "Second", dependsOn: [blocker.id] })
       const cancelled = yield* store.cancel(blocked.id, "Changed our minds.")
+      equal(cancelled.status, "done")
       equal(cancelled.outcome, "cancelled")
     }),
   },
@@ -93,9 +94,6 @@ export const cancellingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "complete records the completed outcome",
-    // The file-system store does not yet set `outcome: "completed"` (a later
-    // task); until then this only holds for stores that support cancel.
-    requires: ["cancel"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const task = yield* store.add({ title: "Ship it" })

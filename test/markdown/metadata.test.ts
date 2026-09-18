@@ -52,6 +52,12 @@ describe("parseMetadataLine", () => {
     expect(parsed?.fields.dependsOn).toEqual([])
     expect(parsed?.fields.extra).toEqual({})
   })
+
+  test("reports outcome and cancelled_reason as reserved fields", () => {
+    const parsed = parseMetadataLine("outcome:cancelled cancelled_reason:x")
+    expect(parsed?.diagnostics.map((d) => d.code)).toEqual(["reserved-field", "reserved-field"])
+    expect(parsed?.fields.extra).toEqual({})
+  })
 })
 
 describe("formatMetadataLine", () => {
@@ -84,6 +90,8 @@ describe("fitsMetadataLine", () => {
     ["a nested value", { ...noFields, extra: { links: ["a", "b"] } }],
     ["a value starting with /", { ...noFields, extra: { path: "/docs" } }],
     ["a reserved key", { ...noFields, extra: { group: "x" } }],
+    ["a reserved key outcome", { ...noFields, extra: { outcome: "cancelled" } }],
+    ["a reserved key cancelled_reason", { ...noFields, extra: { cancelled_reason: "x" } }],
     ["a standard key tags in extra", { ...noFields, extra: { tags: "x" } }],
     ["a standard key assignee in extra", { ...noFields, extra: { assignee: "x" } }],
     ["a standard key depends_on in extra", { ...noFields, extra: { depends_on: "1" } }],
