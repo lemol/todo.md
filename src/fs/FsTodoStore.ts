@@ -45,6 +45,7 @@ import {
   TaskPatch,
   type TodoList,
   TodoStore,
+  Unsupported,
   unique,
   ValidationError,
   validate,
@@ -308,6 +309,9 @@ const makeStore = (files: Files, options: Options) =>
             Effect.flatMap((entry) => completeEntry(files, snapshot, entry)),
           ),
         ),
+
+      // Cancelling arrives in a later task; the capability above is already off.
+      cancel: () => Effect.fail(new Unsupported({ operation: "cancel" })),
 
       reopen: (id) =>
         mutate((snapshot) =>

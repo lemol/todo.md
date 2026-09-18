@@ -66,6 +66,14 @@ export class TodoStore extends Context.Service<
       TaskNotFound | InvalidTransition | ValidationError | Unsupported | StoreError
     >
     complete(id: TaskId): Effect.Effect<Task, TaskNotFound | InvalidTransition | StoreError>
+    /** Abandons an open task: it becomes done with outcome `cancelled` (spec §1.4). */
+    cancel(
+      id: TaskId,
+      reason: string,
+    ): Effect.Effect<
+      Task,
+      TaskNotFound | InvalidTransition | ValidationError | Unsupported | StoreError
+    >
     reopen(id: TaskId): Effect.Effect<Task, TaskNotFound | InvalidTransition | StoreError>
     remove(id: TaskId): Effect.Effect<void, TaskNotFound | StoreError>
     renameGroup(

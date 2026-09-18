@@ -13,7 +13,7 @@ module depends on.
 | Model schemas       | `TaskId`, `Task`, `Group`, `TodoList`, `Comment`, `TaskInput`, `TaskPatch`, `Placement` (Effect `Schema`) |
 | Errors              | `TaskNotFound`, `GroupNotFound`, `InvalidTransition`, `ValidationError`, `Unsupported`, `StoreError` (`Schema.TaggedError`) |
 | `Diagnostic`        | Non-fatal issue found while reading a list (spec §1.6).                                 |
-| `Capabilities`      | What a store supports: `groups`, `reorder`, `renameGroup`, `comments`, `promote` (spec §1.5). |
+| `Capabilities`      | What a store supports: `groups`, `reorder`, `renameGroup`, `comments`, `promote`, `cancel` (spec §1.5). |
 | `TodoStore`         | The adapter contract: a `Context.Service` with one method per spec operation.           |
 | `MemoryTodoStore`   | The in-memory reference implementation of `TodoStore`.                                  |
 | Helpers             | `findCycle`, `validate` (schema decode → `ValidationError`), `ensureAcyclic`, `unique`, for adapters and `core`. |

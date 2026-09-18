@@ -272,9 +272,35 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
           transact((state) =>
             Effect.gen(function* () {
               const { task } = yield* findOpen(state, id, "complete")
-              const done: Task = { ...task, status: "done", completedAt: yield* DateTime.now }
+              const done: Task = {
+                ...task,
+                status: "done",
+                outcome: "completed",
+                completedAt: yield* DateTime.now,
+              }
               const rest = withoutTask(state, id)
               return [done, { ...rest, done: [done, ...rest.done] }] as const
+            }),
+          ),
+
+        cancel: (id, reason) =>
+          transact((state) =>
+            Effect.gen(function* () {
+              if (reason.trim() === "") {
+                return yield* new ValidationError({
+                  issues: [`cancelling task ${id} needs a reason`],
+                })
+              }
+              const { task } = yield* findOpen(state, id, "cancel")
+              const cancelled: Task = {
+                ...task,
+                status: "done",
+                outcome: "cancelled",
+                cancelledReason: reason,
+                completedAt: yield* DateTime.now,
+              }
+              const rest = withoutTask(state, id)
+              return [cancelled, { ...rest, done: [cancelled, ...rest.done] }] as const
             }),
           ),
 
@@ -294,7 +320,14 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
               )
                 ? task.group
                 : undefined
-              const reopened: Task = { ...task, status: "open", completedAt: undefined, group }
+              const reopened: Task = {
+                ...task,
+                status: "open",
+                outcome: undefined,
+                cancelledReason: undefined,
+                completedAt: undefined,
+                group,
+              }
               const rest = withoutTask(state, id)
               return [reopened, insert(rest, group, endOf(rest, group), reopened)] as const
             }),
