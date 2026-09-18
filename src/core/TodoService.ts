@@ -92,6 +92,13 @@ export class TodoService extends Context.Service<
     >
     complete(id: TaskId): Effect.Effect<Completion, TaskNotFound | InvalidTransition | StoreError>
     reopen(id: TaskId): Effect.Effect<Task, TaskNotFound | InvalidTransition | StoreError>
+    cancel(
+      id: TaskId,
+      reason: string,
+    ): Effect.Effect<
+      Task,
+      TaskNotFound | InvalidTransition | ValidationError | Unsupported | StoreError
+    >
     /** Refuses with `HasDependents` while open tasks depend on the task, unless `force`. */
     remove(
       id: TaskId,
@@ -209,6 +216,8 @@ export class TodoService extends Context.Service<
           }),
 
         reopen: (id) => store.reopen(id),
+
+        cancel: (id, reason) => store.cancel(id, reason),
 
         remove: (id, options = {}) =>
           Effect.gen(function* () {

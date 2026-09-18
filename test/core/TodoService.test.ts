@@ -137,6 +137,20 @@ describe("TodoService mutations", () => {
   )
 
   effectTest(
+    "cancel abandons the task and unblocks nothing",
+    Effect.gen(function* () {
+      const todo = yield* seed
+      const blocker = yield* todo.add({ title: "First" })
+      const blocked = yield* todo.add({ title: "Second", dependsOn: [blocker.id] })
+      const cancelled = yield* todo.cancel(blocker.id, "Not doing this.")
+      expect(cancelled.outcome).toBe("cancelled")
+      const views = yield* todo.next()
+      expect(ids(views)).not.toContain(blocked.id)
+    }),
+    service,
+  )
+
+  effectTest(
     "remove refuses while open tasks depend on the task, unless forced",
     Effect.gen(function* () {
       const todo = yield* seed

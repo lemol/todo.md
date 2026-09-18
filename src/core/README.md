@@ -17,6 +17,7 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 | `show(id)` | A `TaskDetail`: the task with its state, each dependency's title and state (`"unknown"` for missing IDs), and the open tasks it blocks. |
 | `check()` | The store's diagnostics plus the model checks of spec §1.6 (`duplicate-id`, `unknown-dependency`, `self-dependency`, `dependency-cycle`, `cancelled-dependency`), skipping any the store already reported. |
 | `complete(id)` | A `Completion`: the done task, and the open tasks it made ready. |
+| `cancel(id, reason)` | Abandons an open task, recording why (spec §1.4). Does not unblock dependents. |
 | `remove(id, { force? })` | Fails with `HasDependents` while open tasks depend on the task, unless `force`. |
 | `add`, `update`, `move`, `reopen`, `renameGroup`, `comment`, `promote` | Delegate to the store, after the capability guard. |
 
