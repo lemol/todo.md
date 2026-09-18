@@ -27,7 +27,13 @@ describe("normalizeList", () => {
         ),
       )
       expect(yield* disk.read("done/02-ticked-by-hand.md")).toBe(
-        md("---", "title: Ticked by hand", "completed_at: 2026-09-12T10:31:00Z", "---"),
+        md(
+          "---",
+          "title: Ticked by hand",
+          "completed_at: 2026-09-12T10:31:00Z",
+          "outcome: completed",
+          "---",
+        ),
       )
     }),
     diskWith({
@@ -77,6 +83,7 @@ describe("normalizeList", () => {
           "title: Add rate limiting",
           "group: Backend",
           "completed_at: 2026-09-12T10:31:00Z",
+          "outcome: completed",
           "---",
           "Token bucket.",
         ),

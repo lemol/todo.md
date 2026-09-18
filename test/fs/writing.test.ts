@@ -87,6 +87,7 @@ describe("FsTodoStore writes the todo.md format", () => {
           "assignee: lemol",
           "group: Backend",
           "completed_at: 2026-09-12T10:31:00Z",
+          "outcome: completed",
           "---",
           "Users land on /home.",
         ),
@@ -107,10 +108,37 @@ describe("FsTodoStore writes the todo.md format", () => {
       expect(yield* disk.read("done/backend/02-add-rate-limiting.md")).toBe(
         rateLimiting.replace(
           "tags: [api]\n",
-          "tags: [api]\ngroup: Backend\ncompleted_at: 2026-09-12T10:31:00Z\n",
+          "tags: [api]\ngroup: Backend\ncompleted_at: 2026-09-12T10:31:00Z\noutcome: completed\n",
         ),
       )
       expect(yield* disk.exists("backend/02-add-rate-limiting.md")).toBe(false)
+    }),
+    list(),
+  )
+
+  effectTest(
+    "cancel writes an inline task to a done file with its outcome and reason, and removes its item",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      yield* at("2026-09-12T10:31:00Z")
+      yield* (yield* TodoStore).cancel("3", "Superseded by d47fcd2.")
+      expect(yield* disk.read("done/backend/03-fix-login-redirect.md")).toBe(
+        md(
+          "---",
+          "title: Fix login redirect",
+          "tags: [bug]",
+          "assignee: lemol",
+          "group: Backend",
+          "completed_at: 2026-09-12T10:31:00Z",
+          "outcome: cancelled",
+          "cancelled_reason: Superseded by d47fcd2.",
+          "---",
+          "Users land on /home.",
+        ),
+      )
+      expect(yield* disk.read("TODO.md")).toBe(
+        todo.replace("- [ ] 03 - Fix login redirect\n  #bug @lemol\n  Users land on /home.\n", ""),
+      )
     }),
     list(),
   )

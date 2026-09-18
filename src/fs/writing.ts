@@ -45,6 +45,7 @@ export const completeEntry = (
     const done: Task = {
       ...entryTask(entry),
       status: "done",
+      outcome: "completed",
       completedAt: yield* DateTime.now,
       group,
     }
@@ -55,6 +56,7 @@ export const completeEntry = (
         : updateTaskFile(entry.source, {
             group: group ?? null,
             completedAt: done.completedAt ?? null,
+            outcome: "completed",
             ...(entry.file?.title === undefined ? { title: done.title } : {}),
           })
     yield* files.write(donePath, source)
@@ -63,4 +65,43 @@ export const completeEntry = (
       yield* files.remove(original)
     yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
     return done
+  })
+
+/**
+ * Cancels an entry. Identical to `completeEntry` in file order (spec §2.10);
+ * what differs is the outcome and the recorded reason.
+ */
+export const cancelEntry = (
+  files: Files,
+  snapshot: Snapshot,
+  entry: Entry,
+  reason: string,
+): Effect.Effect<Task, StoreError> =>
+  Effect.gen(function* () {
+    const group = entry.section.name
+    const cancelled: Task = {
+      ...entryTask(entry),
+      status: "done",
+      outcome: "cancelled",
+      cancelledReason: reason,
+      completedAt: yield* DateTime.now,
+      group,
+    }
+    const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, cancelled.title)
+    const source =
+      entry.source === undefined
+        ? formatTaskFile(taskFileFor(cancelled))
+        : updateTaskFile(entry.source, {
+            group: group ?? null,
+            completedAt: cancelled.completedAt ?? null,
+            outcome: "cancelled",
+            cancelledReason: reason,
+            ...(entry.file?.title === undefined ? { title: cancelled.title } : {}),
+          })
+    yield* files.write(donePath, source)
+    const original = entry.item.path
+    if (entry.item.linked && original !== undefined && original !== donePath)
+      yield* files.remove(original)
+    yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
+    return cancelled
   })

@@ -45,7 +45,6 @@ import {
   TaskPatch,
   type TodoList,
   TodoStore,
-  Unsupported,
   unique,
   ValidationError,
   validate,
@@ -62,7 +61,7 @@ import {
   type Snapshot,
   todoPath,
 } from "./snapshot.ts"
-import { completeEntry, itemLinesFor } from "./writing.ts"
+import { cancelEntry, completeEntry, itemLinesFor } from "./writing.ts"
 
 export interface Options {
   /** Absolute path of the list root: the directory that contains `TODO.md`. */
@@ -190,8 +189,7 @@ const makeStore = (files: Files, options: Options) =>
       lock(normalizeList(files).pipe(Effect.andThen(read), Effect.flatMap(f)))
 
     return TodoStore.of({
-      // Cancelling arrives in a later task; until then the store says so (spec §1.5).
-      capabilities: { ...allCapabilities, cancel: false },
+      capabilities: allCapabilities,
 
       load: () => Effect.map(read, toList),
 
@@ -310,8 +308,14 @@ const makeStore = (files: Files, options: Options) =>
           ),
         ),
 
-      // Cancelling arrives in a later task; the capability above is already off.
-      cancel: () => Effect.fail(new Unsupported({ operation: "cancel" })),
+      cancel: (id, reason) =>
+        reason.trim() === ""
+          ? new ValidationError({ issues: [`cancelling task ${id} needs a reason`] })
+          : mutate((snapshot) =>
+              findOpen(snapshot, id, "cancel").pipe(
+                Effect.flatMap((entry) => cancelEntry(files, snapshot, entry, reason)),
+              ),
+            ),
 
       reopen: (id) =>
         mutate((snapshot) =>
@@ -329,14 +333,26 @@ const makeStore = (files: Files, options: Options) =>
               (candidate) => candidate.name !== undefined && candidate.name === task.group,
             )
             const group = section?.name
-            const reopened: Task = { ...task, status: "open", completedAt: undefined, group }
+            const reopened: Task = {
+              ...task,
+              status: "open",
+              completedAt: undefined,
+              outcome: undefined,
+              cancelledReason: undefined,
+              group,
+            }
             const path = taskPath(snapshot.todo.config.tasksDir, group, id, reopened.title)
             // The done file is the commit point, so it is deleted last (spec §2.10).
             const end = (section ?? snapshot.todo.sections[0])?.items.length ?? 0
             yield* writeTodo(insertItem(snapshot.todo, group, end, linkedItemFor(reopened, path)))
             yield* files.write(
               path,
-              updateTaskFile(done.source, { group: null, completedAt: null }),
+              updateTaskFile(done.source, {
+                group: null,
+                completedAt: null,
+                outcome: null,
+                cancelledReason: null,
+              }),
             )
             yield* files.remove(done.path)
             return reopened
