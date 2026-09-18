@@ -11,6 +11,8 @@ export const task = (fields: Partial<Task> & Pick<Task, "id">): Task => ({
   comments: [],
   group: undefined,
   completedAt: undefined,
+  outcome: undefined,
+  cancelledReason: undefined,
   extra: {},
   ...fields,
 })

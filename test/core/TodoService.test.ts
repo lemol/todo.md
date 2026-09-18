@@ -182,6 +182,7 @@ const limited = Layer.effect(
         renameGroup: false,
         comments: false,
         promote: false,
+        cancel: false,
       },
     })
   }),

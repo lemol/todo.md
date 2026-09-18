@@ -18,6 +18,10 @@ export type Handle = typeof Handle.Type
 export const TaskStatus = Schema.Literals(["open", "done"])
 export type TaskStatus = typeof TaskStatus.Type
 
+/** How a done task ended (spec §1.1). Absent on a done task means "completed". */
+export const TaskOutcome = Schema.Literals(["completed", "cancelled"])
+export type TaskOutcome = typeof TaskOutcome.Type
+
 export const Extra = Schema.Record(Schema.String, Schema.Unknown)
 export type Extra = typeof Extra.Type
 
@@ -33,12 +37,14 @@ export const Task = Schema.Struct({
   title: Label,
   description: Schema.String,
   status: TaskStatus,
+  outcome: Schema.optional(TaskOutcome),
   tags: Schema.Array(Label),
   assignee: Schema.optional(Label),
   dependsOn: Schema.Array(TaskId),
   comments: Schema.Array(Comment),
   group: Schema.optional(Label),
   completedAt: Schema.optional(Schema.DateTimeUtc),
+  cancelledReason: Schema.optional(Schema.String),
   extra: Extra,
 })
 export type Task = typeof Task.Type

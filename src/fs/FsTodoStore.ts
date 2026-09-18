@@ -189,7 +189,8 @@ const makeStore = (files: Files, options: Options) =>
       lock(normalizeList(files).pipe(Effect.andThen(read), Effect.flatMap(f)))
 
     return TodoStore.of({
-      capabilities: allCapabilities,
+      // Cancelling arrives in a later task; until then the store says so (spec §1.5).
+      capabilities: { ...allCapabilities, cancel: false },
 
       load: () => Effect.map(read, toList),
 

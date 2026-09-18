@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { Schema } from "effect"
-import { CommentInput, Label, TaskInput, TaskPatch } from "../../src/spec/model.ts"
+import { CommentInput, Label, Task, TaskInput, TaskPatch } from "../../src/spec/model.ts"
 
 const accepts = <S extends Schema.Top>(schema: S, value: unknown) =>
   expect(Schema.is(schema)(value)).toBe(true)
@@ -42,5 +42,31 @@ describe("CommentInput", () => {
     accepts(CommentInput, { author: "lemol", body: "Started." })
     rejects(CommentInput, { author: "le mol", body: "Started." })
     rejects(CommentInput, { author: "lemol", body: "" })
+  })
+})
+
+describe("Task outcome", () => {
+  const base = {
+    id: "1",
+    title: "Ship it",
+    description: "",
+    status: "done",
+    tags: [],
+    dependsOn: [],
+    comments: [],
+    extra: {},
+  }
+
+  test("a done task may be completed or cancelled", () => {
+    accepts(Task, { ...base, outcome: "completed" })
+    accepts(Task, { ...base, outcome: "cancelled", cancelledReason: "Superseded." })
+  })
+
+  test("an absent outcome is valid, and means completed", () => {
+    accepts(Task, base)
+  })
+
+  test("rejects an outcome the model does not define", () => {
+    rejects(Task, { ...base, outcome: "wontfix" })
   })
 })

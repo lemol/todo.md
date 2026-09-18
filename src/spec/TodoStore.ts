@@ -26,6 +26,7 @@ export const Capabilities = Schema.Struct({
   renameGroup: Schema.Boolean,
   comments: Schema.Boolean,
   promote: Schema.Boolean,
+  cancel: Schema.Boolean,
 })
 export type Capabilities = typeof Capabilities.Type
 
@@ -35,6 +36,7 @@ export const allCapabilities: Capabilities = {
   renameGroup: true,
   comments: true,
   promote: true,
+  cancel: true,
 }
 
 /**

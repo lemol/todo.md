@@ -87,6 +87,8 @@ A list contains only **open** tasks. Done tasks are reachable through `get` and
 | `comments`    | `Comment[]`          | Newest first.                                                             |
 | `group`       | string?              | Open: the containing group (absent if ungrouped). Done: the group at completion time. |
 | `completedAt` | DateTime?            | Absent while open. Set by `complete`. MAY be absent on a done task whose completion time is unknown, such as one ticked by hand (§2.4) and not yet normalized. |
+| `outcome`     | `completed` \| `cancelled` | Done tasks only. Absent on a done task means `completed`. |
+| `cancelledReason` | string?          | Why the task was abandoned. Set by `cancel`. MAY be absent on a task cancelled by hand and not yet normalized. |
 | `extra`       | map string → unknown | Fields this spec does not define. Implementations MUST preserve them.     |
 
 ### Comment
@@ -164,6 +166,7 @@ ordering). An implementation declares a set of capabilities:
 | `renameGroup` | `renameGroup` fails with `Unsupported`.                                               |
 | `comments`    | `comment` fails with `Unsupported`; `comments` is always empty.                       |
 | `promote`     | `promote` fails with `Unsupported`. A store whose tasks have no separate document declares it absent. |
+| `cancel`      | `cancel` fails with `Unsupported`; no task has outcome `cancelled`.                   |
 
 `load`, `get`, `listDone`, `add`, `update`, `complete`, `reopen` and `remove`
 are always required. Tools SHOULD hide unsupported operations rather than
