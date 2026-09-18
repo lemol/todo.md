@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import type { Capabilities } from "../../src/spec/index.ts"
 import { routes } from "../../src/web/app/routes.ts"
+import { showId } from "../../src/web/app/ui/format.ts"
 import { makeRouter, seed } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -86,7 +87,11 @@ describe("board contract", () => {
   })
 
   test("hides unsupported controls", async () => {
-    const { router, hubRuntime, project } = await openWith({ groups: false, comments: false })
+    const { router, hubRuntime, project } = await openWith({
+      groups: false,
+      comments: false,
+      cancel: false,
+    })
     const task = await seedDocs(hubRuntime, project)
 
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
@@ -96,6 +101,9 @@ describe("board contract", () => {
     expect(board).not.toContain('name="group"')
     expect(detail).not.toContain(
       `action="${routes.project.tasks.comments.href({ project, id: task.id })}"`,
+    )
+    expect(detail).not.toContain(
+      `action="${routes.project.tasks.cancel.href({ project, id: task.id })}"`,
     )
   })
 
@@ -199,6 +207,66 @@ describe("task forms and detail", () => {
         await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
       ).text(),
     ).toContain("Newest")
+  })
+
+  test("a cancelled task reads as cancelled with its reason; a completed task still reads as completed", async () => {
+    const { router, hubRuntime, project } = await open()
+    const cancelled = await seedDocs(hubRuntime, project)
+    await seed(hubRuntime, project, (todo) => todo.cancel(cancelled.id, "Superseded by d47fcd2."))
+    const completed = await seed(hubRuntime, project, (todo) => todo.add({ title: "Ship it" }))
+    await seed(hubRuntime, project, (todo) => todo.complete(completed.id))
+
+    const cancelledDetail = await (
+      await fetchApp(router, routes.project.tasks.show.href({ project, id: cancelled.id }))
+    ).text()
+    expect(cancelledDetail).toContain("Cancelled")
+    expect(cancelledDetail).toContain("Superseded by d47fcd2.")
+    expect(cancelledDetail).not.toContain("Completed")
+    expect(cancelledDetail).toContain(
+      `action="${routes.project.tasks.reopen.href({ project, id: cancelled.id })}"`,
+    )
+
+    const completedDetail = await (
+      await fetchApp(router, routes.project.tasks.show.href({ project, id: completed.id }))
+    ).text()
+    expect(completedDetail).toContain("Completed")
+    expect(completedDetail).not.toContain("Cancelled")
+  })
+
+  test("cancels an open task with a reason, flashing without a now-ready list", async () => {
+    const { router, hubRuntime, project } = await open()
+    const task = await seedDocs(hubRuntime, project)
+    const detail = await (
+      await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
+    ).text()
+    expect(detail).toContain(
+      `action="${routes.project.tasks.cancel.href({ project, id: task.id })}"`,
+    )
+
+    const cancelled = await post(
+      router,
+      routes.project.tasks.cancel.href({ project, id: task.id }),
+      {
+        reason: "No longer needed",
+        back: routes.project.tasks.show.href({ project, id: task.id }),
+      },
+    )
+    expect(cancelled.status).toBe(303)
+    const after = await fetchApp(router, required(cancelled.headers.get("location")), {
+      headers: { Cookie: cookieOf(cancelled) },
+    })
+    const afterHtml = await after.text()
+    expect(afterHtml).toContain(`Cancelled ${showId(task.id)}.`)
+    expect(afterHtml).not.toContain("Now ready")
+    expect(afterHtml).toContain("No longer needed")
+
+    const missingReason = await post(
+      router,
+      routes.project.tasks.cancel.href({ project, id: (await seedDocs(hubRuntime, project)).id }),
+      {},
+    )
+    expect(missingReason.status).toBe(400)
+    expect(await missingReason.text()).toContain("needs a reason")
   })
 
   test("re-renders add and edit forms with submitted values on validation errors", async () => {

@@ -24,6 +24,7 @@ export const routes = route({
       edit: get(":id/edit"),
       update: post(":id"),
       complete: post(":id/complete"),
+      cancel: post(":id/cancel"),
       reopen: post(":id/reopen"),
       comments: post(":id/comments"),
       move: post(":id/move"),

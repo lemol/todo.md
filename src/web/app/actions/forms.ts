@@ -54,6 +54,15 @@ export const parseCommentForm = (form: FormData) => ({
 })
 
 /**
+ * A blank reason is caught by the `reason` field's `required` attribute in
+ * the UI; if that's bypassed, the store rejects it with a `ValidationError`
+ * that the generic error page renders.
+ */
+export const parseCancelForm = (form: FormData) => ({
+  reason: value(form, "reason"),
+})
+
+/**
  * A board arrow sends `before` or `after`; the task page's form sends a target
  * `group` (or `__new__` with `newGroup`) and a `position`.
  */

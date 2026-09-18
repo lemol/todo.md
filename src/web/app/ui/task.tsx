@@ -12,7 +12,17 @@ const metadata = (task: Task, state: string): string => {
     ["Group", task.group ?? "Ungrouped"],
     ["Tags", task.tags.length === 0 ? "None" : task.tags.map((tag) => `#${tag}`).join(" ")],
     ["Assignee", task.assignee === undefined ? "Unassigned" : `@${task.assignee}`],
-    ...(task.status === "done" ? [["Completed", formatDate(task.completedAt)]] : []),
+    // Absent `outcome` on a done task means completed (spec §1.1): branch on
+    // "cancelled" explicitly so every historical done task keeps reading as
+    // completed.
+    ...(task.status === "done"
+      ? task.outcome === "cancelled"
+        ? [
+            ["Cancelled", formatDate(task.completedAt)],
+            ...(task.cancelledReason === undefined ? [] : [["Reason", task.cancelledReason]]),
+          ]
+        : [["Completed", formatDate(task.completedAt)]]
+      : []),
   ]
   return `<dl class="metadata">${facts.map(([label, value]) => `<div><dt>${label}</dt><dd><code>${escapeHtml(value)}</code></dd></div>`).join("")}</dl>`
 }
@@ -72,9 +82,13 @@ export const TaskPage = (options: {
         `<article class="comment"><div class="comment-by"><code>@${escapeHtml(comment.author)} · ${formatMinute(comment.at)}</code></div><div class="markdown">${markdownHtml(comment.body)}</div></article>`,
     )
     .join("")
+  const cancelForm =
+    task.status === "open" && options.capabilities.cancel
+      ? `<form class="cancel-form" method="post" action="${routes.project.tasks.cancel.href({ project, id: task.id })}"><input type="hidden" name="back" value="${routes.project.tasks.show.href({ project, id: task.id })}"><label>Reason <input name="reason" required></label><button class="secondary" type="submit">Cancel</button></form>`
+      : ""
   const transition =
     task.status === "open"
-      ? `<form method="post" action="${routes.project.tasks.complete.href({ project, id: task.id })}"><input type="hidden" name="back" value="${routes.project.tasks.show.href({ project, id: task.id })}"><button class="primary" type="submit">Complete</button></form>`
+      ? `<form method="post" action="${routes.project.tasks.complete.href({ project, id: task.id })}"><input type="hidden" name="back" value="${routes.project.tasks.show.href({ project, id: task.id })}"><button class="primary" type="submit">Complete</button></form>${cancelForm}`
       : `<form method="post" action="${routes.project.tasks.reopen.href({ project, id: task.id })}"><button class="primary" type="submit">Reopen</button></form>`
   const commentForm = options.capabilities.comments
     ? `<form class="comment-form" method="post" action="${routes.project.tasks.comments.href({ project, id: task.id })}"><label>Author <input name="author" value="${escapeHtml(options.author)}" required></label><label>Comment <textarea name="body" required></textarea></label><button class="primary" type="submit">Comment</button></form>`

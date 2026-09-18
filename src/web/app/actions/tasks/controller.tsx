@@ -14,6 +14,7 @@ import {
   localBack,
   normalizeDependencies,
   parseAddForm,
+  parseCancelForm,
   parseCommentForm,
   parseEditForm,
   parseMoveForm,
@@ -240,6 +241,31 @@ export const createTasksController = (options: {
             message: `Completed ${showId(result.value.task.id)}.${
               unblocked === "" ? "" : ` Now ready: ${unblocked}`
             }`,
+            tone: "info",
+          })
+          return redirect(back, 303)
+        } catch (defect) {
+          return respondDefect(context, defect)
+        }
+      },
+
+      cancel: async (context) => {
+        try {
+          const project = projectOf(context)
+          const form = formOf(context)
+          const back = localBack(form.get("back")?.toString(), project)
+          const values = parseCancelForm(form)
+          const result = await runTodo(runtimeContext(context), (todo) =>
+            todo.cancel(idOf(context), values.reason),
+          )
+          if (!result.ok) {
+            if (tagOf(result.error) !== "InvalidTransition") return respond(context, result.error)
+            setFlash(context, { message: errorDescription(result.error), tone: "warning" })
+            return redirect(back, 303)
+          }
+          // Unlike complete, cancelling unblocks nothing: no "now ready" list.
+          setFlash(context, {
+            message: `Cancelled ${showId(result.value.id)}.`,
             tone: "info",
           })
           return redirect(back, 303)
