@@ -113,7 +113,9 @@ A list contains only **open** tasks. Done tasks are reachable through `get` and
 
 These are computed, never stored:
 
-- A dependency is **satisfied** when it refers to a done task.
+- A dependency is **satisfied** when it refers to a task that is done with
+  outcome `completed`. A dependency on a cancelled task is unsatisfied, and it
+  is also reported as a diagnostic (§1.6).
 - A task is **ready** when it is open and all its dependencies are satisfied.
 - A task is **blocked** when it is open and not ready. A dependency on an
   unknown ID is unsatisfied, and it is also reported as a validation error

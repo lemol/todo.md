@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { allTasks, boardOf, inPriorityOrder, viewOf } from "../../src/core/views.ts"
+import { allTasks, boardOf, inPriorityOrder, view, viewOf } from "../../src/core/views.ts"
 import { task } from "./fixtures.ts"
 
 describe("viewOf", () => {
@@ -45,6 +45,26 @@ describe("boards", () => {
   test("a board knows every task and the done IDs", () => {
     const board = boardOf(list, [task({ id: "5", status: "done" })])
     expect(allTasks(board).map((t) => t.id)).toEqual(["1", "2", "3", "4", "5"])
-    expect(board.doneIds).toEqual(new Set(["5"]))
+    expect(board.satisfiedIds).toEqual(new Set(["5"]))
+  })
+
+  test("a cancelled task does not satisfy a dependency on it", () => {
+    const board = boardOf(
+      { title: "T", description: "", ungrouped: [task({ id: "6", dependsOn: ["5"] })], groups: [] },
+      [task({ id: "5", status: "done", outcome: "cancelled", cancelledReason: "Dropped." })],
+    )
+    expect(board.satisfiedIds).toEqual(new Set())
+    expect(view(board)(task({ id: "6", dependsOn: ["5"] }))).toMatchObject({
+      state: "blocked",
+      blockedBy: ["5"],
+    })
+  })
+
+  test("a completed task does satisfy it, with or without an explicit outcome", () => {
+    const board = boardOf({ title: "T", description: "", ungrouped: [], groups: [] }, [
+      task({ id: "7", status: "done", outcome: "completed" }),
+      task({ id: "8", status: "done" }),
+    ])
+    expect(board.satisfiedIds).toEqual(new Set(["7", "8"]))
   })
 })

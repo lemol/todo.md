@@ -7,7 +7,7 @@ export type TaskState = "ready" | "blocked" | "done"
 export interface TaskView {
   readonly task: Task
   readonly state: TaskState
-  /** Dependencies that are not done yet, including unknown IDs; empty unless blocked. */
+  /** Dependencies that are not satisfied yet, including cancelled and unknown IDs; empty unless blocked. */
   readonly blockedBy: ReadonlyArray<TaskId>
 }
 
@@ -18,10 +18,10 @@ export interface SectionView {
   readonly tasks: ReadonlyArray<TaskView>
 }
 
-/** The derived state of `task`, given the IDs of all done tasks. */
-export const viewOf = (task: Task, doneIds: ReadonlySet<TaskId>): TaskView => {
+/** The derived state of `task`, given the IDs of all tasks that satisfy a dependency. */
+export const viewOf = (task: Task, satisfiedIds: ReadonlySet<TaskId>): TaskView => {
   if (task.status === "done") return { task, state: "done", blockedBy: [] }
-  const blockedBy = task.dependsOn.filter((id) => !doneIds.has(id))
+  const blockedBy = task.dependsOn.filter((id) => !satisfiedIds.has(id))
   return { task, state: blockedBy.length === 0 ? "ready" : "blocked", blockedBy }
 }
 
@@ -35,13 +35,18 @@ export const inPriorityOrder = (list: TodoList): ReadonlyArray<Task> => [
 export interface Board {
   readonly list: TodoList
   readonly done: ReadonlyArray<Task>
-  readonly doneIds: ReadonlySet<TaskId>
+  /**
+   * The IDs that satisfy a dependency (spec §1.3): done tasks whose outcome is
+   * `completed`. A cancelled task is done but never arrived, so depending on
+   * one stays blocked — `core/check.ts` reports it.
+   */
+  readonly satisfiedIds: ReadonlySet<TaskId>
 }
 
 export const boardOf = (list: TodoList, done: ReadonlyArray<Task>): Board => ({
   list,
   done,
-  doneIds: new Set(done.map((task) => task.id)),
+  satisfiedIds: new Set(done.filter((task) => task.outcome !== "cancelled").map((task) => task.id)),
 })
 
 /** All tasks on the board, open (in priority order) then done. */
@@ -53,4 +58,4 @@ export const allTasks = (board: Board): ReadonlyArray<Task> => [
 export const view =
   (board: Board) =>
   (task: Task): TaskView =>
-    viewOf(task, board.doneIds)
+    viewOf(task, board.satisfiedIds)
