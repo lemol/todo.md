@@ -18,6 +18,10 @@ export interface TaskFileContent {
   /** Done files only. */
   readonly group: string | undefined
   readonly completedAt: DateTime.Utc | undefined
+  /** Done files only. Absent means `completed` (spec §1.1). */
+  readonly outcome: "completed" | "cancelled" | undefined
+  /** Cancelled files only. */
+  readonly cancelledReason: string | undefined
 }
 
 /** A parsed task file. `title` is `undefined` when the frontmatter has none. */
@@ -26,7 +30,16 @@ export interface TaskFile extends Omit<TaskFileContent, "title"> {
   readonly diagnostics: ReadonlyArray<Diagnostic>
 }
 
-const standardKeys = new Set(["title", "tags", "assignee", "depends_on", "completed_at", "group"])
+const standardKeys = new Set([
+  "title",
+  "tags",
+  "assignee",
+  "depends_on",
+  "completed_at",
+  "group",
+  "outcome",
+  "cancelled_reason",
+])
 
 /** `2026-09-12T10:31:00Z`: the frontmatter form of an instant. */
 export const formatInstant = (at: DateTime.Utc): string =>
@@ -112,6 +125,12 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
   if (completedText !== undefined && completedAt === undefined)
     invalid("completed_at", "an ISO 8601 timestamp")
 
+  const outcomeText = stringField("outcome")
+  const outcome =
+    outcomeText === "completed" || outcomeText === "cancelled" ? outcomeText : undefined
+  if (outcomeText !== undefined && outcome === undefined)
+    invalid("outcome", "`completed` or `cancelled`")
+
   const comments: Comment[] = []
   if (commentsLine !== undefined) {
     const headings = tree.children.filter(
@@ -147,6 +166,8 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
     comments,
     group: stringField("group"),
     completedAt: completedAt === undefined ? undefined : DateTime.toUtc(completedAt),
+    outcome,
+    cancelledReason: stringField("cancelled_reason"),
     diagnostics,
   }
 }
@@ -172,6 +193,10 @@ const entries = (content: Partial<TaskFileContent>): Array<readonly [string, unk
   ...(content.completedAt === undefined
     ? []
     : [["completed_at", formatInstant(content.completedAt)] as const]),
+  ...(content.outcome === undefined ? [] : [["outcome", content.outcome] as const]),
+  ...(content.cancelledReason === undefined
+    ? []
+    : [["cancelled_reason", content.cancelledReason] as const]),
 ]
 
 /** A new task file for `content` (spec §2.6). */
@@ -201,6 +226,8 @@ export interface TaskFileChanges {
   readonly description?: string
   readonly group?: string | null
   readonly completedAt?: DateTime.Utc | null
+  readonly outcome?: "completed" | "cancelled" | null
+  readonly cancelledReason?: string | null
 }
 
 /** Applies `changes`, rewriting only the frontmatter keys and description that change (spec §2.10). */
@@ -232,6 +259,12 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
   if (changes.completedAt !== undefined) {
     fields.completed_at =
       changes.completedAt === null ? undefined : formatInstant(changes.completedAt)
+  }
+  if (changes.outcome !== undefined) {
+    fields.outcome = changes.outcome === null ? undefined : changes.outcome
+  }
+  if (changes.cancelledReason !== undefined) {
+    fields.cancelled_reason = changes.cancelledReason === null ? undefined : changes.cancelledReason
   }
 
   if (Object.keys(fields).length > 0) {

@@ -117,6 +117,33 @@ describe("parseTaskFile", () => {
     expect(file.comments).toEqual([])
     expect(file.description).toBe("## Comments\n\ntext\n\n## Later")
   })
+
+  test("reads a cancelled task's outcome and reason", () => {
+    const cancelled = parseTaskFile(
+      md(
+        "---",
+        "title: Drop this",
+        "completed_at: 2026-09-18T19:13:18Z",
+        "outcome: cancelled",
+        "cancelled_reason: Superseded by d47fcd2.",
+        "---",
+      ),
+      "f.md",
+    )
+    expect(cancelled.outcome).toBe("cancelled")
+    expect(cancelled.cancelledReason).toBe("Superseded by d47fcd2.")
+    expect(cancelled.extra).toEqual({})
+    expect(cancelled.diagnostics).toEqual([])
+  })
+
+  test("an outcome the model does not define is invalid frontmatter", () => {
+    const invalid = parseTaskFile(
+      md("---", "title: T", "completed_at: 2026-09-18T19:13:18Z", "outcome: wontfix", "---"),
+      "f.md",
+    )
+    expect(invalid.outcome).toBeUndefined()
+    expect(invalid.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
+  })
 })
 
 describe("timestamps", () => {
@@ -144,6 +171,8 @@ const content: TaskFileContent = {
   comments: [{ author: "lemol", at: utc("2026-09-12T12:00:00Z"), body: "Found it." }],
   group: "Backend",
   completedAt: utc("2026-09-12T10:31:00Z"),
+  outcome: undefined,
+  cancelledReason: undefined,
 }
 
 describe("formatTaskFile", () => {
@@ -189,6 +218,25 @@ describe("formatTaskFile", () => {
     const { diagnostics, ...parsed } = parseTaskFile(formatTaskFile(content), "f.md")
     expect(diagnostics).toEqual([])
     expect(parsed).toEqual(content)
+  })
+
+  test("writes the outcome and reason after completed_at", () => {
+    const source = formatTaskFile({
+      title: "Drop this",
+      tags: [],
+      assignee: undefined,
+      dependsOn: [],
+      extra: {},
+      description: "",
+      comments: [],
+      group: undefined,
+      completedAt: utc("2026-09-18T19:13:18Z"),
+      outcome: "cancelled",
+      cancelledReason: "Superseded by d47fcd2.",
+    })
+    expect(source).toContain("completed_at: 2026-09-18T19:13:18Z")
+    expect(source).toContain("outcome: cancelled")
+    expect(source).toContain("cancelled_reason: Superseded by d47fcd2.")
   })
 })
 

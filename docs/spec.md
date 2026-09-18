@@ -343,9 +343,9 @@ Otherwise the line is ordinary description.
 - **Equivalent forms.** `tags:a,b` is the same as `#a #b`, and
   `assignee:lemol` is the same as `@lemol`. Writers use the `#` and `@`
   forms.
-- **Reserved keys.** `title`, `completed_at`, `group` and `id` MUST NOT
-  appear on a metadata line. Parsers ignore them and report a
-  `reserved-field` diagnostic (error).
+- **Reserved keys.** `title`, `completed_at`, `group`, `id`, `outcome` and
+  `cancelled_reason` MUST NOT appear on a metadata line. Parsers ignore them
+  and report a `reserved-field` diagnostic (error).
 - **Multiple assignees.** More than one `@name` is a `multiple-assignees`
   diagnostic (error); parsers use the first.
 - **Invalid values.** A `depends_on` value that is not a comma-separated list
@@ -395,6 +395,11 @@ YAML between `---` lines at the start of the file.
 | `depends_on`   | list of IDs           | Integers or digit strings; a single value is accepted.                   |
 | `completed_at` | timestamp             | Done files only; REQUIRED there. ISO 8601 with offset.                   |
 | `group`        | string                | Done files only: the group display name at completion.                   |
+| `outcome`      | `completed` \| `cancelled` | Done files only. Absent means `completed`. Any other value is `invalid-frontmatter`. |
+| `cancelled_reason` | string            | Cancelled files only.                                                   |
+
+Either key in an open task's file is `invalid-frontmatter` (error), and the
+field is ignored.
 
 - Any other field goes to `extra` and MUST be preserved, including comments
   and key order where possible.

@@ -16,6 +16,8 @@ export const inlineTask = (item: TodoItem, id: TaskId, group: string | undefined
   comments: [],
   group,
   completedAt: undefined,
+  outcome: undefined,
+  cancelledReason: undefined,
   extra: item.fields.extra,
 })
 
@@ -43,6 +45,8 @@ export const fileTask = (
   comments: file.comments,
   group: options.group,
   completedAt: file.completedAt,
+  outcome: file.outcome,
+  cancelledReason: file.cancelledReason,
   extra: file.extra,
 })
 
@@ -70,7 +74,10 @@ export const inlineItemFor = (task: Task): string[] =>
 export const linkedItemFor = (task: Task, path: string): string[] =>
   formatLinkedItem({ id: task.id, title: task.title, path })
 
-/** The task file content for a task; `group` and `completedAt` are written only for done tasks. */
+/**
+ * The task file content for a task; `group`, `completedAt`, `outcome` and
+ * `cancelledReason` are written only for done tasks.
+ */
 export const taskFileFor = (task: Task): TaskFileContent => ({
   title: task.title,
   tags: task.tags,
@@ -81,4 +88,6 @@ export const taskFileFor = (task: Task): TaskFileContent => ({
   comments: task.comments,
   group: task.status === "done" ? task.group : undefined,
   completedAt: task.status === "done" ? task.completedAt : undefined,
+  outcome: task.status === "done" ? task.outcome : undefined,
+  cancelledReason: task.status === "done" ? task.cancelledReason : undefined,
 })
