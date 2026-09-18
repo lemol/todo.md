@@ -156,6 +156,8 @@ const resolve = (
 export interface Options {
   readonly title?: string
   readonly description?: string
+  /** Set to `false` to exercise the absent path for the `cancel` capability. */
+  readonly cancel?: boolean
 }
 
 /** Builds a fresh, empty in-memory store each time the layer is provided. */
@@ -180,7 +182,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
       return TodoStore.of({
         // Promotion moves a task's detail into its own document; this store has
         // no documents to move it into (spec §1.5).
-        capabilities: { ...allCapabilities, promote: false },
+        capabilities: { ...allCapabilities, promote: false, cancel: options.cancel ?? true },
 
         load: () =>
           Effect.map(read, (state): TodoList => {
@@ -284,25 +286,27 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
           ),
 
         cancel: (id, reason) =>
-          transact((state) =>
-            Effect.gen(function* () {
-              if (reason.trim() === "") {
-                return yield* new ValidationError({
-                  issues: [`cancelling task ${id} needs a reason`],
-                })
-              }
-              const { task } = yield* findOpen(state, id, "cancel")
-              const cancelled: Task = {
-                ...task,
-                status: "done",
-                outcome: "cancelled",
-                cancelledReason: reason,
-                completedAt: yield* DateTime.now,
-              }
-              const rest = withoutTask(state, id)
-              return [cancelled, { ...rest, done: [cancelled, ...rest.done] }] as const
-            }),
-          ),
+          options.cancel === false
+            ? Effect.fail(new Unsupported({ operation: "cancel" }))
+            : transact((state) =>
+                Effect.gen(function* () {
+                  if (reason.trim() === "") {
+                    return yield* new ValidationError({
+                      issues: [`cancelling task ${id} needs a reason`],
+                    })
+                  }
+                  const { task } = yield* findOpen(state, id, "cancel")
+                  const cancelled: Task = {
+                    ...task,
+                    status: "done",
+                    outcome: "cancelled",
+                    cancelledReason: reason,
+                    completedAt: yield* DateTime.now,
+                  }
+                  const rest = withoutTask(state, id)
+                  return [cancelled, { ...rest, done: [cancelled, ...rest.done] }] as const
+                }),
+              ),
 
         reopen: (id) =>
           transact((state) =>

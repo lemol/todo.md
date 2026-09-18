@@ -3,6 +3,7 @@ import { Effect, type Layer } from "effect"
 import { TodoStore } from "../../TodoStore.ts"
 import { effectTest } from "../effectTest.ts"
 import { addingCases } from "./adding.ts"
+import { cancellingCases } from "./cancelling.ts"
 import type { ConformanceCase } from "./case.ts"
 import { commentCases } from "./comments.ts"
 import { groupCases } from "./groups.ts"
@@ -19,6 +20,7 @@ export const conformanceCases: ReadonlyArray<ConformanceCase> = [
   ...updatingCases,
   ...movingCases,
   ...lifecycleCases,
+  ...cancellingCases,
   ...groupCases,
   ...commentCases,
   ...promotionCases,

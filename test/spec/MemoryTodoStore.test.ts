@@ -5,6 +5,7 @@ import { allCapabilities, TodoStore } from "../../src/spec/TodoStore.ts"
 import { effectTest, runConformance } from "../../src/spec/testing.ts"
 
 runConformance("MemoryTodoStore", MemoryTodoStore.layer())
+runConformance("MemoryTodoStore without cancel", MemoryTodoStore.layer({ cancel: false }))
 
 describe("MemoryTodoStore", () => {
   effectTest(
