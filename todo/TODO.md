@@ -1,7 +1,5 @@
 # todo.md
 
-- [ ] 12 - Register repos/todo-md/apps/* in lemol-workspace
-  #web
 - [ ] [22 - Read comment text from stdin](./22-read-comment-text-from-stdin.md)
 
 ## Hub and sources
