@@ -10,30 +10,109 @@ const showJson = (id: string) =>
 
 describe("todo add", () => {
   effectTest(
-    "adds a task with the next free ID, joining unquoted words",
+    "adds a task in its own file, joining unquoted words",
     Effect.gen(function* () {
-      const result = yield* todo("add", "Ship", "it", "--group", "Backend", "--tag", "release")
+      const result = yield* todo(
+        "add",
+        "Ship",
+        "it",
+        "--group",
+        "Backend",
+        "--no-description",
+        "--tag",
+        "release",
+      )
       expect(result).toEqual({ code: 0, stdout: "Added 06  Ship it to Backend", stderr: "" })
-      expect(yield* (yield* Disk).read("TODO.md")).toContain("- [ ] 06 - Ship it\n  #release\n")
+      const disk = yield* Disk
+      expect(yield* disk.read("TODO.md")).toContain(
+        "- [ ] [06 - Ship it](./backend/06-ship-it.md)\n",
+      )
+      expect(yield* disk.read("backend/06-ship-it.md")).toBe(
+        md("---", "title: Ship it", "tags: [release]", "---"),
+      )
     }),
     diskWith(acme),
   )
 
   effectTest(
-    "accepts padded IDs for dependencies and anchors, and prints JSON",
+    "keeps it inline with --quick, and with --inline",
     Effect.gen(function* () {
-      const result = yield* todo(
+      expect((yield* todo("add", "Write", "notes", "--quick")).stdout).toBe("Added 06  Write notes")
+      const inline = yield* todo(
         "add",
-        "Load test",
-        "--depends-on",
-        "02",
-        "--before",
-        "03",
-        "--json",
+        "Bump deps",
+        "--group",
+        "Backend",
+        "--no-description",
+        "--inline",
+        "--tag",
+        "ops",
+      )
+      expect(inline.code).toBe(0)
+      const text = yield* (yield* Disk).read("TODO.md")
+      expect(text).toContain("- [ ] 06 - Write notes\n")
+      expect(text).toContain("- [ ] 07 - Bump deps\n  #ops\n")
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "lets an explicit flag override the part --quick would have decided",
+    Effect.gen(function* () {
+      expect((yield* todo("add", "Ship it", "--quick", "--group", "Backend")).stdout).toBe(
+        "Added 06  Ship it to Backend",
+      )
+      expect(yield* (yield* Disk).read("TODO.md")).toContain("- [ ] 06 - Ship it\n")
+      expect((yield* todo("add", "Log it", "--quick", "--file")).code).toBe(0)
+      expect(yield* (yield* Disk).exists("07-log-it.md")).toBe(true)
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "makes you decide where it goes and what it is",
+    Effect.gen(function* () {
+      const placed = yield* todo("add", "Try it")
+      expect(placed.code).toBe(2)
+      expect(placed.stderr).toBe(
+        "error: say where it goes: --group <name>, --no-group, --before or --after",
+      )
+      const described = yield* todo("add", "Try it", "--no-group")
+      expect(described.code).toBe(2)
+      expect(described.stderr).toContain("say what it is: --description <text>")
+      for (const args of [
+        ["--group", "Backend", "--no-group"],
+        ["--no-group", "--description", "x", "--no-description"],
+        ["--no-group", "--no-description", "--file", "--inline"],
+      ]) {
+        expect((yield* todo("add", "Try it", ...args)).code, args.join(" ")).toBe(2)
+      }
+      expect(yield* (yield* Disk).read("TODO.md")).toBe(acme["TODO.md"])
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "takes an anchor as the placement decision, and prints JSON",
+    Effect.gen(function* () {
+      const result = yield* runTodo(
+        [
+          "add",
+          "Load test",
+          "--depends-on",
+          "02",
+          "--before",
+          "03",
+          "--description",
+          "-",
+          "--json",
+        ],
+        { stdin: "Hammer it.\n" },
       )
       expect(JSON.parse(result.stdout)).toMatchObject({
         id: "6",
         title: "Load test",
+        description: "Hammer it.\n",
         dependsOn: ["2"],
         group: "Backend",
       })
@@ -47,7 +126,91 @@ describe("todo add", () => {
   effectTest(
     "fails for an unknown anchor",
     Effect.gen(function* () {
-      expect(yield* todo("add", "X", "--after", "99")).toEqual({
+      expect(yield* todo("add", "X", "--after", "99", "--no-description")).toEqual({
+        code: 1,
+        stdout: "",
+        stderr: "error: no task 99",
+      })
+    }),
+    diskWith(acme),
+  )
+})
+
+describe("todo add --description -", () => {
+  const body = "Run `git rev-parse HEAD` and $(date), \"quoted\" and 'single'.\n\n- A list\n"
+
+  effectTest(
+    "writes what was piped in byte for byte",
+    Effect.gen(function* () {
+      const result = yield* runTodo(
+        ["add", "Record the cause", "--group", "Backend", "--description", "-"],
+        { stdin: body },
+      )
+      expect(result).toEqual({
+        code: 0,
+        stdout: "Added 06  Record the cause to Backend",
+        stderr: "",
+      })
+      expect(yield* (yield* Disk).read("backend/06-record-the-cause.md")).toBe(
+        md("---", "title: Record the cause", "---", body.trimEnd()),
+      )
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "says so when nothing was piped in, rather than writing an empty description",
+    Effect.gen(function* () {
+      const result = yield* todo("add", "Record it", "--no-group", "--description", "-")
+      expect(result.code).toBe(2)
+      expect(result.stderr).toBe(
+        "error: --description - got nothing on stdin; pipe the text in, or use --no-description for none",
+      )
+      expect(yield* (yield* Disk).read("TODO.md")).toBe(acme["TODO.md"])
+    }),
+    diskWith(acme),
+  )
+})
+
+describe("todo promote", () => {
+  effectTest(
+    "moves an inline task into its own file and leaves a link",
+    Effect.gen(function* () {
+      const result = yield* todo("promote", "3")
+      expect(result).toEqual({
+        code: 0,
+        stdout: "03  Fix login redirect now has its own file",
+        stderr: "",
+      })
+      const disk = yield* Disk
+      expect(yield* disk.read("backend/03-fix-login-redirect.md")).toBe(
+        md(
+          "---",
+          "title: Fix login redirect",
+          "tags: [bug]",
+          "assignee: lemol",
+          "depends_on: [2]",
+          "---",
+          "Users land on /home.",
+        ),
+      )
+      expect(yield* disk.read("TODO.md")).toContain(
+        "- [ ] [03 - Fix login redirect](./backend/03-fix-login-redirect.md)\n",
+      )
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "says the same thing for a task that already has one, and reports unknown IDs",
+    Effect.gen(function* () {
+      expect((yield* todo("promote", "2")).stdout).toBe(
+        "02  Add rate limiting now has its own file",
+      )
+      expect(yield* (yield* Disk).read("backend/02-add-rate-limiting.md")).toBe(
+        acme["backend/02-add-rate-limiting.md"],
+      )
+      expect(yield* todo("promote", "99")).toEqual({
         code: 1,
         stdout: "",
         stderr: "error: no task 99",
@@ -94,6 +257,29 @@ describe("todo edit", () => {
         "error: nothing to change; pass --title, --tag, --assignee or another change",
       )
       expect((yield* todo("edit", "3", "--assignee", "a", "--unassign")).code).toBe(2)
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "--file moves the task into its own file, with a description read from stdin",
+    Effect.gen(function* () {
+      const result = yield* runTodo(["edit", "3", "--file", "--description", "-"], {
+        stdin: "The referrer is dropped by `redirect()`.\n",
+      })
+      expect(result.stdout).toBe("Updated 03  Fix login redirect")
+      expect(yield* (yield* Disk).read("backend/03-fix-login-redirect.md")).toContain(
+        "The referrer is dropped by `redirect()`.",
+      )
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "--file on its own is enough of a change",
+    Effect.gen(function* () {
+      expect((yield* todo("edit", "1", "--file")).code).toBe(0)
+      expect(yield* (yield* Disk).exists("01-write-changelog.md")).toBe(true)
     }),
     diskWith(acme),
   )

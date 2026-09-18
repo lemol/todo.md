@@ -4,7 +4,7 @@ import { Hub } from "../hub/index.ts"
 import { fmt, init } from "./commands/lists.ts"
 import { projects, sync } from "./commands/projects.ts"
 import { check, list, next, show, showList } from "./commands/query.ts"
-import { add, comment, done, edit, mv, reopen, rm } from "./commands/tasks.ts"
+import { add, comment, done, edit, mv, promote, reopen, rm } from "./commands/tasks.ts"
 import { web } from "./commands/web.ts"
 import { CliContext, Dir, Json, Project } from "./context.ts"
 import { describeError, errorJson, exitCodeOf } from "./errors.ts"
@@ -16,7 +16,10 @@ export const todo = Command.make("todo", {}, () => showList()).pipe(
   Command.withDescription("Manage a todo.md task list: plain Markdown for humans and agents"),
   Command.withExamples([
     { command: "todo", description: "Show the open tasks (same as `todo list`)" },
-    { command: "todo add Fix the login redirect --group Backend", description: "Add a task" },
+    {
+      command: "todo add Fix the login redirect --group Backend --no-description",
+      description: "Add a task",
+    },
     { command: "todo next --json", description: "What to work on next, as JSON" },
     { command: "todo done 3", description: "Complete task 03" },
     { command: "todo <command> --help", description: "Help for any command" },
@@ -31,6 +34,7 @@ export const todo = Command.make("todo", {}, () => showList()).pipe(
     reopen,
     mv,
     rm,
+    promote,
     comment,
     check,
     init,

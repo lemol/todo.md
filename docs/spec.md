@@ -146,6 +146,7 @@ Every implementation provides the operations below. "Placement" is
 | `remove(id)`               | Permanently deletes an open or done task. Version control is the history.                                                                   | `TaskNotFound`                                          |
 | `renameGroup(from, to)`    | Renames an open group. Done tasks keep the name recorded at completion.                                                                     | `GroupNotFound`, `ValidationError` (`to` exists), `Unsupported` |
 | `comment(id, input)`       | Adds a comment `{ author, body }` with `at` = now, newest first. Works on open and done tasks.                                               | `TaskNotFound`, `ValidationError`, `Unsupported`        |
+| `promote(id)`              | Gives the task its own document (§2.9), leaving what the task *is* unchanged. A no-op when it already has one.                              | `TaskNotFound`, `Unsupported`                           |
 
 Operations MUST be atomic from the caller's point of view: an operation that
 fails MUST leave the list unchanged. For multi-file backends, §2.10 describes
@@ -162,6 +163,7 @@ ordering). An implementation declares a set of capabilities:
 | `reorder`     | `move` and placement anchors fail with `Unsupported`.                                 |
 | `renameGroup` | `renameGroup` fails with `Unsupported`.                                               |
 | `comments`    | `comment` fails with `Unsupported`; `comments` is always empty.                       |
+| `promote`     | `promote` fails with `Unsupported`. A store whose tasks have no separate document declares it absent. |
 
 `load`, `get`, `listDone`, `add`, `update`, `complete`, `reopen` and `remove`
 are always required. Tools SHOULD hide unsupported operations rather than
@@ -481,8 +483,9 @@ YAML between `---` lines at the start of the file.
   - on completion;
   - when a value cannot be written as a metadata token (§2.5).
 
-  Writers MAY also promote on request or when a description grows long.
-  Writers do not demote file-backed tasks automatically.
+  Writers MAY also promote on request or when a description grows long. The
+  `promote` operation (§1.4) is that request; there is no demote, and writers
+  do not demote file-backed tasks automatically.
 
 ## 2.10 Operations in the format
 
@@ -551,6 +554,9 @@ point: `complete` writes it first, and `reopen` deletes it last.
 
   Files outside the old directory stay where they are. Done files are not
   touched.
+- **promote:** perform the promotion of §2.9, and nothing else. A task that
+  is already file-backed, or done and so already in its done file, is left
+  alone.
 - **comment:**
   1. Promote the task if it is inline.
   2. Create the `## Comments` section at the end of the file if missing.

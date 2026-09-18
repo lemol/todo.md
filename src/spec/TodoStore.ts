@@ -25,6 +25,7 @@ export const Capabilities = Schema.Struct({
   reorder: Schema.Boolean,
   renameGroup: Schema.Boolean,
   comments: Schema.Boolean,
+  promote: Schema.Boolean,
 })
 export type Capabilities = typeof Capabilities.Type
 
@@ -33,6 +34,7 @@ export const allCapabilities: Capabilities = {
   reorder: true,
   renameGroup: true,
   comments: true,
+  promote: true,
 }
 
 /**
@@ -72,6 +74,8 @@ export class TodoStore extends Context.Service<
       id: TaskId,
       input: CommentInput,
     ): Effect.Effect<Comment, TaskNotFound | ValidationError | Unsupported | StoreError>
+    /** Gives the task its own document (spec §2.9); a no-op when it already has one. */
+    promote(id: TaskId): Effect.Effect<Task, TaskNotFound | Unsupported | StoreError>
     diagnostics(): Effect.Effect<ReadonlyArray<Diagnostic>, StoreError>
   }
 >()("@lemol/todo-md/spec/TodoStore") {}

@@ -18,7 +18,7 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 | `check()` | The store's diagnostics plus the model checks of spec §1.6 (`duplicate-id`, `unknown-dependency`, `self-dependency`, `dependency-cycle`), skipping any the store already reported. |
 | `complete(id)` | A `Completion`: the done task, and the open tasks it made ready. |
 | `remove(id, { force? })` | Fails with `HasDependents` while open tasks depend on the task, unless `force`. |
-| `add`, `update`, `move`, `reopen`, `renameGroup`, `comment` | Delegate to the store, after the capability guard. |
+| `add`, `update`, `move`, `reopen`, `renameGroup`, `comment`, `promote` | Delegate to the store, after the capability guard. |
 
 **Views.** Every task comes back as a `TaskView`:
 
@@ -40,7 +40,8 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 - a placement that names a group needs `groups`;
 - anchors and `move` need `reorder`;
 - `renameGroup` needs `renameGroup`;
-- `comment` needs `comments`.
+- `comment` needs `comments`;
+- `promote` needs `promote`.
 
 **Cycles.** Rejecting a new self-dependency or cycle is the store's job
 (spec §1.6, covered by the conformance suite), so `core` does not repeat it.

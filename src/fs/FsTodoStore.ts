@@ -433,6 +433,21 @@ const makeStore = (files: Files, options: Options) =>
           ),
         ),
 
+      promote: (id) =>
+        mutate((snapshot) =>
+          Effect.gen(function* () {
+            const task = yield* findTask(snapshot, id)
+            // A linked item already has its file, and a done task lives in its
+            // done file: either way there is nothing left to promote (§2.9).
+            const entry = snapshot.entries.find((candidate) => candidate.id === id)
+            if (entry === undefined || entry.item.linked) return task
+            const path = taskPath(snapshot.todo.config.tasksDir, task.group, task.id, task.title)
+            const lines = yield* itemLinesFor(files, snapshot.todo.config, task, path)
+            yield* writeTodo(replaceItem(snapshot.todo, entry.item, lines))
+            return task
+          }),
+        ),
+
       diagnostics: () => Effect.map(read, (snapshot) => snapshot.diagnostics),
     })
   })

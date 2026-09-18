@@ -176,7 +176,13 @@ const limited = Layer.effect(
     const store = yield* TodoStore
     return TodoStore.of({
       ...store,
-      capabilities: { groups: false, reorder: false, renameGroup: false, comments: false },
+      capabilities: {
+        groups: false,
+        reorder: false,
+        renameGroup: false,
+        comments: false,
+        promote: false,
+      },
     })
   }),
 ).pipe(Layer.provide(MemoryTodoStore.layer()))
@@ -194,6 +200,7 @@ describe("TodoService capability guards", () => {
       expect(yield* tags(todo.move(a.id, {}))).toBe("Unsupported")
       expect(yield* tags(todo.renameGroup("Backend", "Server"))).toBe("Unsupported")
       expect(yield* tags(todo.comment(a.id, { author: "lemol", body: "Hi." }))).toBe("Unsupported")
+      expect(yield* tags(todo.promote(a.id))).toBe("Unsupported")
       expect((yield* (yield* TodoStore).load()).ungrouped.map((t) => t.id)).toEqual([a.id])
       expect((yield* (yield* TodoStore).get(a.id)).comments).toEqual([])
     }),

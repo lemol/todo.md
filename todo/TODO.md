@@ -2,7 +2,7 @@
 
 - [ ] 12 - Register repos/todo-md/apps/* in lemol-workspace
   #web
-- [ ] [21 - Expose task promotion: promote command and add/edit --file](./21-expose-task-promotion-promote-command-and-add-edit-file.md)
+- [ ] [22 - Read comment text from stdin](./22-read-comment-text-from-stdin.md)
 
 ## Hub and sources
 

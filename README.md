@@ -68,7 +68,8 @@ out at `repos/todo-md` and consumers resolve it through the override
 
 ```sh
 todo init                              # create ./todo/TODO.md
-todo add Fix the login redirect --group Backend --tag bug
+todo add Fix the login redirect --quick        # jot one down, inline
+todo add "Rework auth" --group Backend --description - < notes.md  # its own file
 todo                                   # show the open tasks
 todo next --json                       # what to work on next, as JSON
 todo done 1

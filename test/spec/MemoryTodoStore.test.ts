@@ -18,10 +18,11 @@ describe("MemoryTodoStore", () => {
   )
 
   effectTest(
-    "supports every capability and reports no diagnostics",
+    "supports every capability but promotion, and reports no diagnostics",
     Effect.gen(function* () {
       const store = yield* TodoStore
-      expect(store.capabilities).toEqual(allCapabilities)
+      // It has no documents to promote a task's detail into (spec §1.5).
+      expect(store.capabilities).toEqual({ ...allCapabilities, promote: false })
       expect(yield* store.diagnostics()).toEqual([])
     }),
     MemoryTodoStore.layer(),

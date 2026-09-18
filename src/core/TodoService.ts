@@ -105,6 +105,8 @@ export class TodoService extends Context.Service<
       id: TaskId,
       input: CommentInput,
     ): Effect.Effect<Comment, TaskNotFound | ValidationError | Unsupported | StoreError>
+    /** Gives the task its own document (spec §2.9); a no-op when it already has one. */
+    promote(id: TaskId): Effect.Effect<Task, TaskNotFound | Unsupported | StoreError>
   }
 >()("@lemol/todo-md/core/TodoService") {
   static readonly layer: Layer.Layer<TodoService, never, TodoStore> = Layer.effect(
@@ -225,6 +227,8 @@ export class TodoService extends Context.Service<
 
         comment: (id, input) =>
           requires("comments", "comment").pipe(Effect.andThen(store.comment(id, input))),
+
+        promote: (id) => requires("promote", "promote").pipe(Effect.andThen(store.promote(id))),
       })
     }),
   )

@@ -21,8 +21,36 @@ export class CliContext extends Context.Service<
     readonly userHome: string
     /** The sources the hub can open. Production passes `[fsSource]`; tests add more. */
     readonly sources: ReadonlyArray<AnySource>
+    /**
+     * This process's stdin, read whole when a text flag is given `-`.
+     * `bin.ts` passes a deferred read, so commands that never ask for `-`
+     * never touch stdin — an eager pre-read would block on a pipe that stays
+     * open. Long text arrives this way so the shell never sees it: inside
+     * double quotes the shell runs each backticked span as a command
+     * substitution before the CLI is reached. Tests pass their own.
+     */
+    readonly stdin: Effect.Effect<string>
   }
 >()("@lemol/todo-md/cli/CliContext") {}
+
+/**
+ * A text flag's value, where `-` reads it whole from stdin (above). The text
+ * is kept raw, leading and trailing whitespace and newlines included; only
+ * nothing at all is refused, so a `-` that piped an empty file says so
+ * instead of quietly writing an empty description.
+ */
+export const textOf = (flag: string, value: string) =>
+  value === "-"
+    ? Effect.flatMap(CliContext, (context) =>
+        Effect.flatMap(context.stdin, (text) =>
+          text === ""
+            ? new UsageError({
+                message: `--${flag} - got nothing on stdin; pipe the text in, or use --no-${flag} for none`,
+              })
+            : Effect.succeed(text),
+        ),
+      )
+    : Effect.succeed(value)
 
 export const Json = GlobalFlag.setting("json")({
   flag: Flag.boolean("json").pipe(

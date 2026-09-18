@@ -1,5 +1,6 @@
 ---
 title: "Expose task promotion: promote command and add/edit --file"
+completed_at: 2026-09-18T17:59:25Z
 ---
 Spec §2.9 defines promotion as a first-class operation and says writers MAY promote "on request", but nothing exposes it. `grep -rni promote src` returns nothing, and the only code path that creates a task file for an inline task is `comment` (`src/fs/FsTodoStore.ts:423`, "An inline task, or a link to a missing file: (re)write the file with the comment"). So the only way to get a file-backed task today is to attach a comment you do not want.
 

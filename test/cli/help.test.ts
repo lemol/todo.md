@@ -36,6 +36,7 @@ effectTest(
       "reopen",
       "mv",
       "rm",
+      "promote",
       "comment",
       "check",
       "init",

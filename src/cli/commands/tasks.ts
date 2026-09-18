@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 import { type Placement, type TaskPatch, unique } from "../../spec/index.ts"
-import { author, output, projectOfRefs, refOf, warnUnpushed, withTodo } from "../context.ts"
+import { author, output, projectOfRefs, refOf, textOf, warnUnpushed, withTodo } from "../context.ts"
 import { UsageError } from "../errors.ts"
 import { label, renderCompletions, showId } from "../render.ts"
 
@@ -9,7 +9,7 @@ const idArgument = Argument.string("id").pipe(
   Argument.withDescription("The task's ID, e.g. 7 or 07, or <project>:<id> for another project"),
 )
 
-/** Words of a variadic argument joined with spaces, so quotes are optional: `todo add Fix the bug`. */
+/** Words of a variadic argument joined with spaces, so quotes are optional: `todo add Fix the bug --quick`. */
 const words = (name: string, description: string) =>
   Argument.string(name).pipe(Argument.variadic({ min: 1 }), Argument.withDescription(description))
 
@@ -22,22 +22,68 @@ const optional = (name: string, description: string) =>
 const some = <A>(key: string, value: Option.Option<A>) =>
   Option.isSome(value) ? { [key]: value.value } : {}
 
+const flagged = (name: string, description: string) =>
+  Flag.boolean(name).pipe(Flag.withDescription(description))
+
+/** What `-` does, said the same way wherever a text flag accepts it. */
+const orStdin =
+  "`-` reads it whole from stdin, as in `--description - <<'EOF'`, so quotes, backticks and $(…) reach the task verbatim instead of being run by the shell"
+
 export const add = Command.make(
   "add",
   {
     title: words("title", "The task's title"),
-    group: optional("group", "Add to this group (created if missing); default: ungrouped"),
+    group: optional("group", "Add to this group (created if missing)"),
+    noGroup: flagged("no-group", "Add it to the ungrouped tasks"),
+    description: optional("description", `A longer description (Markdown). ${orStdin}`),
+    noDescription: flagged("no-description", "Add it with no description"),
+    file: flagged("file", "Give it its own task file (the default)"),
+    inline: flagged("inline", "Keep the whole task in TODO.md instead of its own file"),
+    quick: flagged(
+      "quick",
+      "Jot it down: ungrouped, no description, inline. Any of --group, --description, --file overrides that part",
+    ),
     tag: repeated("tag", "A tag; repeat for several"),
     assignee: optional("assignee", "Who works on it (a handle)"),
     dependsOn: repeated(
       "depends-on",
       "A task that must be done first; repeat for several (<project>:<id> works too)",
     ),
-    description: optional("description", "A longer description (Markdown)"),
     before: optional("before", "Place it before this task (<project>:<id> works too)"),
     after: optional("after", "Place it after this task (<project>:<id> works too)"),
   },
   Effect.fn(function* (flags) {
+    if (Option.isSome(flags.group) && flags.noGroup) {
+      return yield* new UsageError({ message: "use --group or --no-group, not both" })
+    }
+    if (Option.isSome(flags.description) && flags.noDescription) {
+      return yield* new UsageError({ message: "use --description or --no-description, not both" })
+    }
+    if (flags.file && flags.inline) {
+      return yield* new UsageError({ message: "use --file or --inline, not both" })
+    }
+    // Where it goes and what it is are decisions, not defaults: a task added
+    // without either is the mistake this asks about. An anchor already fixes
+    // the group, and --quick answers whatever is left.
+    const placed =
+      Option.isSome(flags.group) ||
+      flags.noGroup ||
+      Option.isSome(flags.before) ||
+      Option.isSome(flags.after)
+    if (!placed && !flags.quick) {
+      return yield* new UsageError({
+        message: "say where it goes: --group <name>, --no-group, --before or --after",
+      })
+    }
+    if (Option.isNone(flags.description) && !flags.noDescription && !flags.quick) {
+      return yield* new UsageError({
+        message:
+          "say what it is: --description <text>, --description - to read stdin, or --no-description",
+      })
+    }
+    const description = Option.isSome(flags.description)
+      ? yield* textOf("description", flags.description.value)
+      : undefined
     const dependsOn = flags.dependsOn.map(refOf)
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
@@ -46,6 +92,8 @@ export const add = Command.make(
       ...Option.toArray(before),
       ...Option.toArray(after),
     ])
+    // Its own file by default, so a long task does not swamp TODO.md (§2.9).
+    const wantsFile = flags.file || !(flags.inline || flags.quick)
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
@@ -55,7 +103,7 @@ export const add = Command.make(
               ...(flags.tag.length > 0 ? { tags: flags.tag } : {}),
               ...(dependsOn.length > 0 ? { dependsOn: dependsOn.map((ref) => ref.id) } : {}),
               ...some("assignee", flags.assignee),
-              ...some("description", flags.description),
+              ...(description === undefined ? {} : { description }),
             },
             {
               ...some("group", flags.group),
@@ -69,6 +117,9 @@ export const add = Command.make(
               ),
             },
           )
+          // A store with nowhere to put a task file keeps the task as it is;
+          // an explicit --file says so rather than pretending it worked.
+          if (wantsFile && (todo.capabilities.promote || flags.file)) yield* todo.promote(task.id)
           yield* output(project, task, () => [
             `Added ${label(task)}${task.group === undefined ? "" : ` to ${task.group}`}`,
           ])
@@ -78,14 +129,50 @@ export const add = Command.make(
     )
   }),
 ).pipe(
-  Command.withDescription("Add a task"),
+  Command.withDescription("Add a task, in its own file unless told otherwise"),
   Command.withExamples([
-    { command: "todo add Write the changelog", description: "An ungrouped task (quotes optional)" },
     {
-      command: 'todo add "Fix login redirect" --group Backend --tag bug --depends-on 2',
-      description: "A tagged task in a group, waiting for task 02",
+      command: "todo add Write the changelog --quick",
+      description: "Jot one down: ungrouped, no description, inline (quotes optional)",
     },
-    { command: "todo add Ship it --json", description: "Print the new task as JSON" },
+    {
+      command: 'todo add "Fix login redirect" --group Backend --no-description --tag bug',
+      description: "A tagged task in a group, with its own file",
+    },
+    {
+      command: 'todo add "Expose promotion" --group Core --description - < notes.md',
+      description: "Take the description from stdin, so the shell leaves it alone",
+    },
+    {
+      command: "todo add Ship it --no-group --no-description --json",
+      description: "Print the new task as JSON",
+    },
+  ]),
+)
+
+export const promote = Command.make(
+  "promote",
+  { id: idArgument },
+  Effect.fn(function* ({ id }) {
+    const ref = refOf(id)
+    const refProject = yield* projectOfRefs([ref])
+    yield* withTodo(
+      (todo, project) =>
+        Effect.gen(function* () {
+          const task = yield* todo.promote(ref.id)
+          yield* output(project, task, () => [`${label(task)} now has its own file`])
+          yield* warnUnpushed(project)
+        }),
+      { project: refProject },
+    )
+  }),
+).pipe(
+  Command.withDescription(
+    "Move an inline task into its own file, leaving a link behind; does nothing if it has one",
+  ),
+  Command.withExamples([
+    { command: "todo promote 3", description: "Give task 03 its own file" },
+    { command: "todo promote 3 --json", description: "Print the task as JSON" },
   ]),
 )
 
@@ -94,7 +181,8 @@ export const edit = Command.make(
   {
     id: idArgument,
     title: optional("title", "A new title"),
-    description: optional("description", "A new description (Markdown)"),
+    description: optional("description", `A new description (Markdown). ${orStdin}`),
+    file: flagged("file", "Also move it into its own file, if it is still inline"),
     tag: repeated("tag", "Add a tag; repeat for several"),
     untag: repeated("untag", "Remove a tag; repeat for several"),
     assignee: optional("assignee", "Assign it to this handle"),
@@ -112,6 +200,9 @@ export const edit = Command.make(
     if (flags.unassign && Option.isSome(flags.assignee)) {
       return yield* new UsageError({ message: "use --assignee or --unassign, not both" })
     }
+    const description = Option.isSome(flags.description)
+      ? yield* textOf("description", flags.description.value)
+      : undefined
     const id = refOf(flags.id)
     const dependsOn = flags.dependsOn.map(refOf)
     const drop = flags.dropDependency.map(refOf)
@@ -123,7 +214,7 @@ export const edit = Command.make(
           const dropped = new Set(drop.map((ref) => ref.id))
           const patch: TaskPatch = {
             ...some("title", flags.title),
-            ...some("description", flags.description),
+            ...(description === undefined ? {} : { description }),
             ...(flags.tag.length > 0 || flags.untag.length > 0
               ? {
                   tags: unique([
@@ -142,12 +233,18 @@ export const edit = Command.make(
                 }
               : {}),
           }
-          if (Object.keys(patch).length === 0) {
+          if (Object.keys(patch).length === 0 && !flags.file) {
             return yield* new UsageError({
               message: "nothing to change; pass --title, --tag, --assignee or another change",
             })
           }
-          const task = yield* todo.update(id.id, patch)
+          // Promote first, so the change lands as a minimal edit to the new
+          // task file instead of rewriting an inline item into a link.
+          if (flags.file) yield* todo.promote(id.id)
+          const task =
+            Object.keys(patch).length === 0
+              ? (yield* todo.show(id.id)).view.task
+              : yield* todo.update(id.id, patch)
           yield* output(project, task, () => [`Updated ${label(task)}`])
           yield* warnUnpushed(project)
         }),
@@ -165,6 +262,10 @@ export const edit = Command.make(
     {
       command: "todo edit 3 --depends-on 7 --drop-dependency 2",
       description: "Change what it waits for",
+    },
+    {
+      command: "todo edit 3 --file --description - < notes.md",
+      description: "Move it into its own file and write the body from stdin",
     },
   ]),
 )

@@ -242,16 +242,25 @@ describe("todo sync", () => {
         sources,
       })
 
-      const added = yield* runTodo(["add", "--project", "mem", "Do", "it"], { home, sources })
+      const added = yield* runTodo(["add", "--project", "mem", "Do", "it", "--quick"], {
+        home,
+        sources,
+      })
       expect(added.code).toBe(0)
       expect(added.stdout).toBe("Added 01  Do it")
       expect(added.stderr).toBe("todo: not pushed (ahead 1): offline")
 
-      const other = yield* runTodo(["add", "--project", "memd", "Do", "it"], { home, sources })
+      const other = yield* runTodo(["add", "--project", "memd", "Do", "it", "--quick"], {
+        home,
+        sources,
+      })
       expect(other.code).toBe(0)
       expect(other.stderr).toBe("todo: memd has diverged; resolve it in memory")
 
-      const local = yield* runTodo(["add", "--project", "a", "Do", "it"], { home, sources })
+      const local = yield* runTodo(["add", "--project", "a", "Do", "it", "--quick"], {
+        home,
+        sources,
+      })
       expect(local).toEqual({ code: 0, stdout: "Added 04  Do it", stderr: "" })
     }),
     diskWith(alpha),

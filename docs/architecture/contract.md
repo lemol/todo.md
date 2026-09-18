@@ -17,6 +17,7 @@ export class TodoStore extends Context.Service<TodoStore, {
   remove(id: TaskId): Effect<void, TaskNotFound | StoreError>
   renameGroup(from: string, to: string): Effect<void, GroupNotFound | ValidationError | Unsupported | StoreError>
   comment(id: TaskId, input: CommentInput): Effect<Comment, TaskNotFound | ValidationError | Unsupported | StoreError>
+  promote(id: TaskId): Effect<Task, TaskNotFound | Unsupported | StoreError>
   diagnostics(): Effect<ReadonlyArray<Diagnostic>, StoreError>
 }>()("@lemol/todo-md/spec/TodoStore") {}
 ```
@@ -37,9 +38,18 @@ export class TodoStore extends Context.Service<TodoStore, {
 ## Capabilities
 
 A store declares which optional operations it supports (spec §1.5):
-`groups`, `reorder`, `renameGroup` and `comments`. `core` fails early with
+`groups`, `reorder`, `renameGroup`, `comments` and `promote`. `core` fails early with
 `Unsupported` for the rest, before the store is called, and frontends hide
 what a store can't do.
+
+**`promote` is a capability, not an `fs` extra.** Promotion moves a task's
+detail into its own document (spec §2.9), which is a property of a store's
+representation rather than of the model: `MemoryTodoStore` has no documents
+and declares it absent. Keeping it on the contract means `core` and every
+frontend reach it exactly as they reach `comment`, instead of the CLI having
+to know which projects happen to be file-backed. Conformance covers it under
+`requires: ["promote"]`, asserting only what the model can see — that the
+task itself is unchanged — while the resulting files are `fs`'s own tests.
 
 Planned (task 13): `add` and `remove` become capabilities too, so a Jira
 source can leave them out.

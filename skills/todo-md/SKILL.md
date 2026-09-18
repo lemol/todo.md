@@ -33,12 +33,50 @@ checks, task-selection workflow, or restrictions on mutations.
 | --- | --- |
 | Choose work | `next`, then `show <id>` when context or dependencies matter |
 | Inspect tasks | `list`, `show <id>`, and command help for filters |
-| Add work | `add <title>` with documented placement, tags, dependencies, or description flags |
+| Add work | `add <title>`, deciding both where it goes and what it is (below) |
 | Update work | Use the relevant CLI mutation; inspect its help first |
+| Reshape a task | `promote <id>` gives an inline task its own file; `mv <id>` moves it between groups |
 | Finish work | Confirm the task is the intended item, then use `done <id>` |
 
 Treat the CLI result as authoritative for generated IDs and task state. Do not
 guess IDs or infer readiness from Markdown order alone.
+
+## Adding a task
+
+`add` asks you to decide two things, and refuses rather than guess:
+
+- **Where it goes:** `--group <name>` or `--no-group`. Passing `--before <id>`
+  or `--after <id>` decides it too, since an anchor fixes the group.
+- **What it is:** `--description <text>`, `--description -` (below), or
+  `--no-description`.
+
+`--quick` answers both with "ungrouped, no description" and keeps the task
+inline, for a one-line reminder. Any explicit flag overrides the part it
+covers, so `--quick --group Docs` is a quick task in a group.
+
+Otherwise a new task gets its own file, linked from one line in `TODO.md`.
+Prefer that for anything with a real description: it is what keeps the list
+scannable. `--inline` overrides it.
+
+These are this CLI's rules. Another todo.md implementation may differ, so read
+`add --help` when you meet an unfamiliar one.
+
+## Long text belongs on stdin
+
+A description that contains backticks, `$(…)` or quotes must not travel as a
+double-quoted shell argument: the shell runs backticked spans and `$(…)` as
+command substitutions before the CLI is reached, so the text arrives mangled
+or empty. Pass `-` with a quoted heredoc, which the shell leaves alone:
+
+```sh
+todo add "Expose task promotion" --group Core --description - <<'EOF'
+Spec §2.9 defines promotion, but `grep -rni promote src` finds nothing.
+EOF
+```
+
+`edit <id> --description -` replaces a description the same way, and
+`edit <id> --file` moves the task into its own file while doing it. A `-` with
+nothing piped in is an error, not an empty description.
 
 ## Working across projects
 
@@ -64,3 +102,9 @@ so only the intended task-list change is present.
   repository-specific rules.
 - Creating a list merely because discovery failed; ask first unless list
   initialization was requested.
+- Passing a long description as a double-quoted argument, so the shell runs
+  its backticks; use `--description -` and a quoted heredoc.
+- Reaching for `--quick` to get past the questions. It is for a one-line
+  reminder, not a way to avoid choosing a group.
+- Adding a group by naming one that does not exist yet. Check `list` first:
+  the list's title is not a group, and a typo silently creates a new one.

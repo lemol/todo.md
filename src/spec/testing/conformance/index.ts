@@ -8,6 +8,7 @@ import { commentCases } from "./comments.ts"
 import { groupCases } from "./groups.ts"
 import { lifecycleCases } from "./lifecycle.ts"
 import { movingCases } from "./moving.ts"
+import { promotionCases } from "./promotion.ts"
 import { readingCases } from "./reading.ts"
 import { updatingCases } from "./updating.ts"
 
@@ -20,6 +21,7 @@ export const conformanceCases: ReadonlyArray<ConformanceCase> = [
   ...lifecycleCases,
   ...groupCases,
   ...commentCases,
+  ...promotionCases,
 ]
 
 /**

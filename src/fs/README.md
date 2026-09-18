@@ -41,6 +41,9 @@ same conformance suite as `MemoryTodoStore`.
 - **Crash safety.** Multi-file operations follow the order in spec §2.10. For
   `complete` and `reopen`, the done file is the commit point, so an
   interrupted operation is finished or rolled back by the next change.
+- **Promotion.** `promote` writes the task file at its conventional path and
+  splices a linked item over the inline one (spec §2.9). A task that already
+  has a file, and a done task, are left untouched. There is no demote.
 
 ## Diagnostics it adds
 

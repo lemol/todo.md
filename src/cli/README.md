@@ -24,12 +24,13 @@ examples. `todo --help` lists the commands.
 | `todo list` / `ls` | Open tasks by group, what blocks them, and a summary. Filters: `--tag` (repeatable), `--assignee`, `--group`, `--ready`, `--blocked`; `--done` for done tasks, `--all` for both. | `{ title, description, sections: [{ name?, description, tasks: TaskView[] }], done: TaskView[] }` |
 | `todo next` | The ready task(s) to work on next, in priority order. `--limit n` (default 1, 0 for all) and the `list` filters. | `TaskView[]` |
 | `todo show <id>` | A task: state, description, dependencies, the tasks it blocks, comments. | `{ view: TaskView, dependencies: [{ id, title?, state }], blocks: TaskView[] }` |
-| `todo add <title…>` | Add a task. `--group`, `--tag`, `--assignee`, `--depends-on`, `--description`, `--before`, `--after`. | the `Task` |
-| `todo edit <id>` | Change a task: `--title`, `--description`, `--tag`/`--untag`, `--assignee`/`--unassign`, `--depends-on`/`--drop-dependency`. | the `Task` |
+| `todo add <title…>` | Add a task, in its own file. Decide where it goes (`--group` or `--no-group`) and what it is (`--description` or `--no-description`), or say `--quick` for neither. Also `--inline`, `--file`, `--tag`, `--assignee`, `--depends-on`, `--before`, `--after`. | the `Task` |
+| `todo edit <id>` | Change a task: `--title`, `--description`, `--file`, `--tag`/`--untag`, `--assignee`/`--unassign`, `--depends-on`/`--drop-dependency`. | the `Task` |
 | `todo done <id…>` | Complete tasks and list those that became ready. | `[{ task, unblocked: TaskView[] }]` |
 | `todo reopen <id>` | Reopen a done task at the end of its group. | the `Task` |
 | `todo mv <id>` | Move a task: one of `--top`, `--bottom`, `--before <id>`, `--after <id>`, `--group <name>`, `--ungrouped`. | the `Task` |
 | `todo rm <id>` | Delete a task and its file; `--force` if open tasks depend on it. | `{ removed: id }` |
+| `todo promote <id>` | Move an inline task into its own file, leaving a link; does nothing if it has one. | the `Task` |
 | `todo comment <id> <text…>` | Add a comment; `--author`. | the `Comment` |
 | `todo check` | Validate the list; exits 1 when it finds errors. | `Diagnostic[]` |
 | `todo init [dir]` | Create a list (default `./todo`); `--title` (default: the directory's name). | `{ root }` |
@@ -47,7 +48,10 @@ Where it helps, arguments are forgiving:
 
 - IDs may be typed as shown (`07`) or bare (`7`), or qualified with their
   project (`acme:07`) to work on another project from anywhere.
-- A title or comment made of several words doesn't need quotes: `todo add Fix the bug`.
+- A title or comment made of several words doesn't need quotes: `todo add Fix the bug --quick`.
+- `--description -` reads the description whole from stdin, so quotes,
+  backticks and `$(…)` reach the task verbatim instead of being run by the
+  shell: `todo add "Record the cause" --group Ops --description - <<'EOF'`.
 
 A `TaskView` is `{ task, state: "ready" | "blocked" | "done", blockedBy: id[] }`;
 see [`core`](../core).

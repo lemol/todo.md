@@ -22,6 +22,8 @@ export interface RunOptions {
   readonly userHome?: string
   /** The sources the hub can open (default: `[fsSource]`). */
   readonly sources?: ReadonlyArray<AnySource>
+  /** What a `-` flag reads (default: nothing, as with no pipe). */
+  readonly stdin?: string
 }
 
 const text = (lines: ReadonlyArray<unknown>) => lines.map(String).join("\n")
@@ -44,6 +46,7 @@ export const runTodo = (args: ReadonlyArray<string>, options: RunOptions = {}) =
         home,
         userHome: options.userHome ?? root,
         sources: options.sources ?? [fsSource],
+        stdin: Effect.succeed(options.stdin ?? ""),
       }).pipe(Effect.provide(BunServices.layer))
     }).pipe(
       // A caller-passed home belongs to the caller; a fresh one is removed.

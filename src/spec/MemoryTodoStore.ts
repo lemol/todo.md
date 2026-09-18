@@ -4,7 +4,13 @@
  */
 
 import { DateTime, Effect, Layer, SynchronizedRef } from "effect"
-import { GroupNotFound, InvalidTransition, TaskNotFound, ValidationError } from "./errors.ts"
+import {
+  GroupNotFound,
+  InvalidTransition,
+  TaskNotFound,
+  Unsupported,
+  ValidationError,
+} from "./errors.ts"
 import {
   type Comment,
   CommentInput,
@@ -172,7 +178,9 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
         SynchronizedRef.modifyEffect(ref, f)
 
       return TodoStore.of({
-        capabilities: allCapabilities,
+        // Promotion moves a task's detail into its own document; this store has
+        // no documents to move it into (spec §1.5).
+        capabilities: { ...allCapabilities, promote: false },
 
         load: () =>
           Effect.map(read, (state): TodoList => {
@@ -339,6 +347,8 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
               ] as const
             }),
           ),
+
+        promote: () => Effect.fail(new Unsupported({ operation: "promote" })),
 
         diagnostics: () => Effect.succeed([]),
       })
