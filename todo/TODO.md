@@ -1,6 +1,7 @@
 # todo.md
 
-- [ ] [22 - Read comment text from stdin](./22-read-comment-text-from-stdin.md)
+- [ ] [23 - Stop the test suite from mutating the real todo list](./23-stop-the-test-suite-from-mutating-the-real-todo-list.md)
+
 
 ## Hub and sources
 

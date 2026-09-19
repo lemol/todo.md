@@ -1,5 +1,7 @@
 ---
 title: Read comment text from stdin
+completed_at: 2026-09-19T04:14:05Z
+outcome: completed
 ---
 Task 21 gave `todo add` and `todo edit` a `-` sentinel on `--description`, read whole from stdin so the shell never sees the text. `todo comment` has the same problem and was left out to keep 21 contained.
 
