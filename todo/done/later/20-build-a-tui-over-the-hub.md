@@ -2,6 +2,10 @@
 title: Build a TUI over the hub
 tags: [tui, hub]
 depends_on: [15]
+group: Later
+completed_at: 2026-09-19T05:33:37Z
+outcome: cancelled
+cancelled_reason: I don't think we will need now, maybe in future
 ---
 ## Goal
 
