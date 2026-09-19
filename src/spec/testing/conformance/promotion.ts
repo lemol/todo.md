@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import { TodoStore } from "../../TodoStore.ts"
 import { equal, failsWith } from "./assert.ts"
-import type { ConformanceCase } from "./case.ts"
+import { type ConformanceCase, given } from "./case.ts"
 
 /**
  * Promotion changes where a task's detail lives, not what it is, so what the
@@ -12,9 +12,10 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
   {
     name: "promote leaves the task itself unchanged",
     requires: ["promote"],
+    setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
-      const { id } = yield* store.add({
+      const [{ id }] = yield* given({
         title: "Expose task promotion",
         description: "Spec §2.9 defines it; nothing exposes it.",
         tags: ["cli"],
@@ -28,9 +29,10 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
   {
     name: "promote is a no-op the second time",
     requires: ["promote"],
+    setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
-      const { id } = yield* store.add({ title: "Rotate the token" })
+      const [{ id }] = yield* given({ title: "Rotate the token" })
       const promoted = yield* store.promote(id)
       equal(yield* store.promote(id), promoted)
     }),
@@ -38,9 +40,10 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
   {
     name: "promote works on a done task",
     requires: ["promote"],
+    setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
-      const task = yield* store.add({ title: "Ship it" })
+      const [task] = yield* given({ title: "Ship it" })
       const done = yield* store.complete(task.id)
       equal(yield* store.promote(task.id), done)
     }),
@@ -55,10 +58,11 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "promote fails with Unsupported when the store cannot promote",
+    setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       if (store.capabilities.promote) return
-      const task = yield* store.add({ title: "Task" })
+      const [task] = yield* given({ title: "Task" })
       yield* failsWith(store.promote(task.id), "Unsupported")
     }),
   },

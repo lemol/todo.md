@@ -27,6 +27,8 @@ export const Capabilities = Schema.Struct({
   comments: Schema.Boolean,
   promote: Schema.Boolean,
   cancel: Schema.Boolean,
+  add: Schema.Boolean,
+  remove: Schema.Boolean,
 })
 export type Capabilities = typeof Capabilities.Type
 
@@ -37,6 +39,8 @@ export const allCapabilities: Capabilities = {
   comments: true,
   promote: true,
   cancel: true,
+  add: true,
+  remove: true,
 }
 
 /**
@@ -75,7 +79,7 @@ export class TodoStore extends Context.Service<
       TaskNotFound | InvalidTransition | ValidationError | Unsupported | StoreError
     >
     reopen(id: TaskId): Effect.Effect<Task, TaskNotFound | InvalidTransition | StoreError>
-    remove(id: TaskId): Effect.Effect<void, TaskNotFound | StoreError>
+    remove(id: TaskId): Effect.Effect<void, TaskNotFound | Unsupported | StoreError>
     renameGroup(
       from: string,
       to: string,

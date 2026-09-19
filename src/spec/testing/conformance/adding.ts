@@ -6,6 +6,7 @@ import type { ConformanceCase } from "./case.ts"
 export const addingCases: ReadonlyArray<ConformanceCase> = [
   {
     name: "add creates an open, ungrouped task with defaults",
+    requires: ["add"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const task = yield* store.add({ title: "Write changelog" })
@@ -25,6 +26,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add keeps every field of the input",
+    requires: ["add"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const first = yield* store.add({ title: "Fix login redirect" })
@@ -46,6 +48,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add assigns a unique ID to every task and appends in order",
+    requires: ["add"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" })
@@ -57,6 +60,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add removes duplicate tags, keeping the first occurrence",
+    requires: ["add"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const task = yield* store.add({ title: "Tagged", tags: ["api", "security", "api"] })
@@ -65,6 +69,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add rejects invalid input and changes nothing",
+    requires: ["add"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       yield* failsWith(store.add({ title: "" }), "ValidationError")
@@ -75,7 +80,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add to a group appends to it, creating the group at the end of the list",
-    requires: ["groups"],
+    requires: ["add", "groups"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" }, { group: "Backend" })
@@ -91,7 +96,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add places a task before or after an anchor",
-    requires: ["reorder"],
+    requires: ["add", "reorder"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" })
@@ -103,7 +108,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add takes the anchor's group and rejects a conflicting group",
-    requires: ["groups", "reorder"],
+    requires: ["add", "groups", "reorder"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" }, { group: "Backend" })
@@ -121,13 +126,22 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "add rejects an unknown anchor or two anchors and changes nothing",
-    requires: ["reorder"],
+    requires: ["add", "reorder"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" })
       yield* failsWith(store.add({ title: "B" }, { after: "does-not-exist" }), "TaskNotFound")
       yield* failsWith(store.add({ title: "B" }, { before: a.id, after: a.id }), "ValidationError")
       equal(yield* layout, [["", [a.id]]])
+    }),
+  },
+  {
+    name: "add fails with Unsupported when the store cannot add",
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      if (store.capabilities.add) return
+      yield* failsWith(store.add({ title: "Task" }), "Unsupported")
+      equal(yield* layout, [["", []]])
     }),
   },
 ]

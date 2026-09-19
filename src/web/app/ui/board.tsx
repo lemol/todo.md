@@ -137,5 +137,18 @@ export const BoardPage = (options: {
     options.syncChrome === undefined || options.syncChrome === ""
       ? ""
       : `<p class="board-sync">${options.syncChrome}</p>`
-  return `<h1>${escapeHtml(options.listing.title)}</h1>${sync}${options.listing.description === "" ? "" : `<div class="list-description markdown">${markdownHtml(options.listing.description)}</div>`}<p class="summary">${views.length} open · ${ready} ready · ${blocked} blocked</p>${AddTaskForm(project, options.listing, options.capabilities, options.addValues, options.addIssues)}${sections || '<p class="empty">Nothing open. Add a task above.</p>'}`
+  // A store that cannot add has no form to offer, so nothing is "above" either.
+  const addForm = options.capabilities.add
+    ? AddTaskForm(
+        project,
+        options.listing,
+        options.capabilities,
+        options.addValues,
+        options.addIssues,
+      )
+    : ""
+  const empty = options.capabilities.add
+    ? '<p class="empty">Nothing open. Add a task above.</p>'
+    : '<p class="empty">Nothing open.</p>'
+  return `<h1>${escapeHtml(options.listing.title)}</h1>${sync}${options.listing.description === "" ? "" : `<div class="list-description markdown">${markdownHtml(options.listing.description)}</div>`}<p class="summary">${views.length} open · ${ready} ready · ${blocked} blocked</p>${addForm}${sections || empty}`
 }

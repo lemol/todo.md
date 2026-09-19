@@ -1,6 +1,9 @@
 ---
 title: Make add and remove store capabilities
 tags: [spec]
+group: Hub and sources
+completed_at: 2026-09-19T05:25:30Z
+outcome: completed
 ---
 ## Goal
 

@@ -38,11 +38,13 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 **Capability guard.** Operations the store's capabilities don't include
 (spec §1.5) fail with `Unsupported` before the store is called:
 
-- a placement that names a group needs `groups`;
+- `add` needs `add`, and a placement that names a group needs `groups`;
 - anchors and `move` need `reorder`;
+- `remove` needs `remove`, checked before `HasDependents`;
 - `renameGroup` needs `renameGroup`;
 - `comment` needs `comments`;
-- `promote` needs `promote`.
+- `promote` needs `promote`;
+- `cancel` needs `cancel`.
 
 **Cycles.** Rejecting a new self-dependency or cycle is the store's job
 (spec §1.6, covered by the conformance suite), so `core` does not repeat it.

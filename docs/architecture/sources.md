@@ -67,4 +67,5 @@ interface SourceProject<C> {
 - **jira** mirrors tickets matching `jql` (default: assigned to me, not
   done) and recently done ones, supports complete, reopen, comment and
   editing title and labels, and declares only the `comments` capability
-  (spec §1.5, with `add` and `remove` as capabilities from task 13).
+  (spec §1.5): without `add` and `remove` it never creates or deletes an
+  issue.

@@ -2,6 +2,7 @@
 import { Effect } from "effect"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
+import { Unsupported } from "../../../../spec/index.ts"
 import type { HubRuntime } from "../../middleware/project.tsx"
 import { loadProject } from "../../middleware/project.tsx"
 import { authorContext, runTodo } from "../../middleware/todo.ts"
@@ -80,6 +81,9 @@ const renderRemove = async (
   issues: ReadonlyArray<string> = [],
   status = 200,
 ): Promise<Response> => {
+  // Asking before deleting only makes sense when the store can delete.
+  if (!capabilitiesOf(context).remove)
+    return respond(context, new Unsupported({ operation: "remove" }))
   const project = projectOf(context)
   const [detail, chrome] = await Promise.all([
     runTodo(runtimeContext(context), (todo) => todo.show(id)),
@@ -145,6 +149,10 @@ export const createTasksController = (options: {
     actions: {
       add: async (context) => {
         try {
+          // The board offers no form without `add`, and a 422 rendered from it
+          // would lose its issues along with it: refuse before parsing.
+          if (!capabilitiesOf(context).add)
+            return respond(context, new Unsupported({ operation: "add" }))
           const form = formOf(context)
           const parsed = parseAddForm(form)
           const submitted = {

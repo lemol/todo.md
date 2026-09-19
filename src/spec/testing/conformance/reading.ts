@@ -27,7 +27,13 @@ export const readingCases: ReadonlyArray<ConformanceCase> = [
       yield* failsWith(store.update(id, { title: "New" }), "TaskNotFound")
       yield* failsWith(store.complete(id), "TaskNotFound")
       yield* failsWith(store.reopen(id), "TaskNotFound")
-      yield* failsWith(store.remove(id), "TaskNotFound")
+    }),
+  },
+  {
+    name: "remove on an unknown ID fails with TaskNotFound",
+    requires: ["remove"],
+    run: Effect.gen(function* () {
+      yield* failsWith((yield* TodoStore).remove("does-not-exist"), "TaskNotFound")
     }),
   },
 ]

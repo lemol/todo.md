@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import { Effect, Layer } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { TodoService } from "../../src/core/TodoService.ts"
 import { MemoryTodoStore, TodoStore } from "../../src/spec/index.ts"
 import { effectTest } from "../../src/spec/testing.ts"
@@ -183,35 +183,67 @@ describe("TodoService mutations", () => {
   )
 })
 
-// A store that supports nothing optional: core must refuse before calling it.
-const limited = Layer.effect(
+/**
+ * A store that supports nothing optional: core must refuse before calling it.
+ * `add` and `remove` die rather than fail, so forwarding either one shows up
+ * as a defect instead of the `Unsupported` the guard owes the caller. Seeding
+ * therefore goes through `Unguarded`, the store as it is underneath.
+ */
+class Unguarded extends Context.Service<Unguarded, TodoStore["Service"]>()("test/core/Unguarded") {}
+
+const refuse = (operation: string) => () =>
+  Effect.die(new Error(`core forwarded ${operation} to a store that cannot do it`))
+
+const limited = Layer.unwrap(
+  Effect.gen(function* () {
+    const store = yield* TodoStore
+    return Layer.mergeAll(
+      Layer.succeed(
+        TodoStore,
+        TodoStore.of({
+          ...store,
+          capabilities: {
+            groups: false,
+            reorder: false,
+            renameGroup: false,
+            comments: false,
+            promote: false,
+            cancel: false,
+            add: false,
+            remove: false,
+          },
+          add: refuse("add"),
+          remove: refuse("remove"),
+        }),
+      ),
+      Layer.succeed(Unguarded, store),
+    )
+  }),
+).pipe(Layer.provide(MemoryTodoStore.layer()))
+
+/** A store that can add, but neither groups nor orders what it adds. */
+const unordered = Layer.effect(
   TodoStore,
   Effect.gen(function* () {
     const store = yield* TodoStore
     return TodoStore.of({
       ...store,
-      capabilities: {
-        groups: false,
-        reorder: false,
-        renameGroup: false,
-        comments: false,
-        promote: false,
-        cancel: false,
-      },
+      capabilities: { ...store.capabilities, groups: false, reorder: false },
     })
   }),
 ).pipe(Layer.provide(MemoryTodoStore.layer()))
+
+const tags = (effect: Effect.Effect<unknown, { readonly _tag: string }>) =>
+  Effect.map(Effect.flip(effect), (error) => error._tag)
 
 describe("TodoService capability guards", () => {
   effectTest(
     "unsupported operations fail with Unsupported before reaching the store",
     Effect.gen(function* () {
       const todo = yield* TodoService
-      const a = yield* todo.add({ title: "A" })
-      const tags = (effect: Effect.Effect<unknown, { readonly _tag: string }>) =>
-        Effect.map(Effect.flip(effect), (error) => error._tag)
-      expect(yield* tags(todo.add({ title: "B" }, { group: "Backend" }))).toBe("Unsupported")
-      expect(yield* tags(todo.add({ title: "B" }, { after: a.id }))).toBe("Unsupported")
+      const a = yield* (yield* Unguarded).add({ title: "A" })
+      expect(yield* tags(todo.add({ title: "B" }))).toBe("Unsupported")
+      expect(yield* tags(todo.remove(a.id))).toBe("Unsupported")
       expect(yield* tags(todo.move(a.id, {}))).toBe("Unsupported")
       expect(yield* tags(todo.renameGroup("Backend", "Server"))).toBe("Unsupported")
       expect(yield* tags(todo.comment(a.id, { author: "lemol", body: "Hi." }))).toBe("Unsupported")
@@ -220,5 +252,17 @@ describe("TodoService capability guards", () => {
       expect((yield* (yield* TodoStore).get(a.id)).comments).toEqual([])
     }),
     TodoService.layer.pipe(Layer.provideMerge(limited)),
+  )
+
+  effectTest(
+    "a placement the store cannot honour fails with Unsupported",
+    Effect.gen(function* () {
+      const todo = yield* TodoService
+      const a = yield* todo.add({ title: "A" })
+      expect(yield* tags(todo.add({ title: "B" }, { group: "Backend" }))).toBe("Unsupported")
+      expect(yield* tags(todo.add({ title: "B" }, { after: a.id }))).toBe("Unsupported")
+      expect((yield* (yield* TodoStore).load()).ungrouped.map((t) => t.id)).toEqual([a.id])
+    }),
+    TodoService.layer.pipe(Layer.provideMerge(unordered)),
   )
 })

@@ -144,13 +144,13 @@ Every implementation provides the operations below. "Placement" is
 | `load()`                   | Returns the `TodoList` (open tasks only), in order.                                                                                         | `StoreError`                                            |
 | `get(id)`                  | Returns one task, open or done.                                                                                                             | `TaskNotFound`                                          |
 | `listDone()`               | Returns done tasks, most recently completed first.                                                                                          | `StoreError`                                            |
-| `add(input, placement?)`   | Creates an open task and assigns its ID. `input` = `{ title, description?, tags?, assignee?, dependsOn?, extra? }`.                          | `ValidationError`, `TaskNotFound` (anchor)              |
+| `add(input, placement?)`   | Creates an open task and assigns its ID. `input` = `{ title, description?, tags?, assignee?, dependsOn?, extra? }`.                          | `ValidationError`, `TaskNotFound` (anchor), `Unsupported` |
 | `update(id, patch)`        | Changes any of `title`, `description`, `tags`, `assignee` (null clears it), `dependsOn`, `extra`. Works on open and done tasks.              | `TaskNotFound`, `ValidationError`                       |
 | `move(id, placement)`      | Reorders an open task or moves it to another group.                                                                                         | `TaskNotFound`, `InvalidTransition` (done), `Unsupported` |
 | `complete(id)`             | open → done with outcome `completed`. Sets `completedAt` to now and records `group`. Completing a blocked task MUST be allowed; implementations MAY warn. | `TaskNotFound`, `InvalidTransition`                     |
 | `cancel(id, reason)`       | open → done with outcome `cancelled`. Sets `completedAt` to now, records `group` and `cancelledReason`. Cancelling a blocked task MUST be allowed. | `TaskNotFound`, `InvalidTransition`, `ValidationError`, `Unsupported` |
 | `reopen(id)`               | done → open. Clears `completedAt`, `outcome` and `cancelledReason`. The task goes to the end of its recorded group if that group exists, otherwise to the end of the ungrouped tasks. | `TaskNotFound`, `InvalidTransition`                     |
-| `remove(id)`               | Permanently deletes an open or done task. Version control is the history.                                                                   | `TaskNotFound`                                          |
+| `remove(id)`               | Permanently deletes an open or done task. Version control is the history.                                                                   | `TaskNotFound`, `Unsupported`                           |
 | `renameGroup(from, to)`    | Renames an open group. Done tasks keep the name recorded at completion.                                                                     | `GroupNotFound`, `ValidationError` (`to` exists), `Unsupported` |
 | `comment(id, input)`       | Adds a comment `{ author, body }` with `at` = now, newest first. Works on open and done tasks.                                               | `TaskNotFound`, `ValidationError`, `Unsupported`        |
 | `promote(id)`              | Gives the task its own document (§2.9), leaving what the task *is* unchanged. A no-op when it already has one.                              | `TaskNotFound`, `Unsupported`                           |
@@ -172,10 +172,12 @@ ordering). An implementation declares a set of capabilities:
 | `comments`    | `comment` fails with `Unsupported`; `comments` is always empty.                                       |
 | `promote`     | `promote` fails with `Unsupported`. A store whose tasks have no separate document declares it absent. |
 | `cancel`      | `cancel` fails with `Unsupported`; no task has outcome `cancelled`.                                   |
+| `add`         | `add` fails with `Unsupported`. A store that mirrors work it does not own declares it absent.          |
+| `remove`      | `remove` fails with `Unsupported`.                                                                    |
 
-`load`, `get`, `listDone`, `add`, `update`, `complete`, `reopen` and `remove`
-are always required. Tools SHOULD hide unsupported operations rather than
-offer them and fail.
+`load`, `get`, `listDone`, `update`, `complete` and `reopen` are always
+required. Tools SHOULD hide unsupported operations rather than offer them and
+fail.
 
 ## 1.6 Errors and diagnostics
 

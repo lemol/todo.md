@@ -103,7 +103,7 @@ export class TodoService extends Context.Service<
     remove(
       id: TaskId,
       options?: { readonly force?: boolean },
-    ): Effect.Effect<void, TaskNotFound | HasDependents | StoreError>
+    ): Effect.Effect<void, TaskNotFound | HasDependents | Unsupported | StoreError>
     renameGroup(
       from: string,
       to: string,
@@ -199,7 +199,10 @@ export class TodoService extends Context.Service<
           }),
 
         add: (input, placement = {}) =>
-          placementNeeds(placement, "add").pipe(Effect.andThen(store.add(input, placement))),
+          requires("add", "add").pipe(
+            Effect.andThen(placementNeeds(placement, "add")),
+            Effect.andThen(store.add(input, placement)),
+          ),
 
         update: (id, patch) => store.update(id, patch),
 
@@ -227,6 +230,7 @@ export class TodoService extends Context.Service<
 
         remove: (id, options = {}) =>
           Effect.gen(function* () {
+            yield* requires("remove", "remove")
             yield* store.get(id)
             if (options.force !== true) {
               const dependents = inPriorityOrder((yield* board).list)

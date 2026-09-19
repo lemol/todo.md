@@ -34,9 +34,12 @@ without JavaScript.
   or after the row below (in the view as shown, filters included). The task
   page's Move form sends it to the top or bottom of a group, or a new one.
   Both need `reorder`; the group select also needs `groups`.
+- **Add.** The board's Add task form needs `add`; without it the board is
+  read-and-complete only.
 - **Remove.** The task page links to a confirm page (`GET /p/:project/tasks/:id/remove`)
   that lists open dependents; with any, the button becomes "Remove anyway"
-  and sends `force`.
+  and sends `force`. Both need `remove`, and the confirm page answers
+  `Unsupported` without it rather than asking a question it cannot honour.
 - **Rename group.** Each group heading links to `/p/:project/groups/rename?name=…`,
   shown only with `renameGroup`.
 

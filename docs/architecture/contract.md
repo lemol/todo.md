@@ -38,9 +38,9 @@ export class TodoStore extends Context.Service<TodoStore, {
 ## Capabilities
 
 A store declares which optional operations it supports (spec §1.5):
-`groups`, `reorder`, `renameGroup`, `comments` and `promote`. `core` fails early with
-`Unsupported` for the rest, before the store is called, and frontends hide
-what a store can't do.
+`groups`, `reorder`, `renameGroup`, `comments`, `promote`, `cancel`, `add` and
+`remove`. `core` fails early with `Unsupported` for the rest, before the store
+is called, and frontends hide what a store can't do.
 
 **`promote` is a capability, not an `fs` extra.** Promotion moves a task's
 detail into its own document (spec §2.9), which is a property of a store's
@@ -51,8 +51,15 @@ to know which projects happen to be file-backed. Conformance covers it under
 `requires: ["promote"]`, asserting only what the model can see — that the
 task itself is unchanged — while the resulting files are `fs`'s own tests.
 
-Planned (task 13): `add` and `remove` become capabilities too, so a Jira
-source can leave them out.
+**`add` and `remove` are capabilities too**, so a source that mirrors work it
+does not own — Jira, say — can read, update and complete tasks without
+creating or deleting them. They are the only capabilities whose absence the
+conformance suite cannot simply skip around: nearly every case needs a task to
+exist before it asserts anything. Cases therefore ask for their starting state
+through `given` rather than calling `add`, and a store without `add` passes a
+`seed` to `runConformance` that puts tasks in some other way. Cases that
+exercise `add` or `remove` themselves declare `requires: ["add"]` or
+`requires: ["remove"]` and are skipped as any other capability would be.
 
 ## Reference implementation and conformance
 
@@ -60,11 +67,13 @@ source can leave them out.
   operation semantics. `core`'s tests run against it.
 - **The conformance suite** (in `spec`) is a list of runner-agnostic cases,
   each an Effect that runs against a fresh store and asserts with
-  `node:assert`. `runConformance(name, layer)` registers them with
+  `node:assert`. `runConformance(name, layer, options?)` registers them with
   `bun:test`. Every adapter's test suite calls it, and `MemoryTodoStore`
   passes it too. The spec's operation semantics are therefore tested, not
-  only written down. Cases list the capabilities they `require`, and are
-  skipped for stores that lack them.
+  only written down. Cases list the capabilities they `require`; the runner
+  reads the store's capabilities once up front, so a case the store cannot
+  run is reported as skipped, with the reason in its name, rather than
+  quietly passing.
 
 ## Writing an adapter
 

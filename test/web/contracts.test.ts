@@ -107,6 +107,54 @@ describe("board contract", () => {
     )
   })
 
+  test("offers no add form when the store cannot add", async () => {
+    // Seeded through the source's own config: the app has no way to add here.
+    const app = await makeRouter({
+      capabilities: { add: false },
+      projects: [{ name: "acme", fields: { title: "Acme", tasks: [{ title: "Mirrored" }] } }],
+    })
+    cleanup.push(app.close)
+    const board = await (
+      await fetchApp(app.router, routes.project.board.href({ project: app.project }))
+    ).text()
+    expect(board).toContain("Mirrored")
+    expect(board).not.toContain(
+      `action="${routes.project.tasks.add.href({ project: app.project })}"`,
+    )
+    expect(board).not.toContain("Add task")
+
+    // Posting to the route anyway says so, rather than a board with no reason on it.
+    const form = new FormData()
+    form.set("title", "")
+    const posted = await fetchApp(
+      app.router,
+      routes.project.tasks.add.href({ project: app.project }),
+      { method: "POST", body: form },
+    )
+    expect(posted.status).toBe(400)
+    expect(await posted.text()).toContain("does not support add")
+  })
+
+  test("offers no removal when the store cannot remove", async () => {
+    const { router, hubRuntime, project } = await openWith({ remove: false })
+    const task = await seedDocs(hubRuntime, project)
+
+    const detail = await (
+      await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
+    ).text()
+    expect(detail).not.toContain(
+      `href="${routes.project.tasks.confirmRemove.href({ project, id: task.id })}"`,
+    )
+
+    // Reaching the confirm page directly says so rather than asking.
+    const confirm = await fetchApp(
+      router,
+      routes.project.tasks.confirmRemove.href({ project, id: task.id }),
+    )
+    expect(confirm.status).toBe(400)
+    expect(await confirm.text()).toContain("does not support remove")
+  })
+
   test("adds a task to a new group", async () => {
     const { router, project } = await open()
     const form = new FormData()
