@@ -1,7 +1,7 @@
 # Sources
 
-> **Status: fs built (tasks 14 and 15).** git (task 19) and jira (task 06) are
-> planned; each updates this page. The full design is in the
+> **Status: fs and git built (tasks 14, 15 and 19).** jira (task 06) is
+> planned and updates this page. The full design is in the
 > [hub design](../superpowers/specs/2026-09-13-hub-design.md#4-sources).
 
 A **source** turns a registry entry into a `TodoStore` (see
@@ -63,7 +63,10 @@ interface SourceProject<C> {
 - **git** never fails a mutation because of the network. A rejected push is
   rebased and retried once; otherwise the commit stays local (`ahead`). A
   rebase conflict is aborted and the project marked `diverged`. Credentials
-  are the user's git setup.
+  are the user's git setup, reached by running `git` itself with prompting
+  off, so the CLI never stops for input. It records its own outcomes in
+  `projects/<name>/git.json`, next to but separate from the hub's
+  `state.json`. See [src/git/README.md](../../src/git/README.md).
 - **jira** mirrors tickets matching `jql` (default: assigned to me, not
   done) and recently done ones, supports complete, reopen, comment and
   editing title and labels, and declares only the `comments` capability

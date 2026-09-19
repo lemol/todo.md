@@ -46,6 +46,7 @@ One package, `@lemol/todo-md`, with a subpath per module:
 | [`@lemol/todo-md/core`](src/core)                  | Adapter-agnostic logic: queries, readiness, validation |
 | [`@lemol/todo-md/fs`](src/fs)                      | File-system adapter (the reference implementation)     |
 | [`@lemol/todo-md/hub`](src/hub)                    | Projects: registry, resolution, a service per project (`hub/testing`: `memorySource`) |
+| [`@lemol/todo-md/git`](src/git)                    | `gitSource`: a list in a git repository, cloned locally |
 | [`@lemol/todo-md/cli`](src/cli)                    | The `todo` command                                     |
 
 Install it from git. Releases are tagged `todo-md@<version>`; `effect` is a
@@ -80,6 +81,7 @@ Across projects:
 
 ```sh
 todo projects add ~/labs/acme         # register another list
+todo projects add git@github.com:lemol/mionso.git   # or one in a git repository
 todo --project acme ls                # work on it from anywhere
 todo ls --all                         # everything, every project
 todo sync --all                       # refresh remotes

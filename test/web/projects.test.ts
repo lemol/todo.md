@@ -2,9 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { BunServices } from "@effect/platform-bun"
 import { Effect } from "effect"
+import { gitSourceWith, makeGit } from "../../src/git/index.ts"
 import { fsSource, SourceError } from "../../src/hub/index.ts"
 import { memorySource } from "../../src/hub/testing.ts"
+import { defaultBranch, remoteIn, subjects } from "../git/helpers.ts"
 import { makeRouter } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -85,6 +88,46 @@ describe("projects page", () => {
     const response = await postApp(app.router, "/projects", { target: "list", name: "rel" })
     expect(response.status).toBe(303)
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain(join(cwd, "list"))
+  })
+
+  test("adds a git project, clones it and pushes what the board changes", async () => {
+    const root = mkdtempSync(join(tmpdir(), "todo-md-web-git-"))
+    const remote = remoteIn(root, { "todo/TODO.md": "# Remote\n\n- [ ] 01 - Seeded\n" })
+    const git = gitSourceWith(
+      await Effect.runPromise(Effect.provide(makeGit({ env: {} }), BunServices.layer)),
+    )
+    const app = await open({ extraSources: [git] })
+
+    const added = await postApp(app.router, "/projects", {
+      target: remote,
+      name: "acme-git",
+      source: "git",
+      branch: defaultBranch,
+      list: "todo",
+    })
+    expect(added.status).toBe(303)
+    expect(added.headers.get("Location")).toBe("/p/acme-git")
+
+    const board = await (await fetchApp(app.router, "/p/acme-git")).text()
+    expect(board).toContain("Seeded")
+
+    await postApp(app.router, "/p/acme-git/tasks", { title: "From the browser" })
+    expect(subjects(remote, defaultBranch)[0]).toContain("todo: add")
+  })
+
+  test("the add form carries git's optional fields, and refuses them elsewhere", async () => {
+    const app = await open({ extraSources: [fsSource] })
+    expect(await (await fetchApp(app.router, "/projects")).text()).toContain('name="branch"')
+
+    const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+    writeFileSync(join(dir, "TODO.md"), "# Local\n")
+    const refused = await postApp(app.router, "/projects", {
+      target: dir,
+      name: "local",
+      branch: "main",
+    })
+    expect(refused.status).toBe(422)
+    expect(await refused.text()).toContain("Branch and list are for git projects")
   })
 
   test("a duplicate name re-renders the form with 422", async () => {

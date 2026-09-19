@@ -1,5 +1,6 @@
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
+import { GitSource } from "../git/index.ts"
 import { fsSource, Hub } from "../hub/index.ts"
 import type { HubRuntime } from "./app/middleware/project.tsx"
 import { createAppRouter } from "./app/router.ts"
@@ -23,9 +24,15 @@ export const startServer = async (options: ServerOptions) => {
     throw new Error("use --project or --dir, not both")
   }
   const runtime = ManagedRuntime.make(
-    Hub.layer({ home: options.home, userHome: options.userHome, sources: [fsSource] }).pipe(
-      Layer.provide(BunServices.layer),
-    ),
+    Layer.unwrap(
+      Effect.map(GitSource.make({ env: options.env }), (gitSource) =>
+        Hub.layer({
+          home: options.home,
+          userHome: options.userHome,
+          sources: [fsSource, gitSource],
+        }),
+      ),
+    ).pipe(Layer.provide(BunServices.layer)),
   )
   const hubRuntime: HubRuntime = { runPromise: (effect) => runtime.runPromise(effect) }
   let startup: string

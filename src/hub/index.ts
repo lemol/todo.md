@@ -7,7 +7,7 @@ export {
   projectInput,
   projectInputFrom,
 } from "./input.ts"
-export { isValidName } from "./names.ts"
+export { isValidName, nameFrom } from "./names.ts"
 export type {
   Overview,
   OverviewEntry,
@@ -26,6 +26,6 @@ export type {
   SourceProject,
   SyncOutcome,
 } from "./Source.ts"
-export { FsConfig, fsSource, watchList } from "./sources/fs.ts"
+export { FsConfig, fsSource, type WatchListOptions, watchList } from "./sources/fs.ts"
 export { statusText } from "./status.ts"
 export type { SyncFailure, SyncResult } from "./sync.ts"

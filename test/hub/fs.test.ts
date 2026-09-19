@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { BunServices } from "@effect/platform-bun"
 import { type Duration, Effect, Exit, Option, Queue, Stream } from "effect"
-import { fsSource } from "../../src/hub/index.ts"
+import { fsSource, watchList } from "../../src/hub/index.ts"
 import { listRootOf } from "../../src/hub/sources/fs.ts"
 import { effectTest } from "../../src/spec/testing.ts"
 import { Disk, diskWith, eventually, liveTest, md, takeWithin } from "./helpers.ts"
@@ -83,6 +83,36 @@ describe("fsSource.changes", () => {
       yield* disk.write(".todo.lock", "lock")
       yield* disk.write("ignored.tmp", "temp")
       expect(yield* fired("500 millis")).toBe(false)
+    }),
+    diskWith({ "TODO.md": md("# App") }),
+  )
+
+  liveTest(
+    "skips what a caller's ignore rejects, such as git's own directory",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const events = yield* Queue.unbounded<void>()
+      yield* watchList(disk.root, { ignore: (path) => path.split(/[\\/]/).includes(".git") }).pipe(
+        Stream.runForEach(() => Queue.offer(events, undefined)),
+        Effect.provide(BunServices.layer),
+        Effect.forkScoped,
+      )
+      const fired = (within: Duration.Input) =>
+        Effect.map(takeWithin(events, within), Option.isSome)
+      let probes = 0
+      const armed = yield* eventually(
+        Effect.suspend(() => disk.write("probe.md", String(probes++))),
+        takeWithin(events, "200 millis"),
+      )
+      expect(Option.isSome(armed)).toBe(true)
+      let settling = true
+      while (settling) settling = yield* fired("300 millis")
+
+      yield* disk.write(".git/refs/heads/main", "abc")
+      expect(yield* fired("500 millis")).toBe(false)
+
+      yield* disk.write("TODO.md", md("# App", "", "- [ ] 01 - One"))
+      expect(yield* fired("5 seconds")).toBe(true)
     }),
     diskWith({ "TODO.md": md("# App") }),
   )

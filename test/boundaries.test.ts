@@ -24,8 +24,9 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
   core: { modules: ["spec"], packages: ["effect"] },
   fs: { modules: ["spec", "markdown"], packages: ["effect"] },
   hub: { modules: ["spec", "core", "fs"], packages: ["effect", "yaml"] },
+  git: { modules: ["spec", "fs", "hub"], packages: ["effect"] },
   cli: {
-    modules: ["spec", "core", "fs", "hub", "web"],
+    modules: ["spec", "core", "fs", "hub", "git", "web"],
     packages: ["effect", "@effect/platform-bun", "node:", "bun"],
   },
 }
@@ -94,7 +95,7 @@ const webTodoPackages = [
   "@lemol/todo-md/spec/testing",
   "@lemol/todo-md/hub/testing",
 ]
-const webModules = ["spec", "core", "hub"]
+const webModules = ["spec", "core", "hub", "git"]
 
 export const webViolations = (file: string, source: string): string[] => {
   const isTest = file.startsWith("test/") || file.includes(".test.")
@@ -210,6 +211,28 @@ describe("module boundaries", () => {
       expect(violations(at("cli", "context.ts"), 'import { Hub } from "../hub/index.ts"')).toEqual(
         [],
       )
+    })
+
+    test("lets git use spec, fs and hub, and nothing above it", () => {
+      const source = [
+        'import { FsTodoStore } from "../fs/index.ts"',
+        'import { watchList } from "../hub/index.ts"',
+        'import { TodoStore } from "../spec/index.ts"',
+        'import { ChildProcess } from "effect/unstable/process"',
+      ].join("\n")
+      expect(violations(at("git", "GitSource.ts"), source)).toEqual([])
+      expect(
+        violations(at("git", "GitSource.ts"), 'import { TodoService } from "../core/index.ts"'),
+      ).toEqual([`${at("git", "GitSource.ts")}: module git must not import module core`])
+      expect(violations(at("git", "git.ts"), 'import { spawn } from "node:child_process"')).toEqual(
+        [`${at("git", "git.ts")}: module git must not import package node:child_process`],
+      )
+      expect(
+        violations(at("cli", "bin.ts"), 'import { GitSource } from "../git/index.ts"'),
+      ).toEqual([])
+      expect(
+        violations(at("hub", "Hub.ts"), 'import { GitSource } from "../git/index.ts"'),
+      ).toEqual([`${at("hub", "Hub.ts")}: module hub must not import module git`])
     })
 
     test("keeps hub test helpers out of runtime code", () => {

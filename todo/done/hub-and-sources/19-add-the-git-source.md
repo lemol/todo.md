@@ -2,6 +2,9 @@
 title: Add the git source
 tags: [adapter, hub]
 depends_on: [15]
+group: Hub and sources
+completed_at: 2026-09-19T16:31:57Z
+outcome: completed
 ---
 ## Goal
 

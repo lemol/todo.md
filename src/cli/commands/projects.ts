@@ -95,15 +95,32 @@ export const projectsAdd = Command.make(
       Flag.optional,
       Flag.withDescription("The source kind: fs or git (default: inferred from the target)"),
     ),
+    branch: Flag.string("branch").pipe(
+      Flag.optional,
+      Flag.withDescription("git only: the branch to track (default: the repository's own)"),
+    ),
+    list: Flag.string("list").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "git only: the list directory in the repository (default: todo/ or its root)",
+      ),
+    ),
   },
-  Effect.fn(function* ({ target, name, source }) {
+  Effect.fn(function* ({ target, name, source, branch, list }) {
     const { cwd } = yield* CliContext
     const hub = yield* Hub
     const input = yield* projectInput(target, {
       cwd,
       ...(Option.isSome(source) ? { source: source.value } : {}),
       ...(Option.isSome(name) ? { name: name.value } : {}),
+      ...(Option.isSome(branch) ? { branch: branch.value } : {}),
+      ...(Option.isSome(list) ? { list: list.value } : {}),
     })
+    if (input.source !== "git" && (Option.isSome(branch) || Option.isSome(list))) {
+      return yield* new UsageError({
+        message: `--branch and --list are for git projects; ${target} is a ${input.source} project`,
+      })
+    }
     yield* printProject(hub, yield* hub.add(input))
   }),
 ).pipe(
@@ -113,6 +130,15 @@ export const projectsAdd = Command.make(
     {
       command: "todo projects add ~/labs/acme --name acme",
       description: "Register it under another name",
+    },
+    {
+      command: "todo projects add git@github.com:lemol/mionso.git",
+      description: "Clone a git repository and follow its list",
+    },
+    {
+      command:
+        "todo projects add https://github.com/lemol/mionso.git --branch main --list docs/todo",
+      description: "Follow one branch and one directory of it",
     },
   ]),
 )

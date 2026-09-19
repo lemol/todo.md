@@ -19,7 +19,7 @@ import {
   type NoListFound,
   ProjectNotFound,
   RegistryError,
-  type SourceError,
+  SourceError,
   SourceUnavailable,
   type SyncError,
 } from "./errors.ts"
@@ -379,12 +379,27 @@ const make = (options: HubOptions) =>
           const project = (yield* registered).find((candidate) => candidate.name === name)
           if (project === undefined) return yield* new ProjectNotFound({ name })
           const { config } = project
+          const force = options?.force === true
           if (config._tag === "Valid" && config.source.beforeRemove !== undefined) {
             const refusal = config.source.beforeRemove(
               sourceProjectOf(project, config.value),
-              options?.force === true,
+              force,
             )
             yield* inEnv(refusal)
+          }
+          // A broken entry has no source to ask, and its data directory may
+          // hold the only copy of something (a git clone with unpushed
+          // commits). Deleting it blind needs `--force` (task 14's review).
+          if (config._tag === "Invalid" && !force && project.dir !== undefined) {
+            const entries = yield* fs
+              .readDirectory(project.dir)
+              .pipe(Effect.orElseSucceed(() => [] as ReadonlyArray<string>))
+            if (entries.length > 0) {
+              return yield* new SourceError({
+                name,
+                message: `${config.problem.message}, so its data (${project.dir}) cannot be checked before it is deleted; use --force`,
+              })
+            }
           }
           // An entry with an invalid name has no data directory.
           const { dir } = project

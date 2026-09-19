@@ -23,22 +23,33 @@ export const listRootOf = (path: string) =>
     return Option.none<string>()
   })
 
+export interface WatchListOptions {
+  /**
+   * Further event paths to skip, such as git's `.git` directory when the list
+   * is a repository root. The path is as the watcher reports it.
+   */
+  readonly ignore?: (path: string) => boolean
+}
+
 /**
  * Emits once each burst of changes under `root` settles (100 ms), ignoring
  * the lock file and temporary files. Fails when `root` cannot be watched.
  */
 export const watchList = (
   root: string,
+  options: WatchListOptions = {},
 ): Stream.Stream<void, PlatformError.PlatformError, SourceEnv> =>
   Stream.unwrap(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const path = yield* Path.Path
-      // Event paths may be relative to `root`; only the file name matters.
+      // Event paths may be relative to `root`; only the file name matters,
+      // except for `options.ignore`, which sees the path as reported.
       return fs.watch(root, { recursive: true }).pipe(
         Stream.filter((event) => {
           const name = path.basename(event.path)
-          return name !== lockFile && !name.endsWith(".tmp")
+          if (name === lockFile || name.endsWith(".tmp")) return false
+          return options.ignore === undefined || !options.ignore(event.path)
         }),
         Stream.debounce("100 millis"),
         Stream.map(() => undefined),

@@ -47,8 +47,10 @@ Every project's capabilities come from its own `TodoService.capabilities`
 (derived from its store), not a global setting — a project without `groups`
 or `comments` simply hides that UI.
 
-`server.ts` is the composition root: it builds a `Hub.layer` runtime and
-resolves the startup project the same way the CLI does. `app/middleware`
+`server.ts` is the composition root: it builds a `Hub.layer` runtime over
+`fsSource` and the [git source](../git), and resolves the startup project the
+same way the CLI does. The Projects page's add form carries git's optional
+branch and list fields; they are refused for a target that is not git. `app/middleware`
 supplies request capabilities, including `loadProject` for `/p/:project` and
 `provideHub` for hub-level routes; `app/actions` owns routes; `app/ui` owns
 shared rendering and styles. Hosting/authentication and GitHub-backed storage

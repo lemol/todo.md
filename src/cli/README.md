@@ -36,7 +36,7 @@ examples. `todo --help` lists the commands.
 | `todo check` | Validate the list; exits 1 when it finds errors. | `Diagnostic[]` |
 | `todo init [dir]` | Create a list (default `./todo`); `--title` (default: the directory's name). | `{ root }` |
 | `todo fmt` | Normalize a hand-edited list: number new items, complete ticked ones, sync link text. | `{ assigned, finished, swept }` |
-| `todo projects` | Registered projects with sync status; `ls`, `add <target> [--name] [--source]`, `rm <name> [--force]`, `rename <from> <to>`. | `ProjectInfo[]` |
+| `todo projects` | Registered projects with sync status; `ls`, `add <target> [--name] [--source] [--branch] [--list]`, `rm <name> [--force]`, `rename <from> <to>`. `--branch` and `--list` are git-only. | `ProjectInfo[]` |
 | `todo sync [names…] [--all]` | Sync projects with their remotes; exits 1 when any sync failed. | `(SyncResult \| SyncFailure)[]` |
 | `todo web [--port] [--host]` | Start the local web UI over the current list (`--port` default 4400, next free when busy; `--host` default 127.0.0.1). | `{ url }` |
 
@@ -129,6 +129,7 @@ user name.
 
 - [`core`](../core)
 - [`fs`](../fs)
+- [`git`](../git)
 - [`hub`](../hub)
 - [`spec`](../spec)
 - [`web`](../web) (`startServer` for `todo web` only)
@@ -136,5 +137,6 @@ user name.
 - `@effect/platform-bun`
 - `node:*` and `bun`
 
-The CLI is the composition root: it builds a hub over `fsSource` and runs every
-command through it.
+The CLI is the composition root: it builds a hub over `fsSource` and the
+[git source](../git) — which needs Bun's `ChildProcessSpawner`, so `bin.ts`
+builds it — and runs every command through it.

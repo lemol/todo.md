@@ -424,6 +424,25 @@ describe("remove", () => {
   )
 
   effectTest(
+    "will not delete a broken entry's data unasked: no source can be asked about it",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const hub = yield* hubOn([memorySource()])
+      const error = yield* Effect.flip(hub.remove("work"))
+      expect(error._tag).toBe("SourceError")
+      expect(error.message).toContain("use --force")
+      expect(yield* disk.exists(".todo-md/projects/work/clone/TODO.md")).toBe(true)
+      yield* hub.remove("work", { force: true })
+      expect(yield* hub.projects()).toEqual([])
+      expect(yield* disk.exists(".todo-md/projects/work")).toBe(false)
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md("projects:", "  work:", "    source: git"),
+      ".todo-md/projects/work/clone/TODO.md": md("# Work"),
+    }),
+  )
+
+  effectTest(
     "drops the cached project",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])

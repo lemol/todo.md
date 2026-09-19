@@ -16,6 +16,10 @@ export interface ProjectInputOptions {
   /** The source kind, instead of inferring it. */
   readonly source?: string | undefined
   readonly name?: string | undefined
+  /** git: the branch to track, instead of the repository's default. */
+  readonly branch?: string | undefined
+  /** git: the list directory inside the repository, instead of discovering it. */
+  readonly list?: string | undefined
 }
 
 const githubWithoutScheme = /^(www\.)?github\.com\//
@@ -32,6 +36,9 @@ const gitUrls = [
  * input. A git URL is `git`; anything else is an `fs` path, resolved against
  * `cwd` unless it starts with `~`. `options.source` overrides the inference;
  * kinds other than `fs` and `git` get an empty config for the frontend to fill.
+ *
+ * `branch` and `list` belong to git; they are left out of any other config, so
+ * a frontend can pass them through and then refuse the combination itself.
  */
 export const projectInputFrom = (
   target: string,
@@ -44,7 +51,12 @@ export const projectInputFrom = (
     source === "fs"
       ? { path: home ? target : resolve(options.cwd, target) }
       : source === "git"
-        ? { url: githubWithoutScheme.test(target) ? `https://${target}` : target }
+        ? {
+            url: githubWithoutScheme.test(target) ? `https://${target}` : target,
+            // Absent keys, not `undefined` ones: they are written to the registry.
+            ...(options.branch === undefined ? {} : { branch: options.branch }),
+            ...(options.list === undefined ? {} : { list: options.list }),
+          }
         : {}
   return { name: options.name, source, config }
 }

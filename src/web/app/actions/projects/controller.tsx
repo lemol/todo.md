@@ -84,6 +84,8 @@ export const createProjectsController = (options: {
               cwd: options.cwd,
               ...(values.source === undefined ? {} : { source: values.source }),
               ...(values.name === "" ? {} : { name: values.name }),
+              ...(values.branch === "" ? {} : { branch: values.branch }),
+              ...(values.list === "" ? {} : { list: values.list }),
             },
             (cwd, relative) => {
               if (relative.startsWith("/")) return relative
@@ -91,6 +93,17 @@ export const createProjectsController = (options: {
               return `${base}/${relative}`
             },
           )
+          if (input.source !== "git" && (values.branch !== "" || values.list !== "")) {
+            return await renderProjects(
+              options.runtime,
+              web,
+              {
+                values,
+                issues: [`Branch and list are for git projects; this is a ${input.source} project`],
+              },
+              422,
+            )
+          }
           const result = await options.runtime.runPromise(
             Effect.result(Effect.flatMap(Hub, (hub) => hub.add(input))),
           )

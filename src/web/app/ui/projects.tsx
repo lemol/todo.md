@@ -31,7 +31,14 @@ const row = (info: ProjectInfo, now: DateTime.Utc, renaming: string | undefined)
 }
 
 const addForm = (options: ProjectsOptions): string => {
-  const values = options.values ?? { target: "", name: "", source: undefined, issues: [] }
+  const values = options.values ?? {
+    target: "",
+    name: "",
+    source: undefined,
+    branch: "",
+    list: "",
+    issues: [],
+  }
   const issues = options.issues ?? []
   const sources = ["infer", ...options.sources]
     .map(
@@ -43,7 +50,7 @@ const addForm = (options: ProjectsOptions): string => {
     issues.length === 0
       ? ""
       : `<ul class="issues">${issues.map((issue) => `<li class="badge error">${escapeHtml(issue)}</li>`).join("")}</ul>`
-  }<form method="post" action="${routes.projects.add.href()}"><label>Target <input name="target" value="${escapeHtml(values.target)}" placeholder="~/labs/acme or https://github.com/owner/repo.git" required></label><label>Name <input name="name" value="${escapeHtml(values.name)}" placeholder="optional"></label><label>Source <select name="source">${sources}</select></label><button type="submit">Add</button></form></section>`
+  }<form method="post" action="${routes.projects.add.href()}"><label>Target <input name="target" value="${escapeHtml(values.target)}" placeholder="~/labs/acme or https://github.com/owner/repo.git" required></label><label>Name <input name="name" value="${escapeHtml(values.name)}" placeholder="optional"></label><label>Source <select name="source">${sources}</select></label><fieldset class="git-only"><legend>git only</legend><label>Branch <input name="branch" value="${escapeHtml(values.branch)}" placeholder="the repository's own"></label><label>List <input name="list" value="${escapeHtml(values.list)}" placeholder="todo/ or the repository root"></label></fieldset><button type="submit">Add</button></form></section>`
 }
 
 const refusal = (options: ProjectsOptions): string => {
