@@ -68,7 +68,11 @@ describe("git projects from the CLI", () => {
         Effect.flatMap(sources, (loaded) => runTodo(args, { home: `${root}/hub`, sources: loaded }))
       const refused = yield* run("projects", "add", `${root}/local`, "--branch", "main")
       expect(refused.code).toBe(2)
-      expect(refused.stderr).toContain("--branch and --list are for git projects")
+      expect(refused.stderr).toContain("--branch is not for fs projects")
+
+      const both = yield* run("projects", "add", `${root}/local`, "--branch", "main", "--list", "x")
+      expect(both.code).toBe(2)
+      expect(both.stderr).toContain("--branch and --list are not for fs projects")
     }),
     diskWith({ "local/TODO.md": md("# Local") }),
   )

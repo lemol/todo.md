@@ -20,6 +20,14 @@ export interface ProjectInputOptions {
   readonly branch?: string | undefined
   /** git: the list directory inside the repository, instead of discovering it. */
   readonly list?: string | undefined
+  /** jira: the account the API token belongs to. */
+  readonly email?: string | undefined
+  /** jira: the environment variable holding the API token. */
+  readonly tokenEnv?: string | undefined
+  /** jira: a command printing the API token. */
+  readonly tokenCommand?: string | undefined
+  /** jira: the query behind the project, instead of "assigned to me, not done". */
+  readonly jql?: string | undefined
 }
 
 const githubWithoutScheme = /^(www\.)?github\.com\//
@@ -34,11 +42,13 @@ const gitUrls = [
 /**
  * Turns what a user types to add a project (a path or a URL) into `hub.add`'s
  * input. A git URL is `git`; anything else is an `fs` path, resolved against
- * `cwd` unless it starts with `~`. `options.source` overrides the inference;
- * kinds other than `fs` and `git` get an empty config for the frontend to fill.
+ * `cwd` unless it starts with `~`. `options.source` overrides the inference,
+ * and is how a target becomes a `jira` site: no URL shape says "Jira". A kind
+ * this does not know gets an empty config for the frontend to fill.
  *
- * `branch` and `list` belong to git; they are left out of any other config, so
- * a frontend can pass them through and then refuse the combination itself.
+ * Each source's own options are left out of every other config — `branch` and
+ * `list` of anything but git, `email` and the token of anything but jira — so
+ * a frontend can pass them all through and then refuse the combination itself.
  */
 export const projectInputFrom = (
   target: string,
@@ -57,7 +67,17 @@ export const projectInputFrom = (
             ...(options.branch === undefined ? {} : { branch: options.branch }),
             ...(options.list === undefined ? {} : { list: options.list }),
           }
-        : {}
+        : source === "jira"
+          ? {
+              site: target.replace(/\/+$/, ""),
+              ...(options.email === undefined ? {} : { email: options.email }),
+              ...(options.tokenEnv === undefined ? {} : { token_env: options.tokenEnv }),
+              ...(options.tokenCommand === undefined
+                ? {}
+                : { token_command: options.tokenCommand }),
+              ...(options.jql === undefined ? {} : { jql: options.jql }),
+            }
+          : {}
   return { name: options.name, source, config }
 }
 

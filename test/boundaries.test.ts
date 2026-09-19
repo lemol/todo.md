@@ -25,8 +25,9 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
   fs: { modules: ["spec", "markdown"], packages: ["effect"] },
   hub: { modules: ["spec", "core", "fs"], packages: ["effect", "yaml"] },
   git: { modules: ["spec", "fs", "hub"], packages: ["effect"] },
+  jira: { modules: ["spec", "hub"], packages: ["effect"] },
   cli: {
-    modules: ["spec", "core", "fs", "hub", "git", "web"],
+    modules: ["spec", "core", "fs", "hub", "git", "jira", "web"],
     packages: ["effect", "@effect/platform-bun", "node:", "bun"],
   },
 }
@@ -233,6 +234,31 @@ describe("module boundaries", () => {
       expect(
         violations(at("hub", "Hub.ts"), 'import { GitSource } from "../git/index.ts"'),
       ).toEqual([`${at("hub", "Hub.ts")}: module hub must not import module git`])
+    })
+
+    test("lets jira use spec and hub, and neither fs nor git", () => {
+      const source = [
+        'import { watchList } from "../hub/index.ts"',
+        'import { TodoStore } from "../spec/index.ts"',
+        'import { HttpClient } from "effect/unstable/http"',
+        'import { ChildProcessSpawner } from "effect/unstable/process"',
+      ].join("\n")
+      expect(violations(at("jira", "JiraSource.ts"), source)).toEqual([])
+      expect(
+        violations(at("jira", "store.ts"), 'import { makeLock } from "../fs/index.ts"'),
+      ).toEqual([`${at("jira", "store.ts")}: module jira must not import module fs`])
+      expect(
+        violations(at("jira", "client.ts"), 'import { makeGit } from "../git/git.ts"'),
+      ).toEqual([`${at("jira", "client.ts")}: module jira must not import module git`])
+      expect(violations(at("jira", "client.ts"), 'import { request } from "node:https"')).toEqual([
+        `${at("jira", "client.ts")}: module jira must not import package node:https`,
+      ])
+      expect(
+        violations(at("cli", "bin.ts"), 'import { JiraSource } from "../jira/index.ts"'),
+      ).toEqual([])
+      expect(
+        violations(at("hub", "Hub.ts"), 'import { JiraSource } from "../jira/index.ts"'),
+      ).toEqual([`${at("hub", "Hub.ts")}: module hub must not import module jira`])
     })
 
     test("keeps hub test helpers out of runtime code", () => {

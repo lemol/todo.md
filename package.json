@@ -13,6 +13,7 @@
     "./hub": "./src/hub/index.ts",
     "./hub/testing": "./src/hub/testing.ts",
     "./git": "./src/git/index.ts",
+    "./jira": "./src/jira/index.ts",
     "./cli": "./src/cli/index.ts"
   },
   "bin": {

@@ -85,15 +85,15 @@ export const projectsAdd = Command.make(
   "add",
   {
     target: Argument.string("target").pipe(
-      Argument.withDescription("A directory path for a local list, or a git URL"),
+      Argument.withDescription("A directory path for a local list, a git URL, or a Jira site"),
     ),
     name: Flag.string("name").pipe(
       Flag.optional,
-      Flag.withDescription("The project's name (default: from the target)"),
+      Flag.withDescription("The project's name (default: from the target; required for jira)"),
     ),
     source: Flag.string("source").pipe(
       Flag.optional,
-      Flag.withDescription("The source kind: fs or git (default: inferred from the target)"),
+      Flag.withDescription("The source kind: fs, git or jira (default: inferred from the target)"),
     ),
     branch: Flag.string("branch").pipe(
       Flag.optional,
@@ -105,8 +105,26 @@ export const projectsAdd = Command.make(
         "git only: the list directory in the repository (default: todo/ or its root)",
       ),
     ),
+    email: Flag.string("email").pipe(
+      Flag.optional,
+      Flag.withDescription("jira only: the account the API token belongs to"),
+    ),
+    tokenEnv: Flag.string("token-env").pipe(
+      Flag.optional,
+      Flag.withDescription("jira only: the environment variable holding the API token"),
+    ),
+    tokenCommand: Flag.string("token-command").pipe(
+      Flag.optional,
+      Flag.withDescription("jira only: a command printing the API token, e.g. from a keychain"),
+    ),
+    jql: Flag.string("jql").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "jira only: the query behind the project (default: assigned to me and not done)",
+      ),
+    ),
   },
-  Effect.fn(function* ({ target, name, source, branch, list }) {
+  Effect.fn(function* ({ target, name, source, branch, list, email, tokenEnv, tokenCommand, jql }) {
     const { cwd } = yield* CliContext
     const hub = yield* Hub
     const input = yield* projectInput(target, {
@@ -115,16 +133,39 @@ export const projectsAdd = Command.make(
       ...(Option.isSome(name) ? { name: name.value } : {}),
       ...(Option.isSome(branch) ? { branch: branch.value } : {}),
       ...(Option.isSome(list) ? { list: list.value } : {}),
+      ...(Option.isSome(email) ? { email: email.value } : {}),
+      ...(Option.isSome(tokenEnv) ? { tokenEnv: tokenEnv.value } : {}),
+      ...(Option.isSome(tokenCommand) ? { tokenCommand: tokenCommand.value } : {}),
+      ...(Option.isSome(jql) ? { jql: jql.value } : {}),
     })
-    if (input.source !== "git" && (Option.isSome(branch) || Option.isSome(list))) {
+    const wrongFor = (
+      kind: string,
+      given: ReadonlyArray<readonly [string, Option.Option<string>]>,
+    ) =>
+      input.source === kind
+        ? []
+        : given.filter(([, value]) => Option.isSome(value)).map(([flag]) => flag)
+    const misplaced = [
+      ...wrongFor("git", [
+        ["--branch", branch],
+        ["--list", list],
+      ]),
+      ...wrongFor("jira", [
+        ["--email", email],
+        ["--token-env", tokenEnv],
+        ["--token-command", tokenCommand],
+        ["--jql", jql],
+      ]),
+    ]
+    if (misplaced.length > 0) {
       return yield* new UsageError({
-        message: `--branch and --list are for git projects; ${target} is a ${input.source} project`,
+        message: `${misplaced.join(" and ")} ${misplaced.length === 1 ? "is" : "are"} not for ${input.source} projects; ${target} is a ${input.source} project`,
       })
     }
     yield* printProject(hub, yield* hub.add(input))
   }),
 ).pipe(
-  Command.withDescription("Register a directory or git URL as a project"),
+  Command.withDescription("Register a directory, a git URL or a Jira site as a project"),
   Command.withExamples([
     { command: "todo projects add ~/labs/acme", description: "Register a local list" },
     {
@@ -139,6 +180,16 @@ export const projectsAdd = Command.make(
       command:
         "todo projects add https://github.com/lemol/mionso.git --branch main --list docs/todo",
       description: "Follow one branch and one directory of it",
+    },
+    {
+      command:
+        "todo projects add https://acme.atlassian.net --source jira --name work --email me@acme.test --token-env JIRA_TOKEN",
+      description: "Follow the Jira issues assigned to you",
+    },
+    {
+      command:
+        "todo projects add https://acme.atlassian.net --source jira --name proj --email me@acme.test --token-command 'security find-generic-password -s jira -w' --jql 'project = PROJ AND statusCategory != Done'",
+      description: "Take the token from the macOS keychain and follow one project",
     },
   ]),
 )

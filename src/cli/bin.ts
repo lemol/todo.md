@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs"
 import { homedir, userInfo } from "node:os"
 import { BunRuntime, BunServices } from "@effect/platform-bun"
 import { Effect } from "effect"
+import { FetchHttpClient } from "effect/unstable/http"
 import { GitSource } from "../git/index.ts"
 import { fsSource } from "../hub/index.ts"
+import { JiraSource } from "../jira/index.ts"
 import { main } from "./main.ts"
 
 const userHome = homedir()
@@ -21,9 +23,12 @@ const readStdin = (): string => {
   }
 }
 
-GitSource.make({ env: process.env })
+Effect.all([
+  GitSource.make({ env: process.env }),
+  JiraSource.make({ env: process.env }).pipe(Effect.provide(FetchHttpClient.layer)),
+])
   .pipe(
-    Effect.flatMap((gitSource) =>
+    Effect.flatMap(([gitSource, jiraSource]) =>
       main(process.argv.slice(2), {
         cwd: process.cwd(),
         env: process.env,
@@ -31,7 +36,7 @@ GitSource.make({ env: process.env })
         color: process.stdout.isTTY === true && process.env.NO_COLOR === undefined,
         home: process.env.TODO_MD_HOME ?? `${userHome}/.todo-md`,
         userHome,
-        sources: [fsSource, gitSource],
+        sources: [fsSource, gitSource, jiraSource],
         stdin: Effect.sync(readStdin),
       }),
     ),

@@ -34,9 +34,55 @@ describe("projectInput", () => {
       config: { url: "/srv/repo.git" },
     })
     expect(input("app", { source: "fs" })).toMatchObject({ config: { path: "/work/app" } })
-    expect(input("https://acme.atlassian.net", { source: "jira" })).toMatchObject({
-      source: "jira",
-      config: {},
+  })
+
+  describe("jira", () => {
+    test("makes the target the site, and passes the credentials through", () => {
+      expect(
+        input("https://acme.atlassian.net", {
+          source: "jira",
+          name: "work",
+          email: "tester@acme.test",
+          tokenEnv: "JIRA_TOKEN",
+        }),
+      ).toEqual({
+        name: "work",
+        source: "jira",
+        config: {
+          site: "https://acme.atlassian.net",
+          email: "tester@acme.test",
+          token_env: "JIRA_TOKEN",
+        },
+      })
+    })
+
+    test("writes only the keys it was given", () => {
+      expect(
+        input("https://acme.atlassian.net", {
+          source: "jira",
+          email: "tester@acme.test",
+          tokenCommand: "security find-generic-password -s jira -w",
+          jql: "project = PROJ",
+        }).config,
+      ).toEqual({
+        site: "https://acme.atlassian.net",
+        email: "tester@acme.test",
+        token_command: "security find-generic-password -s jira -w",
+        jql: "project = PROJ",
+      })
+    })
+
+    test("leaves the site as typed, without a trailing slash", () => {
+      expect(input("https://acme.atlassian.net/", { source: "jira" })).toMatchObject({
+        config: { site: "https://acme.atlassian.net" },
+      })
+    })
+
+    test("does not take git's flags", () => {
+      expect(
+        input("https://acme.atlassian.net", { source: "jira", branch: "main", list: "todo" })
+          .config,
+      ).toEqual({ site: "https://acme.atlassian.net" })
     })
   })
 })

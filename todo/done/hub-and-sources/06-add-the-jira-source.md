@@ -2,6 +2,9 @@
 title: Add the Jira source
 tags: [adapter, hub]
 depends_on: [13, 15]
+group: Hub and sources
+completed_at: 2026-09-19T17:58:39Z
+outcome: completed
 ---
 ## Goal
 

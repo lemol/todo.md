@@ -1,7 +1,8 @@
 # Sources
 
-> **Status: fs and git built (tasks 14, 15 and 19).** jira (task 06) is
-> planned and updates this page. The full design is in the
+> **Status: fs and git built (tasks 14, 15 and 19); jira reads (task 06).**
+> The Jira mutations are the rest of task 06 and update this page. The full
+> design is in the
 > [hub design](../superpowers/specs/2026-09-13-hub-design.md#4-sources).
 
 A **source** turns a registry entry into a `TodoStore` (see
@@ -13,7 +14,7 @@ it.
 | --- | --- | --- | --- | --- |
 | `fs` | `hub` | the list directory | none | files, as `FsTodoStore` |
 | `git` | `src/git` | a partial clone in `projects/<name>/clone` | fetch, `pull --rebase`, push | files, then one commit per mutation and a push |
-| `jira` | `src/jira` | `projects/<name>/mirror.json` | fetch the JQL queries | Jira REST, then re-fetch the issue |
+| `jira` | `src/jira` | `projects/<name>/mirror.json` | fetch the JQL queries | *(planned)* Jira REST, then re-fetch the issue |
 
 ## The interface
 
@@ -68,7 +69,11 @@ interface SourceProject<C> {
   `projects/<name>/git.json`, next to but separate from the hub's
   `state.json`. See [src/git/README.md](../../src/git/README.md).
 - **jira** mirrors tickets matching `jql` (default: assigned to me, not
-  done) and recently done ones, supports complete, reopen, comment and
-  editing title and labels, and declares only the `comments` capability
-  (spec §1.5): without `add` and `remove` it never creates or deletes an
-  issue.
+  done) and recently done ones into one JSON file, so every read is local and
+  works offline; `sync` replaces it, and only once both queries succeeded. A
+  project needs a name, since one site holds them all, and the API token is
+  resolved per call from `token_env` or `token_command` and never stored.
+  Reading is built; complete, reopen, comment and editing title and labels
+  are the rest of task 06, after which it declares the `comments` capability
+  and no other (spec §1.5): without `add` and `remove` it never creates or
+  deletes an issue. See [src/jira/README.md](../../src/jira/README.md).

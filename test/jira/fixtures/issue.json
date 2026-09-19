@@ -1,0 +1,270 @@
+{
+  "id": "10042",
+  "key": "PROJ-42",
+  "self": "https://acme.atlassian.net/rest/api/3/issue/10042",
+  "fields": {
+    "summary": "Rework the auth token refresh",
+    "labels": ["backend", "security"],
+    "resolutiondate": null,
+    "project": { "id": "10000", "key": "PROJ", "name": "Platform" },
+    "priority": { "id": "2", "name": "High", "iconUrl": "https://acme.atlassian.net/p.svg" },
+    "status": {
+      "id": "3",
+      "name": "In Progress",
+      "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
+    },
+    "assignee": {
+      "accountId": "5b10a2844c20165700ede21g",
+      "displayName": "Ana Silva",
+      "emailAddress": "ana@acme.test",
+      "active": true
+    },
+    "issuelinks": [
+      {
+        "id": "10101",
+        "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+        },
+        "inwardIssue": {
+          "id": "10040",
+          "key": "PROJ-40",
+          "fields": { "summary": "Publish the new token endpoint" }
+        }
+      },
+      {
+        "id": "10102",
+        "type": {
+          "id": "10000",
+          "name": "Blocks",
+          "inward": "is blocked by",
+          "outward": "blocks"
+        },
+        "outwardIssue": {
+          "id": "10050",
+          "key": "PROJ-50",
+          "fields": { "summary": "Roll out the mobile client" }
+        }
+      },
+      {
+        "id": "10103",
+        "type": {
+          "id": "10003",
+          "name": "Relates",
+          "inward": "relates to",
+          "outward": "relates to"
+        },
+        "inwardIssue": { "id": "10060", "key": "PROJ-60" }
+      }
+    ],
+    "description": {
+      "type": "doc",
+      "version": 1,
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Refresh tokens expire after " },
+            { "type": "text", "text": "15 minutes", "marks": [{ "type": "strong" }] },
+            { "type": "text", "text": ", which logs people out mid-session. See " },
+            {
+              "type": "text",
+              "text": "the incident",
+              "marks": [
+                { "type": "link", "attrs": { "href": "https://acme.atlassian.net/wiki/INC-9" } }
+              ]
+            },
+            { "type": "text", "text": "." }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Plan" }]
+        },
+        {
+          "type": "orderedList",
+          "attrs": { "order": 1 },
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Raise the TTL in " },
+                    { "type": "text", "text": "auth.config.ts", "marks": [{ "type": "code" }] }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Rotate on every refresh" }]
+                },
+                {
+                  "type": "bulletList",
+                  "content": [
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            { "type": "text", "text": "Keep the old token valid for 30s" }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "attrs": { "panelType": "warning" },
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                { "type": "text", "text": "Coordinate with " },
+                {
+                  "type": "mention",
+                  "attrs": { "id": "5b10a2", "text": "@Bo Chen" }
+                },
+                { "type": "text", "text": " before deploying " },
+                { "type": "emoji", "attrs": { "shortName": ":warning:", "text": "⚠️" } }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "codeBlock",
+          "attrs": { "language": "typescript" },
+          "content": [{ "type": "text", "text": "export const ttl = minutes(60)" }]
+        },
+        {
+          "type": "table",
+          "attrs": { "isNumberColumnEnabled": false },
+          "content": [
+            {
+              "type": "tableRow",
+              "content": [
+                {
+                  "type": "tableHeader",
+                  "content": [
+                    { "type": "paragraph", "content": [{ "type": "text", "text": "Env" }] }
+                  ]
+                },
+                {
+                  "type": "tableHeader",
+                  "content": [
+                    { "type": "paragraph", "content": [{ "type": "text", "text": "TTL" }] }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "content": [
+                {
+                  "type": "tableCell",
+                  "content": [
+                    { "type": "paragraph", "content": [{ "type": "text", "text": "prod" }] }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "content": [
+                    { "type": "paragraph", "content": [{ "type": "text", "text": "60m" }] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "rule" },
+        {
+          "type": "taskList",
+          "attrs": { "localId": "t1" },
+          "content": [
+            {
+              "type": "taskItem",
+              "attrs": { "localId": "t1-1", "state": "DONE" },
+              "content": [{ "type": "text", "text": "Reproduce it" }]
+            },
+            {
+              "type": "taskItem",
+              "attrs": { "localId": "t1-2", "state": "TODO" },
+              "content": [{ "type": "text", "text": "Ship the fix" }]
+            }
+          ]
+        },
+        {
+          "type": "mediaSingle",
+          "attrs": { "layout": "center" },
+          "content": [
+            { "type": "media", "attrs": { "id": "abc", "type": "file", "collection": "jira" } }
+          ]
+        }
+      ]
+    },
+    "comment": {
+      "startAt": 0,
+      "maxResults": 2,
+      "total": 2,
+      "comments": [
+        {
+          "id": "10200",
+          "author": { "accountId": "5b10a2", "displayName": "Bo Chen" },
+          "created": "2026-09-10T08:15:00.000+0000",
+          "updated": "2026-09-10T08:15:00.000+0000",
+          "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "heading",
+                "attrs": { "level": 1 },
+                "content": [{ "type": "text", "text": "Findings" }]
+              },
+              {
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": "The refresh endpoint is the culprit." }]
+              }
+            ]
+          }
+        },
+        {
+          "id": "10201",
+          "author": { "accountId": "5b10a2844c20165700ede21g", "displayName": "Ana Silva" },
+          "created": "2026-09-12T16:40:00.000+0000",
+          "updated": "2026-09-12T16:40:00.000+0000",
+          "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "blockquote",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [{ "type": "text", "text": "The refresh endpoint is the culprit." }]
+                  }
+                ]
+              },
+              { "type": "paragraph", "content": [{ "type": "text", "text": "Agreed, on it." }] }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

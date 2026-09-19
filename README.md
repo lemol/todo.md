@@ -47,6 +47,7 @@ One package, `@lemol/todo-md`, with a subpath per module:
 | [`@lemol/todo-md/fs`](src/fs)                      | File-system adapter (the reference implementation)     |
 | [`@lemol/todo-md/hub`](src/hub)                    | Projects: registry, resolution, a service per project (`hub/testing`: `memorySource`) |
 | [`@lemol/todo-md/git`](src/git)                    | `gitSource`: a list in a git repository, cloned locally |
+| [`@lemol/todo-md/jira`](src/jira)                  | `jiraSource`: Jira tickets behind a local mirror (reading) |
 | [`@lemol/todo-md/cli`](src/cli)                    | The `todo` command                                     |
 
 Install it from git. Releases are tagged `todo-md@<version>`; `effect` is a
