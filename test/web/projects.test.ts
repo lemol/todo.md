@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { mkdtempSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect } from "effect"
@@ -75,6 +75,16 @@ describe("projects page", () => {
     expect(response.headers.get("Location")).toBe("/p/new")
     const listed = await (await fetchApp(app.router, "/projects")).text()
     expect(listed).toContain("new")
+  })
+
+  test("a relative target resolves against the router's cwd, not the process's", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "todo-md-cwd-"))
+    mkdirSync(join(cwd, "list"))
+    writeFileSync(join(cwd, "list", "TODO.md"), "# Relative\n")
+    const app = await open({ extraSources: [fsSource], cwd })
+    const response = await postApp(app.router, "/projects", { target: "list", name: "rel" })
+    expect(response.status).toBe(303)
+    expect(await (await fetchApp(app.router, "/projects")).text()).toContain(join(cwd, "list"))
   })
 
   test("a duplicate name re-renders the form with 422", async () => {

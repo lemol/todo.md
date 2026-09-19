@@ -31,6 +31,7 @@ src/
   cli/         `todo` binary: the composition root
 src/web/        local Remix web UI over one list (see `todo web`)
 test/          bun:test suites, mirroring src/, plus boundaries.test.ts
+               and sandbox.ts (preloaded; see the isolation rule below)
 ```
 
 ## Commands
@@ -56,6 +57,13 @@ bun src/cli/bin.ts web --dir todo  # run the local web app
   `runConformance`.
 - **Tests** use `bun:test`, plus the `effectTest` helper from
   `src/spec/testing.ts`.
+- **Test isolation.** This repository is itself a todo.md list, and the
+  machine's hub registry names it, so a test that reads an ambient
+  `process.cwd()`, `$HOME` or `$TODO_MD_HOME` can edit real work and still
+  pass. Give every test — and every process it spawns — a home and a working
+  directory of its own. `test/sandbox.ts` (preloaded via `bunfig.toml`) hands
+  the run an empty hub and fails any test that writes to the real list or
+  registry.
 - **Effect version.** `effect` is an exact peer dependency matching the
   other lemol repositories (framework, org, nzila, mionso). Change it only
   together with them, and keep `@effect/platform-bun` and

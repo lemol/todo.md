@@ -36,22 +36,28 @@ describe("dashboard", () => {
   effectTest(
     "describes each project once and keeps overview rows aligned",
     Effect.gen(function* () {
-      let statusReads = 0
+      // Counted per project, not once overall: `dashboard` describes projects
+      // concurrently, so which one reads its status first is not fixed.
+      const statusReads = new Map<string, number>()
       const counting = memorySource({
-        status: () => {
-          statusReads += 1
-          return Effect.succeed({ ahead: statusReads })
+        status: (project) => {
+          const reads = (statusReads.get(project.name) ?? 0) + 1
+          statusReads.set(project.name, reads)
+          return Effect.succeed({ ahead: reads })
         },
       })
       const hub = yield* hubOn([counting])
       yield* hub.add({ name: "a", source: "memory", config: { title: "A" } })
       yield* hub.add({ name: "b", source: "memory", config: { title: "B" } })
-      statusReads = 0
+      statusReads.clear()
       const snapshot = yield* hub.dashboard()
-      expect(statusReads).toBe(2)
+      expect([...statusReads].sort()).toEqual([
+        ["a", 1],
+        ["b", 1],
+      ])
       expect(snapshot.projects.map((info) => [info.name, info.status])).toEqual([
         ["a", { ahead: 1, result: "never" }],
-        ["b", { ahead: 2, result: "never" }],
+        ["b", { ahead: 1, result: "never" }],
       ])
       expect(snapshot.overview.projects.map((entry) => entry.project)).toEqual([
         ...snapshot.projects,

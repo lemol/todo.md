@@ -1,7 +1,5 @@
 # todo.md
 
-- [ ] [23 - Stop the test suite from mutating the real todo list](./23-stop-the-test-suite-from-mutating-the-real-todo-list.md)
-
 
 ## Hub and sources
 

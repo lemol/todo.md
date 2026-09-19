@@ -8,10 +8,18 @@ const bin = join(import.meta.dir, "../../src/cli/bin.ts")
 const dir = mkdtempSync(join(tmpdir(), "todo-md-bin-"))
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
+// The binary reads its home from the environment, so the child gets a home of
+// its own. Inheriting the machine's would register every real project, and a
+// command naming one would edit a backlog this test knows nothing about.
 const run = (...args: string[]) => {
   const result = Bun.spawnSync(["bun", bin, ...args], {
     cwd: dir,
-    env: { ...process.env, NO_COLOR: "1" },
+    env: {
+      ...process.env,
+      HOME: join(dir, "home"),
+      TODO_MD_HOME: join(dir, "home", ".todo-md"),
+      NO_COLOR: "1",
+    },
   })
   return {
     code: result.exitCode,
@@ -21,6 +29,13 @@ const run = (...args: string[]) => {
 }
 
 describe("the todo executable", () => {
+  test("reads its registry from the test's home, never the machine's", () => {
+    expect(run("projects")).toMatchObject({
+      code: 0,
+      stdout: "No projects registered. Add one with `todo projects add <dir>`.\n",
+    })
+  })
+
   test("runs commands, exiting 0 on success, 1 on failure and 2 on usage errors", () => {
     expect(run("init", "--title", "Smoke")).toMatchObject({
       code: 0,

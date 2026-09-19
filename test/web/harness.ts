@@ -111,6 +111,12 @@ export const makeFakeAssets = (): AppAssets => ({
 
 export interface MakeRouterOptions extends MakeHubOptions {
   readonly assets?: AppAssets
+  /**
+   * What the app resolves relative project targets against (default: the hub's
+   * temporary home). Never the test process's own directory: this repository is
+   * a todo.md list, so a relative target would reach its real backlog.
+   */
+  readonly cwd?: string
   /** Opens this directory as the unregistered startup project (`fs` is added). */
   readonly listDir?: string
   /** Overrides the startup name passed to the router (for example after `listDir`). */
@@ -145,7 +151,7 @@ export const makeRouter = async (options: MakeRouterOptions = {}) => {
   const router = createAppRouter({
     runtime,
     startup,
-    cwd: process.cwd(),
+    cwd: options.cwd ?? home,
     author: "tester",
     hosts: ["localhost", "127.0.0.1", "::1"],
     sessionSecret: "test-secret-at-least-32-characters",
