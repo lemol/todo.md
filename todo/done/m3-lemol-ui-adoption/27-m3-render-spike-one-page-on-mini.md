@@ -2,6 +2,9 @@
 title: "M3 render spike: one page on mini"
 tags: [web]
 depends_on: [26]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T07:03:57Z
+outcome: completed
 ---
 M3 spike (plan: docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md, item 2). Timebox: one session.
 
