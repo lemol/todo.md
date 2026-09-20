@@ -70,6 +70,24 @@ describe("projects page", () => {
     expect(html).toContain('data-live-events="registry synced"')
   })
 
+  test("renders sortable headers on projects table and handles ?sort=name&dir=desc", async () => {
+    const app = await open({
+      projects: [
+        { name: "acme", fields: { title: "Acme" } },
+        { name: "work", fields: { title: "Work" } },
+      ],
+    })
+    const response = await fetchApp(app.router, "/projects?sort=name&dir=desc")
+    expect(response.status).toBe(200)
+    const html = await response.text()
+    expect(html).toContain('aria-sort="descending"')
+    expect(html).toContain("sort=name&amp;dir=asc")
+    expect(html).toContain("sort=source&amp;dir=asc")
+    expect(html).toContain("sort=location&amp;dir=asc")
+    expect(html).toContain("sort=status&amp;dir=asc")
+    expect(html.indexOf('href="/p/work"')).toBeLessThan(html.indexOf('href="/p/acme"'))
+  })
+
   test("adds a project and redirects to its board", async () => {
     const app = await open({ extraSources: [fsSource] })
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))

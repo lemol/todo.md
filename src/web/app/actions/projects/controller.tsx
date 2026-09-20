@@ -3,7 +3,7 @@
 import { DateTime, Effect, Result } from "effect"
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"
-import { Hub, projectInputFrom } from "../../../../hub/index.ts"
+import { Hub, type ProjectInfo, projectInputFrom, statusText } from "../../../../hub/index.ts"
 import type { HubRuntime } from "../../middleware/project.tsx"
 import { routes } from "../../routes.ts"
 import { Document } from "../../ui/document.tsx"
@@ -26,18 +26,41 @@ const renderProjects = async (
       return { projects: yield* hub.projects(), kinds: yield* hub.sourceKinds() }
     }),
   )
+  const now = DateTime.nowUnsafe()
+  const url = new URL(context.request.url)
+  const sort = url.searchParams.get("sort")
+  const dir = url.searchParams.get("dir") === "desc" ? "desc" : "asc"
+  let sortedProjects = [...projects]
+  if (sort) {
+    const statusString = (p: ProjectInfo) => (p.syncable ? statusText(p.status, now) : "—")
+    sortedProjects.sort((a, b) => {
+      let cmp = 0
+      if (sort === "name") cmp = a.name.localeCompare(b.name)
+      else if (sort === "source") cmp = a.source.localeCompare(b.source)
+      else if (sort === "location") cmp = a.location.localeCompare(b.location)
+      else if (sort === "status") cmp = statusString(a).localeCompare(statusString(b))
+      return dir === "desc" ? -cmp : cmp
+    })
+  }
   const flash = takeFlash(context)
+  const { location, ...restExtra } = extra
   return renderPage(
     context,
     <Document
       title="todo.md"
       pageTitle="Projects · todo.md"
-      switcher={projects.map((info) => ({ name: info.name, registered: info.registered }))}
+      switcher={sortedProjects.map((info) => ({ name: info.name, registered: info.registered }))}
       liveEvents={LIVE_EVENTS}
       scriptEntry={scriptEntryOf(context)}
       {...(flash === undefined ? {} : { flash })}
     >
-      <ProjectsPage projects={projects} sources={kinds} now={DateTime.nowUnsafe()} {...extra} />
+      <ProjectsPage
+        projects={sortedProjects}
+        sources={kinds}
+        now={now}
+        location={location ?? `${url.pathname}${url.search}`}
+        {...restExtra}
+      />
     </Document>,
     { status },
   )

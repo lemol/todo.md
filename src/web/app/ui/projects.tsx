@@ -6,6 +6,7 @@ import {
   Button,
   Field,
   Heading,
+  SortableColumnHeader,
   Stack,
   Table,
   TableBody,
@@ -27,6 +28,7 @@ export interface ProjectsOptions {
   /** The kinds the hub loaded, for the add form's source select. */
   readonly sources: ReadonlyArray<string>
   readonly now: DateTime.Utc
+  readonly location?: string | undefined
   readonly values?: ProjectValues | undefined
   readonly issues?: ReadonlyArray<string> | undefined
   /** A project whose removal the source refused, with the reason. */
@@ -54,9 +56,9 @@ const row = (info: ProjectInfo, now: DateTime.Utc, renaming: string | undefined)
   const sync = info.syncable ? (
     <form method="post" action={routes.project.sync.href({ project: info.name })} class="inline">
       <input type="hidden" name="back" value={routes.projects.index.href()} />
-      <button class="secondary" type="submit">
+      <Button size="sm" tone="neutral" type="submit">
         Sync
-      </button>
+      </Button>
     </form>
   ) : null
 
@@ -94,9 +96,9 @@ const row = (info: ProjectInfo, now: DateTime.Utc, renaming: string | undefined)
           action={routes.projects.remove.href({ name: info.name })}
           class="inline"
         >
-          <button class="secondary danger" type="submit">
+          <Button size="sm" tone="danger" type="submit">
             Remove
-          </button>
+          </Button>
         </form>
       </TableCell>
     </TableRow>
@@ -189,6 +191,7 @@ const refusal = (options: ProjectsOptions): RemixNode => {
 export function ProjectsPage(handle: Handle<ProjectsOptions>) {
   return () => {
     const options = handle.props
+    const location = options.location ?? routes.projects.index.href()
     const table =
       options.projects.length === 0 ? (
         <EmptyState title="No projects yet." description="Add one below." />
@@ -196,10 +199,18 @@ export function ProjectsPage(handle: Handle<ProjectsOptions>) {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell>Source</TableHeaderCell>
-              <TableHeaderCell>Location</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
+              <SortableColumnHeader field="name" location={location}>
+                Name
+              </SortableColumnHeader>
+              <SortableColumnHeader field="source" location={location}>
+                Source
+              </SortableColumnHeader>
+              <SortableColumnHeader field="location" location={location}>
+                Location
+              </SortableColumnHeader>
+              <SortableColumnHeader field="status" location={location}>
+                Status
+              </SortableColumnHeader>
               <TableHeaderCell>Actions</TableHeaderCell>
             </TableRow>
           </TableHead>
