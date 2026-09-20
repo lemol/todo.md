@@ -1,7 +1,18 @@
 /** @jsxImportSource remix/ui */
 import { AppShell, ErrorState, Nav, type NavItem } from "@lemol/ui/mini"
 import { Document as MiniDocument } from "@lemol/ui/mini/document"
-import { Badge, Button, LinkButton, type ToastTone, toast } from "@lemol/ui/remix"
+import {
+  Badge,
+  Button,
+  CommandPaletteInput,
+  CommandPaletteItem,
+  CommandPaletteList,
+  LinkButton,
+  overlay,
+  Text,
+  type ToastTone,
+  toast,
+} from "@lemol/ui/remix"
 import type { ScriptEntry } from "remix/assets"
 import { css, type Handle, type RemixNode } from "remix/ui"
 import { routes } from "../routes.ts"
@@ -70,6 +81,15 @@ const switcherSelectStyle = css({
 })
 
 const flashToast = toast("flash-toast")
+
+const Palette = overlay("command-palette")
+const paletteListId = "command-palette-list"
+
+const actionsStyle = css({
+  display: "flex",
+  gap: "var(--sp-2)",
+  alignItems: "center",
+})
 
 const reloadNoticeStyle = css({
   padding: "var(--sp-3) var(--sp-4)",
@@ -171,6 +191,79 @@ export function Document(handle: Handle<DocumentOptions>) {
         </form>
       )
 
+    const commandPaletteDialog = (
+      <Palette.Dialog title="Command Palette">
+        <CommandPaletteInput listId={paletteListId} placeholder="Type a command or page…" />
+        <CommandPaletteList id={paletteListId}>
+          <CommandPaletteItem
+            href={routes.dashboard.href()}
+            id="cmd-dashboard"
+            label="Dashboard"
+            keywords="home overview"
+          />
+          <CommandPaletteItem
+            href={routes.projects.index.href()}
+            id="cmd-projects"
+            label="Projects"
+            keywords="repositories manage"
+          />
+          {project !== undefined ? (
+            <>
+              <CommandPaletteItem
+                href={routes.project.board.href({ project })}
+                id="cmd-board"
+                label={`Board (${project})`}
+                keywords="tasks list"
+              />
+              <CommandPaletteItem
+                href={routes.project.done.href({ project })}
+                id="cmd-done"
+                label={`Done (${project})`}
+                keywords="completed archive"
+              />
+              <CommandPaletteItem
+                href={routes.project.check.href({ project })}
+                id="cmd-check"
+                label={`Check (${project})`}
+                keywords="diagnostics errors warnings"
+              />
+            </>
+          ) : null}
+          {options.switcher?.map((entry) => (
+            <CommandPaletteItem
+              key={entry.name}
+              href={routes.project.board.href({ project: entry.name })}
+              id={`cmd-switch-${entry.name}`}
+              label={`Switch to project: ${entry.name}`}
+              keywords="switch project"
+            />
+          ))}
+          <CommandPaletteItem
+            href={routes.sync.href()}
+            id="cmd-sync"
+            label="Sync all projects"
+            keywords="sync refresh"
+          />
+          <CommandPaletteItem
+            href={`${routes.projects.index.href()}#add-project`}
+            id="cmd-add-project"
+            label="Add a project"
+            keywords="new project create"
+          />
+        </CommandPaletteList>
+        <Text tone="muted">Typing filters the list. Esc closes.</Text>
+      </Palette.Dialog>
+    )
+
+    const actions = (
+      <div mix={actionsStyle}>
+        <Palette.Trigger size="sm" tone="neutral">
+          ⌘K
+        </Palette.Trigger>
+        {switcher}
+      </div>
+    )
+
     const mapFlashTone = (tone: "info" | "warning" | "error"): ToastTone => {
       if (tone === "error") return "danger"
       return tone
@@ -218,7 +311,8 @@ export function Document(handle: Handle<DocumentOptions>) {
         theme={theme}
         title={options.pageTitle ?? options.title}
       >
-        <AppShell actions={switcher} brand={brand} brandHref={boardHref} nav={nav}>
+        <AppShell actions={actions} brand={brand} brandHref={boardHref} nav={nav}>
+          {commandPaletteDialog}
           {flash}
           {reloadNotice}
           {liveRegion}

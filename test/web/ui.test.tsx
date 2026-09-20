@@ -233,3 +233,25 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
   expect(taskHtml).toContain('command="close"')
   expect(taskHtml).toContain('commandfor="move-task"')
 })
+
+test("renders Command Palette trigger and dialog in Document", async () => {
+  const html = await renderDocument({
+    title: "Acme",
+    project: "acme",
+    content: "<p>body</p>",
+    switcher: [
+      { name: "acme", registered: true },
+      { name: "other", registered: true },
+    ],
+  })
+  expect(html).toContain('command="show-modal"')
+  expect(html).toContain('commandfor="command-palette"')
+  expect(html).toContain('id="command-palette"')
+  expect(html).toContain('command="--palette"')
+  expect(html).toContain('commandfor="command-palette-list"')
+  expect(html).toContain('id="command-palette-list"')
+  expect(html).toContain('data-palette-label="Dashboard"')
+  expect(html).toContain('data-palette-label="Projects"')
+  expect(html).toContain('data-palette-label="Board (acme)"')
+  expect(html).toContain('data-palette-label="Switch to project: other"')
+})
