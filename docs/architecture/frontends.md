@@ -92,8 +92,18 @@ routes live under `/p/:project`.
   (`data-live-events`); they refresh on any event of those kinds, including
   `registry` events whose payload names no project. There is no `watch.ts` or
   `ListChanges`.
-- **Forms work without JavaScript** (POST, then redirect). The only browser
-  entry refreshes the page's live region when the list changes.
+- **UI and design.** Built on `@lemol/ui` (`mini` theme, `Document`,
+  `AppShell`, `Nav`, states) and `@lemol/ui/remix` components (`Heading`,
+  `Stack`, `Row`, `Grid`, `Text`, `Badge`, `Field`, `Button`, `Dialog`).
+  Styling is derived from `miniTheme` via `ThemeStyle` / `css()`.
+- **Dialogs and progressive enhancement.** Add task on the board, and Edit and
+  Move on the task detail page open as native `<dialog>` modals with invoker
+  commands (`command="show-modal"`). Deep links (such as `:id/edit`) and no-JS
+  environments fall back gracefully to full-page/inline forms, and 422
+  validation errors re-render inline with error feedback.
+- **Forms work without JavaScript** (POST, then redirect). The browser
+  entry imports `@lemol/ui/remix/compat` to polyfill dialog invokers where
+  unsupported, and refreshes the page's live region when the list changes.
 - **Security.** Localhost binding, a `Host` allowlist against DNS
   rebinding, and cross-origin protection for unsafe requests.
 

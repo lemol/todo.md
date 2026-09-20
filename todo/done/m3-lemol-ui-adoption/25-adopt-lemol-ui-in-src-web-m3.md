@@ -1,6 +1,9 @@
 ---
 title: Adopt @lemol/ui in src/web (M3)
 tags: [web]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T18:34:44Z
+outcome: completed
 ---
 Adopt `@lemol/ui` in `src/web`, completely. todo-md becomes the first real consumer and the reference look and implementation of the `mini` design: its web UI is rebuilt on `mini` (theme, `Document`, `AppShell`, `Nav`, states) plus `@lemol/ui/remix` components. The current hand-rolled UI is not kept — no editorial theme, no carried-over look. Where the current UI teaches something worth keeping, accommodate `mini` for it (preferably upstream in `repos/ui`); the result stays recognizably mini.
 

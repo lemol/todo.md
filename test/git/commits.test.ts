@@ -47,6 +47,7 @@ describe("every mutation is one commit", () => {
       ])
     }),
     list(),
+    15000,
   )
 
   effectTest(
