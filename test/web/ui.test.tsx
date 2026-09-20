@@ -319,6 +319,22 @@ test("renders Command Palette trigger and dialog in Document", async () => {
   expect(html).toContain('data-palette-label="Switch to project: other"')
 })
 
+test("renders Command Palette in project-less context without contextual project items", async () => {
+  const html = await renderDocument({
+    title: "Dashboard",
+    content: "<p>body</p>",
+    switcher: [
+      { name: "acme", registered: true },
+      { name: "other", registered: true },
+    ],
+  })
+  expect(html).toContain('data-palette-label="Dashboard"')
+  expect(html).toContain('data-palette-label="Projects"')
+  expect(html).not.toContain("Board (")
+  expect(html).not.toContain("Done (")
+  expect(html).not.toContain("Check (")
+})
+
 test("renders LiveForm filter bar with liveSubmit wiring in DashboardPage", async () => {
   const html = await renderToString(
     <DashboardPage

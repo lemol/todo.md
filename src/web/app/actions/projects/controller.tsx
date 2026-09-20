@@ -39,6 +39,10 @@ const renderProjects = async (
       else if (sort === "source") cmp = a.source.localeCompare(b.source)
       else if (sort === "location") cmp = a.location.localeCompare(b.location)
       else if (sort === "status") cmp = statusString(a).localeCompare(statusString(b))
+
+      if (cmp === 0 && sort !== "name") {
+        cmp = a.name.localeCompare(b.name)
+      }
       return dir === "desc" ? -cmp : cmp
     })
   }
