@@ -142,6 +142,8 @@ describe("board contract", () => {
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+    expect(detail).not.toContain('commandfor="remove-task"')
+    expect(detail).not.toContain('id="remove-task"')
     expect(detail).not.toContain(
       `href="${routes.project.tasks.confirmRemove.href({ project, id: task.id })}"`,
     )
@@ -618,9 +620,8 @@ describe("move, remove, and group management", () => {
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: blocker.id }))
     ).text()
-    expect(detail).toContain(
-      `href="${routes.project.tasks.confirmRemove.href({ project, id: blocker.id })}"`,
-    )
+    expect(detail).toContain('commandfor="remove-task"')
+    expect(detail).toContain('id="remove-task"')
 
     const confirm = await (
       await fetchApp(router, routes.project.tasks.confirmRemove.href({ project, id: blocker.id }))

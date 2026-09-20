@@ -3,6 +3,8 @@
 import { afterEach, expect, test } from "bun:test"
 import { DateTime } from "effect"
 import { renderToString } from "remix/ui/server"
+import type { Dependency } from "../../src/core/index.ts"
+import { allCapabilities, type Task } from "../../src/spec/index.ts"
 import { parseDashboardQuery } from "../../src/web/app/actions/dashboard/query.ts"
 import { localBack } from "../../src/web/app/actions/forms.ts"
 import { statusFor } from "../../src/web/app/actions/respond.tsx"
@@ -10,13 +12,64 @@ import { createAssets } from "../../src/web/app/assets.ts"
 import { routes } from "../../src/web/app/routes.ts"
 import { DashboardPage } from "../../src/web/app/ui/dashboard.tsx"
 import { Document, ErrorPage } from "../../src/web/app/ui/document.tsx"
+import { showId } from "../../src/web/app/ui/format.ts"
 import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
 import { CheckPage } from "../../src/web/app/ui/secondary.tsx"
 import { statusTone, syncStatusBadge } from "../../src/web/app/ui/status.tsx"
+import { TaskPage } from "../../src/web/app/ui/task.tsx"
 import { makeRouter } from "./harness.ts"
 
 const renderDocument = async (options: Parameters<typeof Document>[0]["props"]) =>
   await renderToString(<Document {...options} />)
+
+const sampleTask: Task = {
+  id: "1",
+  title: "Write documentation",
+  description: "Detailed description",
+  status: "open",
+  tags: ["docs"],
+  assignee: "lemol",
+  dependsOn: [],
+  comments: [],
+  extra: {},
+}
+
+const renderTaskDetail = async (props: {
+  readonly project: string
+  readonly task?: Task
+  readonly detail: {
+    readonly view: {
+      readonly task: Task
+      readonly state: "ready" | "blocked" | "done"
+      readonly blockedBy?: ReadonlyArray<string>
+    }
+    readonly dependsOn?: ReadonlyArray<Dependency>
+    readonly dependencies?: ReadonlyArray<Dependency>
+    readonly blocks?: ReadonlyArray<{
+      readonly task: Task
+      readonly state?: "ready" | "blocked" | "done"
+      readonly blockedBy?: ReadonlyArray<string>
+    }>
+  }
+  readonly capabilities: typeof allCapabilities
+  readonly author?: string
+}) =>
+  await renderToString(
+    <TaskPage
+      project={props.project}
+      detail={{
+        view: { ...props.detail.view, blockedBy: props.detail.view.blockedBy ?? [] },
+        dependencies: props.detail.dependencies ?? props.detail.dependsOn ?? [],
+        blocks: (props.detail.blocks ?? []).map((b) => ({
+          task: b.task,
+          state: b.state ?? "ready",
+          blockedBy: b.blockedBy ?? [],
+        })),
+      }}
+      capabilities={props.capabilities}
+      author={props.author ?? "lemol"}
+    />,
+  )
 
 const cleanup: Array<() => Promise<void>> = []
 afterEach(async () => {
@@ -234,6 +287,14 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
   expect(taskHtml).toContain('name="position"')
   expect(taskHtml).toContain('command="close"')
   expect(taskHtml).toContain('commandfor="move-task"')
+
+  expect(taskHtml).toContain('command="show-modal"')
+  expect(taskHtml).toContain('commandfor="remove-task"')
+  expect(taskHtml).toContain('id="remove-task"')
+  expect(taskHtml).toMatch(/<h2[^>]*id="remove-task-title"[^>]*>Remove task 01<\/h2>/)
+  expect(taskHtml).toContain(`action="/p/${project}/tasks/1/remove"`)
+  expect(taskHtml).toContain('command="close"')
+  expect(taskHtml).toContain('commandfor="remove-task"')
 })
 
 test("renders Command Palette trigger and dialog in Document", async () => {
@@ -281,4 +342,50 @@ test("renders LiveForm filter bar with liveSubmit wiring in DashboardPage", asyn
   expect(html).toContain('id="dashboard-filters"')
   expect(html).toContain('command="--live-submit"')
   expect(html).toContain('commandfor="dashboard-filters"')
+})
+
+test("renders RemoveTask dialog and trigger on TaskDetailPage", async () => {
+  const html = await renderTaskDetail({
+    project: "acme",
+    task: sampleTask,
+    detail: { view: { task: sampleTask, state: "ready" }, dependsOn: [], blocks: [] },
+    capabilities: { ...allCapabilities, remove: true },
+  })
+  expect(html).toContain('command="show-modal"')
+  expect(html).toContain('commandfor="remove-task"')
+  expect(html).toContain('id="remove-task"')
+  expect(html).toContain(`Remove task ${showId(sampleTask.id)}`)
+})
+
+test("renders RemoveTask dialog with open dependents warning on TaskDetailPage", async () => {
+  const dependentTask: Task = {
+    ...sampleTask,
+    id: "2",
+    title: "Dependent task",
+  }
+  const html = await renderTaskDetail({
+    project: "acme",
+    task: sampleTask,
+    detail: {
+      view: { task: sampleTask, state: "ready" },
+      dependsOn: [],
+      blocks: [{ task: dependentTask, state: "blocked" }],
+    },
+    capabilities: { ...allCapabilities, remove: true },
+  })
+  expect(html).toContain("These open tasks depend on it")
+  expect(html).toContain("Dependent task")
+  expect(html).toContain('name="force" value="1"')
+  expect(html).toContain("Remove anyway")
+})
+
+test("does not render RemoveTask trigger or dialog when remove capability is false", async () => {
+  const html = await renderTaskDetail({
+    project: "acme",
+    task: sampleTask,
+    detail: { view: { task: sampleTask, state: "ready" }, dependsOn: [], blocks: [] },
+    capabilities: { ...allCapabilities, remove: false },
+  })
+  expect(html).not.toContain('commandfor="remove-task"')
+  expect(html).not.toContain('id="remove-task"')
 })

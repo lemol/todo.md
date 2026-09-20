@@ -10,6 +10,7 @@ import { markdownHtml } from "./markdown.tsx"
 
 const EditTask = overlay("edit-task")
 const MoveTask = overlay("move-task")
+const RemoveTask = overlay("remove-task")
 
 const badgeToneForState = (state: string): BadgeTone => {
   switch (state) {
@@ -284,13 +285,48 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
         />
       ) : null
 
-    const remove = capabilities.remove ? (
-      <LinkButton
-        tone="neutral"
-        href={routes.project.tasks.confirmRemove.href({ project, id: task.id })}
-      >
-        Remove
-      </LinkButton>
+    const dependents = detail.blocks.map((view) => view.task)
+    const removeTrigger = capabilities.remove ? (
+      <RemoveTask.Trigger tone="danger">Remove</RemoveTask.Trigger>
+    ) : null
+
+    const removeDialog = capabilities.remove ? (
+      <RemoveTask.Dialog title={`Remove task ${showId(task.id)}`}>
+        <p>
+          Remove{" "}
+          <a href={routes.project.tasks.show.href({ project, id: task.id })}>
+            {showId(task.id)} {task.title}
+          </a>{" "}
+          for good? This deletes the task and its file; version control keeps the history.
+        </p>
+        {dependents.length === 0 ? null : (
+          <>
+            <p class="warning">
+              These open tasks depend on it and will be left with an unknown dependency:
+            </p>
+            <ul>
+              {dependents.map((dep) => (
+                <li key={dep.id}>
+                  <a href={routes.project.tasks.show.href({ project, id: dep.id })}>
+                    {showId(dep.id)} {dep.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <form
+          class="actions confirm"
+          method="post"
+          action={routes.project.tasks.remove.href({ project, id: task.id })}
+        >
+          {dependents.length === 0 ? null : <input type="hidden" name="force" value="1" />}
+          <Button tone="danger" type="submit">
+            {dependents.length === 0 ? "Remove" : "Remove anyway"}
+          </Button>
+          <RemoveTask.Close tone="ghost">Cancel</RemoveTask.Close>
+        </form>
+      </RemoveTask.Dialog>
     ) : null
 
     return (
@@ -304,11 +340,12 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
             {transition}
             {editTrigger}
             {moveTrigger}
-            {remove}
+            {removeTrigger}
           </div>
         </div>
         {editDialog}
         {moveDialog}
+        {removeDialog}
         {metadata(task, detail.view.state)}
         {task.description === "" ? null : (
           <section>
