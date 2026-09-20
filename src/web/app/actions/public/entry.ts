@@ -1,3 +1,4 @@
+import "@lemol/ui/remix/compat"
 import { run } from "remix/ui"
 import { routes } from "../../routes.ts"
 import {

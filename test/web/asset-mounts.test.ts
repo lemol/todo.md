@@ -39,25 +39,42 @@ const layout = () => {
   const todoDir = join(dir, ".bun", "todo@1", "node_modules", "todo")
   mkdirSync(join(dir, ".bun", "todo@1", "node_modules"), { recursive: true })
   symlinkSync(remixDir, join(dir, ".bun", "todo@1", "node_modules", "remix"))
+  const uiDir = join(dir, ".bun", "@lemol+ui@1", "node_modules", "@lemol", "ui")
+  mkdirSync(uiDir, { recursive: true })
+  writeFileSync(
+    join(uiDir, "package.json"),
+    JSON.stringify({
+      name: "@lemol/ui",
+      version: "1.0.0",
+      main: "index.js",
+      exports: {
+        "./remix/compat": "./compat.js",
+      },
+    }),
+  )
+  writeFileSync(join(uiDir, "compat.js"), 'export const compat = "ok"\n')
+  mkdirSync(join(todoDir, "node_modules", "@lemol"), { recursive: true })
+  symlinkSync(uiDir, join(todoDir, "node_modules", "@lemol", "ui"))
+
   const rootDir = join(todoDir, "src", "web")
   mkdirSync(join(rootDir, "app", "actions", "public"), { recursive: true })
   writeFileSync(join(rootDir, "app", "routes.ts"), "export const routes = {}\n")
   writeFileSync(
     join(rootDir, "app", "actions", "public", "entry.ts"),
-    'import { pad } from "remix"\nconsole.log(pad("ok"))\n',
+    'import "@lemol/ui/remix/compat"\nimport { pad } from "remix"\nconsole.log(pad("ok"))\n',
   )
-  return { rootDir, remixDir }
+  return { rootDir, remixDir, uiDir }
 }
 
 test("builds the asset server inside a bun store layout", async () => {
-  const { rootDir, remixDir } = layout()
-  const server = createAssetServer(assetOptions(rootDir, remixDir))
+  const { rootDir, remixDir, uiDir } = layout()
+  const server = createAssetServer(assetOptions(rootDir, remixDir, uiDir))
   await server.close()
 })
 
 test("compiles an entry importing through a sibling store entry", async () => {
-  const { rootDir, remixDir } = layout()
-  const server = createAssetServer(assetOptions(rootDir, remixDir))
+  const { rootDir, remixDir, uiDir } = layout()
+  const server = createAssetServer(assetOptions(rootDir, remixDir, uiDir))
   try {
     const entry = await server.getScriptEntry("app/actions/public/entry.ts")
     expect(entry.href).toMatch(/\/assets\//)

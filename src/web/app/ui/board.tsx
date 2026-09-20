@@ -1,5 +1,5 @@
 /** @jsxImportSource remix/ui */
-import { Badge, type BadgeTone, Button, Field, Heading } from "@lemol/ui/remix"
+import { Badge, type BadgeTone, Button, Field, Heading, overlay } from "@lemol/ui/remix"
 import type { Handle, RemixNode } from "remix/ui"
 import type { Listing, TaskView } from "../../../core/index.ts"
 import type { Capabilities } from "../../../spec/index.ts"
@@ -140,12 +140,16 @@ export function TaskRow(handle: Handle<TaskRowProps>) {
   }
 }
 
+const AddTask = overlay("add-task")
+
 export interface AddTaskFormProps {
   readonly project: string
   readonly listing: Listing
   readonly capabilities: Capabilities
   readonly values?: AddValues | undefined
   readonly issues?: ReadonlyArray<string> | undefined
+  readonly heading?: boolean | undefined
+  readonly close?: RemixNode | undefined
 }
 
 export function AddTaskForm(handle: Handle<AddTaskFormProps>) {
@@ -156,6 +160,8 @@ export function AddTaskForm(handle: Handle<AddTaskFormProps>) {
       capabilities,
       values = { title: "", group: "", newGroup: "" },
       issues = [],
+      heading = true,
+      close,
     } = handle.props
     const groupFields = capabilities.groups ? (
       <>
@@ -186,7 +192,7 @@ export function AddTaskForm(handle: Handle<AddTaskFormProps>) {
 
     return (
       <section class="add-task">
-        <Heading level={2}>Add task</Heading>
+        {heading ? <Heading level={2}>Add task</Heading> : null}
         {issues.length === 0 ? null : (
           <ul class="issues">
             {issues.map((issue) => (
@@ -197,9 +203,12 @@ export function AddTaskForm(handle: Handle<AddTaskFormProps>) {
         <form method="post" action={routes.project.tasks.add.href({ project })}>
           <Field label="Title" name="title" value={values.title} required />
           {groupFields}
-          <Button tone="primary" type="submit">
-            Add task
-          </Button>
+          <div class="actions">
+            <Button tone="primary" type="submit">
+              Add task
+            </Button>
+            {close}
+          </div>
         </form>
       </section>
     )
@@ -287,14 +296,33 @@ export function BoardPage(handle: Handle<BoardPageProps>) {
         <p class="board-sync">{syncChrome}</p>
       )
 
-    const addForm = capabilities.add ? (
-      <AddTaskForm
-        project={project}
-        listing={listing}
-        capabilities={capabilities}
-        values={addValues}
-        issues={addIssues}
-      />
+    const addSection = capabilities.add ? (
+      <>
+        <div class="board-actions">
+          <AddTask.Trigger tone="primary">Add task</AddTask.Trigger>
+        </div>
+        <AddTask.Dialog title="Add task">
+          <AddTaskForm
+            project={project}
+            listing={listing}
+            capabilities={capabilities}
+            values={addValues}
+            issues={[]}
+            heading={false}
+            close={<AddTask.Close tone="ghost">Cancel</AddTask.Close>}
+          />
+        </AddTask.Dialog>
+        {addIssues && addIssues.length > 0 ? (
+          <AddTaskForm
+            project={project}
+            listing={listing}
+            capabilities={capabilities}
+            values={addValues}
+            issues={addIssues}
+            heading={true}
+          />
+        ) : null}
+      </>
     ) : null
 
     const empty = capabilities.add ? (
@@ -313,7 +341,7 @@ export function BoardPage(handle: Handle<BoardPageProps>) {
         <p class="summary">
           {views.length} open · {ready} ready · {blocked} blocked
         </p>
-        {addForm}
+        {addSection}
         {sections.length > 0 ? sections : empty}
       </>
     )

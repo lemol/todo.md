@@ -69,21 +69,26 @@ export const packageContainers = (remixPackageDir: string): ReadonlyArray<string
 // wherever the install put them, while `allowPackages` still limits serving
 // to that closure. Mounting anything above the trees — e.g. the store root —
 // overlaps the `app` mount, and the server refuses to boot.
-export const assetOptions = (rootDir: string, remixPackageDir: string) => {
+export const assetOptions = (rootDir: string, remixPackageDir: string, uiPackageDir?: string) => {
   // Canonicalize: the server realpaths the root before resolving mounts, so
   // mounts computed from a symlinked root (a symlinked checkout, macOS tmp)
   // would point nowhere. Containers already come back canonical.
   const base = realpathSync(rootDir)
   const mounts: Record<string, string> = { app: "app" }
-  packageContainers(remixPackageDir).forEach((dir, index) => {
+  const containers = [
+    ...packageContainers(remixPackageDir),
+    ...(uiPackageDir ? packageContainers(uiPackageDir) : []),
+  ]
+  const uniqueContainers = [...new Set(containers)]
+  uniqueContainers.forEach((dir, index) => {
     mounts[index === 0 ? "npm" : `npm${index + 1}`] = relative(base, dir)
   })
   return {
     rootDir: base,
     basePath: "/assets",
     mounts,
-    allowFiles: ["app/routes.ts", "app/ui/styles.css", "app/actions/public/**", "app/**/public/**"],
-    allowPackages: ["remix"],
+    allowFiles: ["app/routes.ts", "app/actions/public/**", "app/**/public/**"],
+    allowPackages: ["remix", "@lemol/ui"],
     denyFiles: ["app/**/*.test.*"],
     watch: false,
   }
@@ -91,5 +96,6 @@ export const assetOptions = (rootDir: string, remixPackageDir: string) => {
 
 export const createAssets = (rootDir = resolve(import.meta.dir, "..")): AppAssets => {
   const remixPackageDir = dirname(fileURLToPath(import.meta.resolve("remix/package.json")))
-  return createAssetServer(assetOptions(rootDir, remixPackageDir))
+  const uiPackageDir = dirname(fileURLToPath(import.meta.resolve("@lemol/ui/package.json")))
+  return createAssetServer(assetOptions(rootDir, remixPackageDir, uiPackageDir))
 }

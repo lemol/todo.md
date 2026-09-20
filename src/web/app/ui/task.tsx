@@ -1,5 +1,5 @@
 /** @jsxImportSource remix/ui */
-import { Badge, type BadgeTone, Button, Field, Heading, LinkButton } from "@lemol/ui/remix"
+import { Badge, type BadgeTone, Button, Field, Heading, LinkButton, overlay } from "@lemol/ui/remix"
 import type { Handle, RemixNode } from "remix/ui"
 import type { TaskDetail } from "../../../core/index.ts"
 import type { Capabilities, Task } from "../../../spec/index.ts"
@@ -7,6 +7,9 @@ import type { EditValues } from "../actions/forms.ts"
 import { routes } from "../routes.ts"
 import { formatDate, formatMinute, showId } from "./format.ts"
 import { markdownHtml } from "./markdown.tsx"
+
+const EditTask = overlay("edit-task")
+const MoveTask = overlay("move-task")
 
 const badgeToneForState = (state: string): BadgeTone => {
   switch (state) {
@@ -66,12 +69,14 @@ export interface MoveFormProps {
   readonly capabilities: Capabilities
   readonly groups: ReadonlyArray<string>
   readonly issues: ReadonlyArray<string>
+  readonly heading?: boolean | undefined
+  readonly close?: RemixNode | undefined
 }
 
 /** Moves an open task to the top or bottom of a group, like `todo mv`. */
 export function MoveForm(handle: Handle<MoveFormProps>) {
   return () => {
-    const { project, task, capabilities, groups, issues } = handle.props
+    const { project, task, capabilities, groups, issues, heading = true, close } = handle.props
     const groupFields = capabilities.groups ? (
       <>
         <Field control="select" label="Group" name="group">
@@ -90,8 +95,8 @@ export function MoveForm(handle: Handle<MoveFormProps>) {
     ) : null
 
     return (
-      <section>
-        <Heading level={2}>Move</Heading>
+      <section class="move-section">
+        {heading ? <Heading level={2}>Move</Heading> : null}
         {issueList(issues)}
         <form
           class="move-form"
@@ -108,9 +113,12 @@ export function MoveForm(handle: Handle<MoveFormProps>) {
             <option value="bottom">Bottom</option>
             <option value="top">Top</option>
           </Field>
-          <Button tone="neutral" type="submit">
-            Move
-          </Button>
+          <div class="actions">
+            <Button tone="neutral" type="submit">
+              Move
+            </Button>
+            {close}
+          </div>
         </form>
       </section>
     )
@@ -236,14 +244,43 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
       </form>
     ) : null
 
-    const move =
-      task.status === "open" && capabilities.reorder ? (
+    const editTrigger = <EditTask.Trigger tone="neutral">Edit</EditTask.Trigger>
+    const editDialog = (
+      <EditTask.Dialog title={`Edit task ${showId(task.id)}`}>
+        <EditTaskForm
+          project={project}
+          task={task}
+          values={valuesOf(task)}
+          issues={[]}
+          close={<EditTask.Close tone="ghost">Cancel</EditTask.Close>}
+        />
+      </EditTask.Dialog>
+    )
+
+    const canMove = task.status === "open" && capabilities.reorder
+    const moveTrigger = canMove ? <MoveTask.Trigger tone="neutral">Move</MoveTask.Trigger> : null
+    const moveDialog = canMove ? (
+      <MoveTask.Dialog title={`Move task ${showId(task.id)}`}>
+        <MoveForm
+          project={project}
+          task={task}
+          capabilities={capabilities}
+          groups={groups}
+          issues={[]}
+          heading={false}
+          close={<MoveTask.Close tone="ghost">Cancel</MoveTask.Close>}
+        />
+      </MoveTask.Dialog>
+    ) : null
+    const moveInline =
+      canMove && moveIssues.length > 0 ? (
         <MoveForm
           project={project}
           task={task}
           capabilities={capabilities}
           groups={groups}
           issues={moveIssues}
+          heading={true}
         />
       ) : null
 
@@ -265,15 +302,13 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
           </div>
           <div class="actions">
             {transition}
-            <LinkButton
-              tone="neutral"
-              href={routes.project.tasks.edit.href({ project, id: task.id })}
-            >
-              Edit
-            </LinkButton>
+            {editTrigger}
+            {moveTrigger}
             {remove}
           </div>
         </div>
+        {editDialog}
+        {moveDialog}
         {metadata(task, detail.view.state)}
         {task.description === "" ? null : (
           <section>
@@ -289,7 +324,7 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
           <Heading level={2}>Blocks</Heading>
           {blocks}
         </section>
-        {move}
+        {moveInline}
         <section>
           <Heading level={2}>Comments</Heading>
           {comments}
@@ -373,19 +408,19 @@ export const valuesOf = (task: Task): EditValues => ({
   dependsOn: task.dependsOn.join(" "),
 })
 
-export interface EditTaskPageProps {
+export interface EditTaskFormProps {
   readonly project: string
   readonly task: Pick<Task, "id">
   readonly values: EditValues
   readonly issues?: ReadonlyArray<string> | undefined
+  readonly close?: RemixNode | undefined
 }
 
-export function EditTaskPage(handle: Handle<EditTaskPageProps>) {
+export function EditTaskForm(handle: Handle<EditTaskFormProps>) {
   return () => {
-    const { project, task, values, issues = [] } = handle.props
+    const { project, task, values, issues = [], close } = handle.props
     return (
       <>
-        <Heading level={1}>Edit task {showId(task.id)}</Heading>
         {issueList(issues)}
         <form
           class="edit-form"
@@ -402,10 +437,45 @@ export function EditTaskPage(handle: Handle<EditTaskPageProps>) {
           <Field label="Tags" name="tags" value={values.tags} />
           <Field label="Assignee" name="assignee" value={values.assignee} />
           <Field label="Depends on" name="dependsOn" value={values.dependsOn} />
-          <Button tone="primary" type="submit">
-            Save
-          </Button>
+          <div class="actions">
+            <Button tone="primary" type="submit">
+              Save
+            </Button>
+            {close}
+          </div>
         </form>
+      </>
+    )
+  }
+}
+
+export interface EditTaskPageProps {
+  readonly project: string
+  readonly task: Pick<Task, "id">
+  readonly values: EditValues
+  readonly issues?: ReadonlyArray<string> | undefined
+}
+
+export function EditTaskPage(handle: Handle<EditTaskPageProps>) {
+  return () => {
+    const { project, task, values, issues = [] } = handle.props
+    return (
+      <>
+        <Heading level={1}>Edit task {showId(task.id)}</Heading>
+        <EditTaskForm
+          project={project}
+          task={task}
+          values={values}
+          issues={issues}
+          close={
+            <LinkButton
+              tone="neutral"
+              href={routes.project.tasks.show.href({ project, id: task.id })}
+            >
+              Cancel
+            </LinkButton>
+          }
+        />
       </>
     )
   }

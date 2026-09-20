@@ -171,6 +171,32 @@ describe("board contract", () => {
     const detail = await (await fetchApp(router, required(location))).text()
     expect(detail).toContain("Launch")
   })
+
+  test("renders add task dialog with invoker trigger and dialog panel", async () => {
+    const { router, project } = await open()
+    const html = await (await fetchApp(router, routes.project.board.href({ project }))).text()
+    expect(html).toContain('command="show-modal"')
+    expect(html).toContain('commandfor="add-task"')
+    expect(html).toContain("<dialog")
+    expect(html).toContain('id="add-task"')
+    expect(html).toContain('command="close"')
+    expect(html).toContain('commandfor="add-task"')
+    expect(html).toContain(`action="${routes.project.tasks.add.href({ project })}"`)
+  })
+
+  test("renders add form inline on 422 validation error", async () => {
+    const { router, project } = await open()
+    const form = new FormData()
+    form.set("title", "")
+    const response = await fetchApp(router, routes.project.tasks.add.href({ project }), {
+      method: "POST",
+      body: form,
+    })
+    expect(response.status).toBe(422)
+    const html = await response.text()
+    expect(html).toContain("Title is required")
+    expect(html).toContain(`action="${routes.project.tasks.add.href({ project })}"`)
+  })
 })
 
 describe("task forms and detail", () => {
@@ -208,6 +234,15 @@ describe("task forms and detail", () => {
     )
     expect(detail).toContain(
       `action="${routes.project.tasks.comments.href({ project, id: task.id })}"`,
+    )
+    expect(detail).toContain('command="show-modal"')
+    expect(detail).toContain('commandfor="edit-task"')
+    expect(detail).toContain("<dialog")
+    expect(detail).toContain('id="edit-task"')
+    expect(detail).toContain('command="close"')
+    expect(detail).toContain('commandfor="edit-task"')
+    expect(detail).toContain(
+      `action="${routes.project.tasks.update.href({ project, id: task.id })}"`,
     )
     expect(detail.indexOf("Second")).toBeLessThan(detail.indexOf("First"))
     expect(edit).toContain('value="Ship UI"')
@@ -505,6 +540,12 @@ describe("move, remove, and group management", () => {
       `action="${routes.project.tasks.move.href({ project, id: required(one?.id) })}"`,
     )
     expect(page).toContain('<option value="Backend">Backend</option>')
+    expect(page).toContain('command="show-modal"')
+    expect(page).toContain('commandfor="move-task"')
+    expect(page).toContain("<dialog")
+    expect(page).toContain('id="move-task"')
+    expect(page).toContain('command="close"')
+    expect(page).toContain('commandfor="move-task"')
 
     const moved = await post(
       router,
@@ -691,10 +732,31 @@ describe("move, remove, and group management", () => {
     expect(page).not.toContain(
       `action="${routes.project.tasks.move.href({ project, id: required(one?.id) })}"`,
     )
+    expect(page).not.toContain('commandfor="move-task"')
+    expect(page).not.toContain('id="move-task"')
     const edit = await fetchApp(
       router,
       routes.project.groups.edit.href({ project }, { searchParams: { name: "Backend" } }),
     )
     expect(edit.status).toBe(400)
+  })
+
+  test("renders move form inline on 422 validation error", async () => {
+    const { router, hubRuntime, project } = await open()
+    const [one] = await seedThree(hubRuntime, project)
+    const response = await post(
+      router,
+      routes.project.tasks.move.href({ project, id: required(one?.id) }),
+      {
+        group: "__new__",
+        newGroup: "",
+      },
+    )
+    expect(response.status).toBe(422)
+    const html = await response.text()
+    expect(html).toContain("New group is required")
+    expect(html).toContain(
+      `action="${routes.project.tasks.move.href({ project, id: required(one?.id) })}"`,
+    )
   })
 })

@@ -61,6 +61,7 @@ test("compiles the browser entry with its workspace import map", async () => {
     const entry = await assets.getScriptEntry("app/actions/public/entry.ts")
     expect(JSON.stringify(entry.importMap)).toContain("remix/routes")
     expect(JSON.stringify(entry.importMap)).toContain("remix/ui")
+    expect(JSON.stringify(entry.importMap)).toContain("@lemol/ui")
     expect(entry.preloads.length).toBeGreaterThan(0)
     expect((await assets.fetch(new Request(`http://localhost${entry.href}`)))?.status).toBe(200)
   } finally {
@@ -176,4 +177,56 @@ test("renders CheckPage empty state", async () => {
   const html = await renderToString(<CheckPage project="acme" diagnostics={[]} />)
   expect(html).toContain("Check")
   expect(html).toContain("No diagnostics.")
+})
+
+test("renders complete dialog markup for no-JS without client runtime", async () => {
+  const { router, project, close } = await makeRouter()
+  cleanup.push(close)
+
+  const boardRes = await router.fetch(
+    new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
+  )
+  const boardHtml = await boardRes.text()
+  expect(boardHtml).toContain('command="show-modal"')
+  expect(boardHtml).toContain('commandfor="add-task"')
+  expect(boardHtml).toContain('id="add-task"')
+  expect(boardHtml).toMatch(/<h2[^>]*id="add-task-title"[^>]*>Add task<\/h2>/)
+  expect(boardHtml).toContain(`action="/p/${project}/tasks"`)
+  expect(boardHtml).toContain('name="title"')
+  expect(boardHtml).toContain('command="close"')
+  expect(boardHtml).toContain('commandfor="add-task"')
+
+  const form = new FormData()
+  form.set("title", "Check dialogs")
+  const addRes = await router.fetch(
+    new Request(`http://localhost/p/${project}/tasks`, {
+      method: "POST",
+      body: form,
+      headers: { Host: "localhost" },
+    }),
+  )
+  expect(addRes.status).toBe(303)
+
+  const taskRes = await router.fetch(
+    new Request(`http://localhost/p/${project}/tasks/1`, { headers: { Host: "localhost" } }),
+  )
+  const taskHtml = await taskRes.text()
+  expect(taskHtml).toContain('command="show-modal"')
+  expect(taskHtml).toContain('commandfor="edit-task"')
+  expect(taskHtml).toContain('id="edit-task"')
+  expect(taskHtml).toMatch(/<h2[^>]*id="edit-task-title"[^>]*>Edit task 01<\/h2>/)
+  expect(taskHtml).toContain(`action="/p/${project}/tasks/1"`)
+  expect(taskHtml).toContain('name="title"')
+  expect(taskHtml).toContain('name="description"')
+  expect(taskHtml).toContain('command="close"')
+  expect(taskHtml).toContain('commandfor="edit-task"')
+
+  expect(taskHtml).toContain('command="show-modal"')
+  expect(taskHtml).toContain('commandfor="move-task"')
+  expect(taskHtml).toContain('id="move-task"')
+  expect(taskHtml).toMatch(/<h2[^>]*id="move-task-title"[^>]*>Move task 01<\/h2>/)
+  expect(taskHtml).toContain(`action="/p/${project}/tasks/1/move"`)
+  expect(taskHtml).toContain('name="position"')
+  expect(taskHtml).toContain('command="close"')
+  expect(taskHtml).toContain('commandfor="move-task"')
 })

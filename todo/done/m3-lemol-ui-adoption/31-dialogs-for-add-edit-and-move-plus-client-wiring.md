@@ -2,6 +2,9 @@
 title: Dialogs for add, edit and move plus client wiring
 tags: [web]
 depends_on: [29]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T17:49:31Z
+outcome: completed
 ---
 M3 dialogs (plan: docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md, item 6).
 
