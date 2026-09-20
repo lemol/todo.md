@@ -7,7 +7,7 @@ import { localBack } from "../../src/web/app/actions/forms.ts"
 import { statusFor } from "../../src/web/app/actions/respond.tsx"
 import { createAssets } from "../../src/web/app/assets.ts"
 import { routes } from "../../src/web/app/routes.ts"
-import { Document } from "../../src/web/app/ui/document.tsx"
+import { Document, ErrorPage } from "../../src/web/app/ui/document.tsx"
 import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
 import { CheckPage } from "../../src/web/app/ui/secondary.tsx"
 import { statusTone, syncStatusBadge } from "../../src/web/app/ui/status.tsx"
@@ -98,7 +98,7 @@ test("the sync badge carries the hub's words and a matching pastel", () => {
   expect(syncStatusBadge({ result: "error", error: "<script>" }, now)).toContain("&lt;script&gt;")
 })
 
-test("renders the shared document shell with the project badge", async () => {
+test("renders the shared document shell with mini theme and shell", async () => {
   const { router, project, close } = await makeRouter()
   cleanup.push(close)
   const response = await router.fetch(
@@ -106,16 +106,41 @@ test("renders the shared document shell with the project badge", async () => {
   )
   const html = await response.text()
   expect(html).toMatch(/^<!doctype html>/i)
-  expect(html).toContain('<html lang="en">')
+  expect(html).toContain('lang="en"')
   expect(html).toContain('name="viewport"')
-  expect(html).toContain(routes.assets.href({ path: "app/ui/styles.css" }))
+  expect(html).not.toContain("styles.css")
+  expect(html).toContain("--ui-btn-radius")
+  expect(html).toContain("Skip to content")
+  expect(html).toContain('<main id="main"')
   expect(html).toContain("Acme")
   expect(html).toContain(`>${project}<`)
   expect(html).toContain("Board")
   expect(html).toContain("Done")
   expect(html).toContain("Check")
+  expect(html).toContain(`data-live-region`)
   expect(html).toContain(`data-project="${project}"`)
-  expect(html).toContain("diagnostic")
+})
+
+test("renders flash banner and reload notice in the shell", async () => {
+  const html = await renderDocument({
+    title: "Acme",
+    content: "<p>body</p>",
+    flash: { message: "Saved successfully", tone: "info" },
+  })
+  expect(html).toContain("Saved successfully")
+  expect(html).toContain('class="flash info')
+  expect(html).toContain('role="status"')
+  expect(html).toContain("data-reload-notice")
+})
+
+test("renders ErrorPage using mini ErrorState", async () => {
+  const html = await renderToString(
+    <ErrorPage status={404} message="Task not found" project="acme" />,
+  )
+  expect(html).toContain("404 error")
+  expect(html).toContain("Task not found")
+  expect(html).toContain("Back to board")
+  expect(html).toContain('href="/p/acme"')
 })
 
 test("renders CheckPage with diagnostics using @lemol/ui components", async () => {

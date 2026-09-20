@@ -1,8 +1,11 @@
 /** @jsxImportSource remix/ui */
+import { AppShell, ErrorState, Nav, type NavItem } from "@lemol/ui/mini"
+import { Document as MiniDocument } from "@lemol/ui/mini/document"
+import { Badge, Button, LinkButton } from "@lemol/ui/remix"
 import type { ScriptEntry } from "remix/assets"
-import type { Handle } from "remix/ui"
-import { ImportMap } from "remix/ui/server"
+import { css, type Handle, type RemixNode } from "remix/ui"
 import { routes } from "../routes.ts"
+import { theme } from "./theme.ts"
 
 export const escapeHtml = (value: unknown): string =>
   String(value)
@@ -20,7 +23,8 @@ export interface SwitcherProject {
 export interface DocumentOptions {
   readonly title: string
   readonly pageTitle?: string
-  readonly content: string
+  readonly content?: string
+  readonly children?: RemixNode
   /** The project this page belongs to; omitted only for a page with no project (e.g. an unknown-project 404). */
   readonly project?: string
   readonly diagnostics?: { readonly error: number; readonly warning: number }
@@ -33,32 +37,154 @@ export interface DocumentOptions {
    * "this page's project's own `changed` and `synced`", which is `data-project`.
    */
   readonly liveEvents?: ReadonlyArray<string>
+  readonly currentNav?: "dashboard" | "projects" | "board" | "done" | "check"
 }
+
+const switcherStyle = css({
+  display: "flex",
+  gap: "var(--sp-2)",
+  alignItems: "center",
+})
+
+const visuallyHiddenStyle = css({
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
+})
+
+const switcherSelectStyle = css({
+  maxWidth: "180px",
+  height: "var(--control-h-sm)",
+  paddingInline: "var(--sp-2)",
+  borderRadius: "var(--r-sm)",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "var(--hairline)",
+  background: "var(--surface)",
+  color: "inherit",
+  fontFamily: "inherit",
+  fontSize: "var(--fs-sm)",
+})
+
+const flashBaseStyle = css({
+  padding: "var(--sp-3) var(--sp-4)",
+  borderRadius: "var(--r-sm)",
+  fontSize: "var(--fs-sm)",
+  lineHeight: "var(--lh-base)",
+  marginBottom: "var(--sp-4)",
+})
+
+const flashToneStyles = {
+  info: css({
+    background: "var(--info-subtle)",
+    color: "var(--info)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--info-border)",
+  }),
+  warning: css({
+    background: "var(--warning-subtle)",
+    color: "var(--warning)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--warning-border)",
+  }),
+  error: css({
+    background: "var(--danger-subtle)",
+    color: "var(--danger)",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--danger-border)",
+  }),
+}
+
+const reloadNoticeStyle = css({
+  padding: "var(--sp-3) var(--sp-4)",
+  borderRadius: "var(--r-sm)",
+  fontSize: "var(--fs-sm)",
+  lineHeight: "var(--lh-base)",
+  marginBottom: "var(--sp-4)",
+  background: "var(--info-subtle)",
+  color: "var(--info)",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "var(--info-border)",
+  "& a": {
+    color: "inherit",
+    fontWeight: "var(--fw-semibold)",
+    textDecoration: "underline",
+  },
+})
 
 export function Document(handle: Handle<DocumentOptions>) {
   return () => {
     const options = handle.props
-    const errors = options.diagnostics?.error ?? 0
-    const warnings = options.diagnostics?.warning ?? 0
-    const badge =
-      errors > 0 ? (
-        <span class="badge error" title={`${errors} errors`}>
-          {errors}
-        </span>
-      ) : warnings > 0 ? (
-        <span class="badge warning" title={`${warnings} warnings`}>
-          {warnings}
-        </span>
-      ) : null
     const project = options.project
     const boardHref = project === undefined ? "/" : routes.project.board.href({ project })
+    const brand =
+      project === undefined ? (
+        options.title
+      ) : (
+        <>
+          {options.title} <Badge tone="neutral">{project}</Badge>
+        </>
+      )
+
+    const errors = options.diagnostics?.error ?? 0
+    const warnings = options.diagnostics?.warning ?? 0
+    const checkLabel =
+      errors > 0 || warnings > 0
+        ? `Check (${errors > 0 ? `${errors} error${errors === 1 ? "" : "s"}` : `${warnings} warning${warnings === 1 ? "" : "s"}`})`
+        : "Check"
+
+    const current =
+      options.currentNav ??
+      (options.pageTitle?.startsWith("Done")
+        ? "done"
+        : options.pageTitle?.startsWith("Check")
+          ? "check"
+          : options.pageTitle?.startsWith("Dashboard") || options.title === "Dashboard"
+            ? "dashboard"
+            : options.pageTitle?.startsWith("Projects") || options.title === "Projects"
+              ? "projects"
+              : project !== undefined
+                ? "board"
+                : undefined)
+
+    const navItems: NavItem[] = [
+      { href: routes.dashboard.href(), label: "Dashboard", current: current === "dashboard" },
+      { href: routes.projects.index.href(), label: "Projects", current: current === "projects" },
+    ]
+
+    if (project !== undefined) {
+      navItems.push(
+        { href: boardHref, label: "Board", current: current === "board" },
+        { href: routes.project.done.href({ project }), label: "Done", current: current === "done" },
+        {
+          href: routes.project.check.href({ project }),
+          label: checkLabel,
+          current: current === "check",
+        },
+      )
+    }
+
+    const nav = <Nav items={navItems} />
+
     const switcher =
       options.switcher === undefined || options.switcher.length === 0 ? null : (
-        <form class="switcher" method="get" action={routes.go.href()}>
-          <label class="visually-hidden" for="switch-project">
+        <form action={routes.go.href()} class="switcher" method="get" mix={switcherStyle}>
+          <label class="visually-hidden" for="switch-project" mix={visuallyHiddenStyle}>
             Project
           </label>
-          <select id="switch-project" name="project" data-submit-on-change>
+          <select
+            id="switch-project"
+            mix={switcherSelectStyle}
+            name="project"
+            data-submit-on-change
+          >
             {options.switcher.map((entry) => (
               <option
                 value={entry.name}
@@ -69,70 +195,57 @@ export function Document(handle: Handle<DocumentOptions>) {
               </option>
             ))}
           </select>
-          <button class="secondary" type="submit">
+          <Button size="sm" type="submit">
             Go
-          </button>
+          </Button>
         </form>
       )
-    const nav = (
-      <nav aria-label="Projects">
-        <a href={routes.dashboard.href()}>Dashboard</a>
-        <a href={routes.projects.index.href()}>Projects</a>
-        {project === undefined ? null : (
-          <>
-            <a href={boardHref}>Board</a>
-            <a href={routes.project.done.href({ project })}>Done</a>
-            <a class="diagnostic-link" href={routes.project.check.href({ project })}>
-              Check {badge}
-            </a>
-          </>
-        )}
-      </nav>
+
+    const flash =
+      options.flash === undefined ? null : (
+        <div
+          class={`flash ${options.flash.tone}`}
+          mix={[flashBaseStyle, flashToneStyles[options.flash.tone]]}
+          role="status"
+        >
+          {options.flash.message}
+        </div>
+      )
+
+    const reloadNotice = (
+      <div class="reload-notice info" data-reload-notice hidden mix={reloadNoticeStyle}>
+        The list changed. <a href={boardHref}>Reload</a>
+      </div>
     )
+
+    const content =
+      options.children ??
+      (options.content === undefined ? null : <div innerHTML={options.content} />)
+
+    const liveRegion = (
+      <div
+        data-live-region
+        {...(project === undefined ? {} : { "data-project": project })}
+        {...(options.liveEvents === undefined
+          ? {}
+          : { "data-live-events": options.liveEvents.join(" ") })}
+      >
+        {content}
+      </div>
+    )
+
     return (
-      <html lang="en">
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>{options.pageTitle ?? options.title}</title>
-          <link rel="stylesheet" href={routes.assets.href({ path: "app/ui/styles.css" })} />
-          {options.scriptEntry === undefined ? null : (
-            <>
-              <ImportMap value={options.scriptEntry.importMap} />
-              {options.scriptEntry.preloads.map((preload) => (
-                <link rel="modulepreload" href={preload} key={preload} />
-              ))}
-              <script type="module" src={options.scriptEntry.href} />
-            </>
-          )}
-        </head>
-        <body>
-          <header>
-            <a class="list-name" href={boardHref}>
-              {options.title}
-            </a>
-            {project === undefined ? null : <span class="project-badge">{project}</span>}
-            {switcher}
-            {nav}
-          </header>
-          {options.flash === undefined ? null : (
-            <div class={`flash ${options.flash.tone}`} role="status">
-              {options.flash.message}
-            </div>
-          )}
-          <div class="reload-notice info" data-reload-notice hidden>
-            The list changed. <a href={boardHref}>Reload</a>
-          </div>
-          <main
-            data-live-region
-            {...(project === undefined ? {} : { "data-project": project })}
-            {...(options.liveEvents === undefined
-              ? {}
-              : { "data-live-events": options.liveEvents.join(" ") })}
-            innerHTML={options.content}
-          />
-        </body>
-      </html>
+      <MiniDocument
+        entry={options.scriptEntry}
+        theme={theme}
+        title={options.pageTitle ?? options.title}
+      >
+        <AppShell actions={switcher} brand={brand} brandHref={boardHref} nav={nav}>
+          {flash}
+          {reloadNotice}
+          {liveRegion}
+        </AppShell>
+      </MiniDocument>
     )
   }
 }
@@ -153,10 +266,17 @@ export function ErrorPage(handle: Handle<ErrorPageOptions>) {
       <Document
         title="todo.md"
         pageTitle={`${options.status} error`}
-        content={`<h1>${options.status}</h1><p>${escapeHtml(options.message)}</p><a href="${back}">Back to board</a>`}
         {...(options.project === undefined ? {} : { project: options.project })}
         {...(options.scriptEntry === undefined ? {} : { scriptEntry: options.scriptEntry })}
-      />
+      >
+        <ErrorState
+          level={1}
+          status={String(options.status)}
+          title={`${options.status} error`}
+          description={options.message}
+          action={<LinkButton href={back}>Back to board</LinkButton>}
+        />
+      </Document>
     )
   }
 }

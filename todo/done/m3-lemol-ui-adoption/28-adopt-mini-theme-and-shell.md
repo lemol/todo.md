@@ -2,6 +2,9 @@
 title: Adopt mini theme and shell
 tags: [web]
 depends_on: [27]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T07:19:32Z
+outcome: completed
 ---
 M3 shell adoption (plan: docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md, item 3).
 
