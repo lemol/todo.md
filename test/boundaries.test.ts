@@ -83,6 +83,7 @@ const webPackages = [
   "effect",
   "@effect/platform-bun",
   "@effect/platform-node-shared",
+  "@lemol/ui",
   "remix",
   "mdast-util-from-markdown",
   "mdast-util-to-hast",

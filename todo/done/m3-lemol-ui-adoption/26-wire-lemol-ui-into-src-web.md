@@ -1,6 +1,9 @@
 ---
 title: Wire @lemol/ui into src/web
 tags: [web]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T06:35:12Z
+outcome: completed
 ---
 First M3 implementation task (plan: docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md, item 1).
 

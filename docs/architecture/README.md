@@ -80,7 +80,7 @@ tui ─┘    ▲      ▲
 | [`src/git`](../../src/git)           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md` (task 19)      |
 | [`src/jira`](../../src/jira)         | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror; reading built (task 06)       |
 | [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, git, jira, web, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary        |
-| [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `hub` (+ `effect`, Remix, Markdown renderers; `node:`/`bun` only in `server.ts`, `app/assets.ts`) | Local web UI over hub projects |
+| [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `hub`, `git` (+ `effect`, Remix, Markdown renderers, `@lemol/ui`; `node:`/`bun` only in `server.ts`, `app/assets.ts`) | Local web UI over hub projects |
 
 Planned rows are not enforced yet; each task that builds one adds its rule to
 the boundaries test.

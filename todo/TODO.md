@@ -19,7 +19,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 ## M3 — @lemol/ui adoption
 
 - [ ] [25 - Adopt @lemol/ui in src/web (M3)](./m3-lemol-ui-adoption/25-adopt-lemol-ui-in-src-web-m3.md)
-- [ ] [26 - Wire @lemol/ui into src/web](./m3-lemol-ui-adoption/26-wire-lemol-ui-into-src-web.md)
 - [ ] [27 - M3 render spike: one page on mini](./m3-lemol-ui-adoption/27-m3-render-spike-one-page-on-mini.md)
 - [ ] [28 - Adopt mini theme and shell](./m3-lemol-ui-adoption/28-adopt-mini-theme-and-shell.md)
 - [ ] [29 - Rewrite board and task pages on ui components](./m3-lemol-ui-adoption/29-rewrite-board-and-task-pages-on-ui-components.md)
