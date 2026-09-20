@@ -1,6 +1,9 @@
+/** @jsxImportSource remix/ui */
+
+import { Badge, type BadgeTone } from "@lemol/ui/remix"
 import type { DateTime } from "effect"
+import type { RemixNode } from "remix/ui"
 import { type ProjectStatus, statusText } from "../../../hub/index.ts"
-import { escapeHtml } from "./document.tsx"
 
 /**
  * The pastel a status reads in. Badges always carry their text, so colour
@@ -13,6 +16,21 @@ export const statusTone = (status: ProjectStatus): "ready" | "blocked" | "error"
   return "ready"
 }
 
+export const badgeToneForStatus = (status: ProjectStatus): BadgeTone => {
+  const tone = statusTone(status)
+  switch (tone) {
+    case "ready":
+      return "success"
+    case "blocked":
+      return "warning"
+    case "error":
+      return "danger"
+    case "muted":
+      return "neutral"
+  }
+}
+
 /** A project's sync status as a badge; the words come from the hub. */
-export const syncStatusBadge = (status: ProjectStatus, now: DateTime.Utc): string =>
-  `<span class="badge ${statusTone(status)} sync-status">${escapeHtml(statusText(status, now))}</span>`
+export const syncStatusBadge = (status: ProjectStatus, now: DateTime.Utc): RemixNode => (
+  <Badge tone={badgeToneForStatus(status)}>{statusText(status, now)}</Badge>
+)

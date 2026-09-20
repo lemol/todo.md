@@ -1,7 +1,9 @@
+/** @jsxImportSource remix/ui */
+import { Badge, type BadgeTone, Button, Field, Heading } from "@lemol/ui/remix"
+import type { Handle, RemixNode } from "remix/ui"
 import type { Listing, TaskView } from "../../../core/index.ts"
 import type { Capabilities } from "../../../spec/index.ts"
 import { routes } from "../routes.ts"
-import { escapeHtml } from "./document.tsx"
 import { showId } from "./format.ts"
 import { markdownHtml } from "./markdown.tsx"
 
@@ -26,129 +28,294 @@ export interface RowMoves {
   readonly below: string | undefined
 }
 
+const badgeToneForState = (state: string): BadgeTone => {
+  switch (state) {
+    case "ready":
+      return "success"
+    case "blocked":
+      return "warning"
+    default:
+      return "neutral"
+  }
+}
+
 const moveButton = (
   project: string,
   task: TaskView["task"],
   back: string,
   anchor: "before" | "after",
   target: string | undefined,
-): string => {
+): RemixNode => {
   const [label, arrow] = anchor === "before" ? ["up", "↑"] : ["down", "↓"]
-  if (target === undefined)
-    return `<button class="move" type="button" disabled aria-hidden="true" tabindex="-1">${arrow}</button>`
-  return `<form method="post" action="${routes.project.tasks.move.href({ project, id: task.id })}"><input type="hidden" name="back" value="${escapeHtml(back)}"><input type="hidden" name="${anchor}" value="${escapeHtml(target)}"><button class="move" type="submit" title="Move ${label}" aria-label="Move ${escapeHtml(task.title)} ${label}">${arrow}</button></form>`
-}
-
-export const TaskRow = (
-  project: string,
-  view: TaskView,
-  options: { readonly next: boolean; readonly back: string; readonly moves?: RowMoves },
-): string => {
-  const { task } = view
-  const tags = task.tags
-    .map(
-      (tag) =>
-        `<a class="chip" href="${escapeHtml(queryHref(project, options.back, "tag", tag))}">#${escapeHtml(tag)}</a>`,
+  if (target === undefined) {
+    return (
+      <button class="move" type="button" disabled tabindex={-1}>
+        {arrow}
+      </button>
     )
-    .join(" ")
-  const assignee =
-    task.assignee === undefined
-      ? ""
-      : `<a class="assignee" href="${escapeHtml(queryHref(project, options.back, "assignee", task.assignee))}">@${escapeHtml(task.assignee)}</a>`
-  const blockedBy =
-    view.blockedBy.length === 0
-      ? ""
-      : `<div class="blocked-by">blocked by ${view.blockedBy
-          .map(
-            (id) =>
-              `<a href="${routes.project.tasks.show.href({ project, id })}">${showId(id)}</a>`,
-          )
-          .join(", ")}</div>`
-  const moves =
-    options.moves === undefined
-      ? ""
-      : ` <span class="moves">${moveButton(project, task, options.back, "before", options.moves.above)}${moveButton(project, task, options.back, "after", options.moves.below)}</span>`
-  return `<article class="task-row${options.next ? " next" : ""}"${options.next ? ' data-next="true"' : ""}><form method="post" action="${routes.project.tasks.complete.href({ project, id: task.id })}"><input type="hidden" name="back" value="${escapeHtml(options.back)}"><button class="checkbox" aria-label="Complete ${escapeHtml(task.title)}" type="submit"></button></form><code>${showId(task.id)}</code><div class="task-copy"><a class="task-title" href="${routes.project.tasks.show.href({ project, id: task.id })}">${escapeHtml(task.title)}</a>${blockedBy}</div><div class="task-meta">${tags} ${assignee} <span class="badge ${view.state}">${view.state.toUpperCase()}</span>${moves}</div></article>`
-}
-
-export const AddTaskForm = (
-  project: string,
-  listing: Listing,
-  capabilities: Capabilities,
-  values: AddValues = { title: "", group: "", newGroup: "" },
-  issues: ReadonlyArray<string> = [],
-): string => {
-  const groups = listing.sections.flatMap((section) =>
-    section.name === undefined
-      ? []
-      : [
-          `<option value="${escapeHtml(section.name)}"${values.group === section.name ? " selected" : ""}>${escapeHtml(section.name)}</option>`,
-        ],
+  }
+  return (
+    <form method="post" action={routes.project.tasks.move.href({ project, id: task.id })}>
+      <input type="hidden" name="back" value={back} />
+      <input type="hidden" name={anchor} value={target} />
+      <button
+        class="move"
+        type="submit"
+        title={`Move ${label}`}
+        aria-label={`Move ${task.title} ${label}`}
+      >
+        {arrow}
+      </button>
+    </form>
   )
-  const groupFields = capabilities.groups
-    ? `<label>Group <select name="group"><option value="">Ungrouped</option>${groups.join("")}<option value="__new__"${values.group === "__new__" ? " selected" : ""}>new group…</option></select></label><label>New group <input name="newGroup" value="${escapeHtml(values.newGroup)}"></label>`
-    : ""
-  return `<section class="add-task"><h2>Add task</h2>${issues.length === 0 ? "" : `<ul class="issues">${issues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>`}<form method="post" action="${routes.project.tasks.add.href({ project })}"><label>Title <input name="title" value="${escapeHtml(values.title)}" required></label>${groupFields}<button class="primary" type="submit">Add task</button></form></section>`
 }
 
-export const BoardPage = (options: {
+export interface TaskRowProps {
+  readonly project: string
+  readonly view: TaskView
+  readonly next: boolean
+  readonly back: string
+  readonly moves?: RowMoves | undefined
+}
+
+export function TaskRow(handle: Handle<TaskRowProps>) {
+  return () => {
+    const { project, view, next, back, moves } = handle.props
+    const { task } = view
+    const tags = task.tags.flatMap((tag, index) => [
+      ...(index > 0 ? [" "] : []),
+      <a class="chip" key={tag} href={queryHref(project, back, "tag", tag)}>
+        #{tag}
+      </a>,
+    ])
+    const assignee =
+      task.assignee === undefined ? null : (
+        <>
+          {" "}
+          <a class="assignee" href={queryHref(project, back, "assignee", task.assignee)}>
+            @{task.assignee}
+          </a>
+        </>
+      )
+    const blockedBy =
+      view.blockedBy.length === 0 ? null : (
+        <div class="blocked-by">
+          blocked by{" "}
+          {view.blockedBy.flatMap((id, index) => [
+            ...(index > 0 ? [", "] : []),
+            <a href={routes.project.tasks.show.href({ project, id })} key={id}>
+              {showId(id)}
+            </a>,
+          ])}
+        </div>
+      )
+    const moveButtons =
+      moves === undefined ? null : (
+        <span class="moves">
+          {moveButton(project, task, back, "before", moves.above)}
+          {moveButton(project, task, back, "after", moves.below)}
+        </span>
+      )
+
+    return (
+      <article class={`task-row${next ? " next" : ""}`} {...(next ? { "data-next": "true" } : {})}>
+        <form method="post" action={routes.project.tasks.complete.href({ project, id: task.id })}>
+          <input type="hidden" name="back" value={back} />
+          <button class="checkbox" aria-label={`Complete ${task.title}`} type="submit" />
+        </form>
+        <code>{showId(task.id)}</code>
+        <div class="task-copy">
+          <a class="task-title" href={routes.project.tasks.show.href({ project, id: task.id })}>
+            {task.title}
+          </a>
+          {blockedBy}
+        </div>
+        <div class="task-meta">
+          {tags}
+          {assignee} <Badge tone={badgeToneForState(view.state)}>{view.state.toUpperCase()}</Badge>
+          {moveButtons}
+        </div>
+      </article>
+    )
+  }
+}
+
+export interface AddTaskFormProps {
+  readonly project: string
+  readonly listing: Listing
+  readonly capabilities: Capabilities
+  readonly values?: AddValues | undefined
+  readonly issues?: ReadonlyArray<string> | undefined
+}
+
+export function AddTaskForm(handle: Handle<AddTaskFormProps>) {
+  return () => {
+    const {
+      project,
+      listing,
+      capabilities,
+      values = { title: "", group: "", newGroup: "" },
+      issues = [],
+    } = handle.props
+    const groupFields = capabilities.groups ? (
+      <>
+        <Field control="select" label="Group" name="group">
+          <option value="" {...(values.group === "" ? { selected: true } : {})}>
+            Ungrouped
+          </option>
+          {listing.sections.flatMap((section) =>
+            section.name === undefined
+              ? []
+              : [
+                  <option
+                    value={section.name}
+                    key={section.name}
+                    {...(values.group === section.name ? { selected: true } : {})}
+                  >
+                    {section.name}
+                  </option>,
+                ],
+          )}
+          <option value="__new__" {...(values.group === "__new__" ? { selected: true } : {})}>
+            new group…
+          </option>
+        </Field>
+        <Field label="New group" name="newGroup" value={values.newGroup} />
+      </>
+    ) : null
+
+    return (
+      <section class="add-task">
+        <Heading level={2}>Add task</Heading>
+        {issues.length === 0 ? null : (
+          <ul class="issues">
+            {issues.map((issue) => (
+              <li key={issue}>{issue}</li>
+            ))}
+          </ul>
+        )}
+        <form method="post" action={routes.project.tasks.add.href({ project })}>
+          <Field label="Title" name="title" value={values.title} required />
+          {groupFields}
+          <Button tone="primary" type="submit">
+            Add task
+          </Button>
+        </form>
+      </section>
+    )
+  }
+}
+
+export interface BoardPageProps {
   readonly project: string
   readonly listing: Listing
   readonly nextIds: ReadonlySet<string>
   readonly capabilities: Capabilities
   readonly back: string
-  readonly addValues?: AddValues
-  readonly addIssues?: ReadonlyArray<string>
-  readonly syncChrome?: string
-}): string => {
-  const { project } = options
-  const views = options.listing.sections.flatMap((section) => section.tasks)
-  const ready = views.filter((view) => view.state === "ready").length
-  const blocked = views.length - ready
-  const sections = options.listing.sections
-    .filter((section) => section.tasks.length > 0)
-    .map((section) => {
-      const heading =
-        section.name === undefined
-          ? "Ungrouped"
-          : `<a href="${escapeHtml(queryHref(project, options.back, "group", section.name))}">${escapeHtml(section.name)}</a>${
-              options.capabilities.renameGroup
-                ? ` <a class="section-action" href="${escapeHtml(routes.project.groups.edit.href({ project }, { searchParams: { name: section.name } }))}">Rename</a>`
-                : ""
-            }`
-      const rows = section.tasks.map((view, index) =>
-        TaskRow(project, view, {
-          next: options.nextIds.has(view.task.id),
-          back: options.back,
-          ...(options.capabilities.reorder
-            ? {
-                moves: {
-                  above: section.tasks[index - 1]?.task.id,
-                  below: section.tasks[index + 1]?.task.id,
-                },
-              }
-            : {}),
-        }),
+  readonly addValues?: AddValues | undefined
+  readonly addIssues?: ReadonlyArray<string> | undefined
+  readonly syncChrome?: RemixNode | undefined
+}
+
+export function BoardPage(handle: Handle<BoardPageProps>) {
+  return () => {
+    const { project, listing, nextIds, capabilities, back, addValues, addIssues, syncChrome } =
+      handle.props
+
+    const views = listing.sections.flatMap((section) => section.tasks)
+    const ready = views.filter((view) => view.state === "ready").length
+    const blocked = views.length - ready
+
+    const sections = listing.sections
+      .filter((section) => section.tasks.length > 0)
+      .map((section) => {
+        const heading =
+          section.name === undefined ? (
+            "Ungrouped"
+          ) : (
+            <>
+              <a href={queryHref(project, back, "group", section.name)}>{section.name}</a>
+              {capabilities.renameGroup ? (
+                <>
+                  {" "}
+                  <a
+                    class="section-action"
+                    href={routes.project.groups.edit.href(
+                      { project },
+                      { searchParams: { name: section.name } },
+                    )}
+                  >
+                    Rename
+                  </a>
+                </>
+              ) : null}
+            </>
+          )
+
+        return (
+          <section class="task-section" key={section.name ?? "ungrouped"}>
+            <Heading level={2}>{heading}</Heading>
+            {section.description === "" ? null : (
+              <div
+                class="section-description markdown"
+                innerHTML={markdownHtml(section.description)}
+              />
+            )}
+            {section.tasks.map((view, index) => (
+              <TaskRow
+                key={view.task.id}
+                project={project}
+                view={view}
+                next={nextIds.has(view.task.id)}
+                back={back}
+                {...(capabilities.reorder
+                  ? {
+                      moves: {
+                        above: section.tasks[index - 1]?.task.id,
+                        below: section.tasks[index + 1]?.task.id,
+                      },
+                    }
+                  : {})}
+              />
+            ))}
+          </section>
+        )
+      })
+
+    const sync =
+      syncChrome === undefined || syncChrome === null || syncChrome === "" ? null : (
+        <p class="board-sync">{syncChrome}</p>
       )
-      return `<section class="task-section"><h2>${heading}</h2>${section.description === "" ? "" : `<div class="section-description markdown">${markdownHtml(section.description)}</div>`}${rows.join("")}</section>`
-    })
-    .join("")
-  const sync =
-    options.syncChrome === undefined || options.syncChrome === ""
-      ? ""
-      : `<p class="board-sync">${options.syncChrome}</p>`
-  // A store that cannot add has no form to offer, so nothing is "above" either.
-  const addForm = options.capabilities.add
-    ? AddTaskForm(
-        project,
-        options.listing,
-        options.capabilities,
-        options.addValues,
-        options.addIssues,
-      )
-    : ""
-  const empty = options.capabilities.add
-    ? '<p class="empty">Nothing open. Add a task above.</p>'
-    : '<p class="empty">Nothing open.</p>'
-  return `<h1>${escapeHtml(options.listing.title)}</h1>${sync}${options.listing.description === "" ? "" : `<div class="list-description markdown">${markdownHtml(options.listing.description)}</div>`}<p class="summary">${views.length} open · ${ready} ready · ${blocked} blocked</p>${addForm}${sections || empty}`
+
+    const addForm = capabilities.add ? (
+      <AddTaskForm
+        project={project}
+        listing={listing}
+        capabilities={capabilities}
+        values={addValues}
+        issues={addIssues}
+      />
+    ) : null
+
+    const empty = capabilities.add ? (
+      <p class="empty">Nothing open. Add a task above.</p>
+    ) : (
+      <p class="empty">Nothing open.</p>
+    )
+
+    return (
+      <>
+        <Heading level={1}>{listing.title}</Heading>
+        {sync}
+        {listing.description === "" ? null : (
+          <div class="list-description markdown" innerHTML={markdownHtml(listing.description)} />
+        )}
+        <p class="summary">
+          {views.length} open · {ready} ready · {blocked} blocked
+        </p>
+        {addForm}
+        {sections.length > 0 ? sections : empty}
+      </>
+    )
+  }
 }

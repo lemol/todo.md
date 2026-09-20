@@ -2,6 +2,9 @@
 title: Rewrite board and task pages on ui components
 tags: [web]
 depends_on: [28]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T07:36:07Z
+outcome: completed
 ---
 M3 page rewrite, first slice (plan: docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md, item 4).
 

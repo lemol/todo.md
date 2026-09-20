@@ -1,5 +1,6 @@
 /** @jsxImportSource remix/ui */
 
+import { Button } from "@lemol/ui/remix"
 import { DateTime, Deferred, Effect, Fiber, Stream } from "effect"
 import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
@@ -11,7 +12,7 @@ import { loadProject } from "../middleware/project.tsx"
 import { runTodo } from "../middleware/todo.ts"
 import { routes } from "../routes.ts"
 import { type AddValues, BoardPage } from "../ui/board.tsx"
-import { Document, ErrorPage, escapeHtml } from "../ui/document.tsx"
+import { Document, ErrorPage } from "../ui/document.tsx"
 import { diagnosticCounts } from "../ui/format.ts"
 import { CheckPage, DonePage } from "../ui/secondary.tsx"
 import { syncStatusBadge } from "../ui/status.tsx"
@@ -37,9 +38,19 @@ const switcherOf = async (runtime: HubRuntime) => {
 }
 
 const boardSyncChrome = (project: string, info: ReturnType<typeof projectInfoOf>, back: string) => {
-  if (!info.syncable) return ""
+  if (!info.syncable) return null
   const now = DateTime.nowUnsafe()
-  return `${syncStatusBadge(info.status, now)} <form method="post" action="${routes.project.sync.href({ project })}" class="inline"><input type="hidden" name="back" value="${escapeHtml(back)}"><button class="secondary" type="submit">Sync</button></form>`
+  return (
+    <>
+      {syncStatusBadge(info.status, now)}{" "}
+      <form method="post" action={routes.project.sync.href({ project })} class="inline">
+        <input type="hidden" name="back" value={back} />
+        <Button tone="neutral" size="sm" type="submit">
+          Sync
+        </Button>
+      </form>
+    </>
+  )
 }
 
 export const renderBoard = async (
@@ -83,21 +94,22 @@ export const renderBoard = async (
       <Document
         title={listing.value.title}
         project={project}
-        content={BoardPage({
-          project,
-          listing: listing.value,
-          nextIds: new Set(next.value.slice(0, 1).map((item) => item.task.id)),
-          capabilities: capabilitiesOf(context),
-          back,
-          syncChrome: boardSyncChrome(project, info, back),
-          ...(addValues === undefined ? {} : { addValues }),
-          ...(addIssues === undefined ? {} : { addIssues }),
-        })}
         switcher={switcher}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
         {...(flash === undefined ? {} : { flash })}
-      />,
+      >
+        <BoardPage
+          project={project}
+          listing={listing.value}
+          nextIds={new Set(next.value.slice(0, 1).map((item) => item.task.id))}
+          capabilities={capabilitiesOf(context)}
+          back={back}
+          syncChrome={boardSyncChrome(project, info, back)}
+          {...(addValues === undefined ? {} : { addValues })}
+          {...(addIssues === undefined ? {} : { addIssues })}
+        />
+      </Document>,
       { status },
     )
   } catch (defect) {

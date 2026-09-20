@@ -87,15 +87,20 @@ test("the header carries the switcher, hub links and the live event list", async
   expect(html).not.toContain("data-project")
 })
 
-test("the sync badge carries the hub's words and a matching pastel", () => {
+test("the sync badge carries the hub's words and a matching pastel", async () => {
   const now = DateTime.makeUnsafe("2026-09-16T12:00:00.000Z")
-  expect(syncStatusBadge({ result: "never" }, now)).toContain("never synced")
-  expect(syncStatusBadge({ result: "never" }, now)).toContain('class="badge muted sync-status"')
+  const never = await renderToString(syncStatusBadge({ result: "never" }, now))
+  expect(never).toContain("never synced")
+  expect(never).toContain("--ui-badge-neutral-bg")
   expect(statusTone({ result: "error", error: "auth" })).toBe("error")
   expect(statusTone({ result: "ok", diverged: true })).toBe("error")
   expect(statusTone({ result: "ok", ahead: 2 })).toBe("blocked")
   expect(statusTone({ result: "ok", lastSync: now })).toBe("ready")
-  expect(syncStatusBadge({ result: "error", error: "<script>" }, now)).toContain("&lt;script&gt;")
+  const errorBadge = await renderToString(
+    syncStatusBadge({ result: "error", error: "<script>" }, now),
+  )
+  expect(errorBadge).toContain("&lt;script&gt;")
+  expect(errorBadge).toContain("--ui-badge-danger-bg")
 })
 
 test("renders the shared document shell with mini theme and shell", async () => {

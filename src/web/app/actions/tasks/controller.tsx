@@ -59,18 +59,19 @@ const renderTask = async (
       title={chrome.title}
       project={project}
       pageTitle={`${showId(detail.value.view.task.id)} ${detail.value.view.task.title}`}
-      content={TaskPage({
-        project,
-        detail: detail.value,
-        capabilities: capabilitiesOf(context),
-        author: String(context.get(authorContext)),
-        groups: chrome.groups,
-        moveIssues,
-      })}
       diagnostics={chrome.diagnosticCounts}
       scriptEntry={scriptEntryOf(context)}
       {...(flash === undefined ? {} : { flash })}
-    />,
+    >
+      <TaskPage
+        project={project}
+        detail={detail.value}
+        capabilities={capabilitiesOf(context)}
+        author={String(context.get(authorContext))}
+        groups={chrome.groups}
+        moveIssues={moveIssues}
+      />
+    </Document>,
     { status },
   )
 }
@@ -98,15 +99,16 @@ const renderRemove = async (
       title={chrome.title}
       project={project}
       pageTitle={`Remove ${showId(task.id)} · ${chrome.title}`}
-      content={RemoveTaskPage(
-        project,
-        task,
-        detail.value.blocks.map((view) => view.task),
-        issues,
-      )}
       diagnostics={chrome.diagnosticCounts}
       scriptEntry={scriptEntryOf(context)}
-    />,
+    >
+      <RemoveTaskPage
+        project={project}
+        task={task}
+        dependents={detail.value.blocks.map((view) => view.task)}
+        issues={issues}
+      />
+    </Document>,
     { status },
   )
 }
@@ -132,10 +134,16 @@ const renderEdit = async (
       title={chrome.title}
       project={project}
       pageTitle={`Edit ${showId(task.id)} · ${chrome.title}`}
-      content={EditTaskPage(project, task, values ?? valuesOf(task), issues)}
       diagnostics={chrome.diagnosticCounts}
       scriptEntry={scriptEntryOf(context)}
-    />,
+    >
+      <EditTaskPage
+        project={project}
+        task={task}
+        values={values ?? valuesOf(task)}
+        issues={issues}
+      />
+    </Document>,
     { status },
   )
 }
