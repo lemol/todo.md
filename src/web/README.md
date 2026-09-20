@@ -55,3 +55,14 @@ supplies request capabilities, including `loadProject` for `/p/:project` and
 `provideHub` for hub-level routes; `app/actions` owns routes; `app/ui` owns
 shared rendering and styles. Hosting/authentication and GitHub-backed storage
 are deferred (task 09).
+
+## Adopting @lemol/ui
+
+The web app is adopting `@lemol/ui` (M3). Key architectural patterns established in the render spike:
+
+- **Node-returning components:** Pages and UI elements return Remix JSX nodes rather than HTML strings. The shell is composed using `@lemol/ui/mini/document` (`Document`) and `@lemol/ui/mini` (`AppShell`, `Nav`), with page content composed from `@lemol/ui/remix` components (`Heading`, `Stack`, `Text`, `Badge`, etc.).
+- **Live region accommodation:** `<main id="main">` in `AppShell` does not carry arbitrary data attributes. Instead, the page content inside `<main>` is wrapped in `<div data-live-region data-project={project} ...>`, which `entry.ts` locates via `querySelector("[data-live-region]")` and replaces upon live events with no upstream shell changes required.
+- **Nav badges:** Upstream `NavItem` in `@lemol/ui/mini` takes a string `label`. Badges on nav items (e.g. diagnostics count on Check) are represented in text (e.g. `Check (2)`) pending an upstream accommodation in `repos/ui` to allow `badge?: RemixNode` on `NavItem`.
+- **Dialog open on 422:** `DialogPanel` does not have an `open` prop, and native `<dialog open>` without JS is not in modal state. Forms with validation errors on 422 render inline / full-page with error feedback (matching the no-JS and deep-link flow), rather than attempting to force a reopened modal.
+- **Markdown embedding:** `@lemol/ui` has no markdown component. Markdown is parsed and sanitized via `markdownHtml` and embedded into the JSX tree using a wrapper element with `innerHTML={markdownHtml(text)}`.
+

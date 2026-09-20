@@ -1,5 +1,7 @@
 /** @jsxImportSource remix/ui */
 
+import { AppShell, Nav } from "@lemol/ui/mini"
+import { Document as MiniDocument } from "@lemol/ui/mini/document"
 import { DateTime, Deferred, Effect, Fiber, Stream } from "effect"
 import type { RequestContext } from "remix/router"
 import { createController } from "remix/router"
@@ -145,18 +147,68 @@ const check = async (context: WebContext): Promise<Response> => {
     if (!diagnostics.ok) return respond(context, diagnostics.error)
     const flash = takeFlash(context)
     const switcher = await switcherOf(hubRuntimeOf(context))
+    const counts = diagnosticCounts(diagnostics.value)
+    const errors = counts.error
+    const warnings = counts.warning
+    const checkLabel =
+      errors > 0 || warnings > 0
+        ? `Check (${errors > 0 ? `${errors} errors` : `${warnings} warnings`})`
+        : "Check"
+    const nav = (
+      <Nav
+        items={[
+          { href: routes.dashboard.href(), label: "Dashboard" },
+          { href: routes.projects.index.href(), label: "Projects" },
+          { href: routes.project.board.href({ project }), label: "Board" },
+          { href: routes.project.done.href({ project }), label: "Done" },
+          { href: routes.project.check.href({ project }), label: checkLabel, current: true },
+        ]}
+      />
+    )
+    const switcherNode =
+      switcher.length === 0 ? null : (
+        <form class="switcher" method="get" action={routes.go.href()}>
+          <label class="visually-hidden" for="switch-project">
+            Project
+          </label>
+          <select id="switch-project" name="project" data-submit-on-change>
+            {switcher.map((entry) => (
+              <option
+                value={entry.name}
+                key={entry.name}
+                {...(entry.name === project ? { selected: true } : {})}
+              >
+                {entry.registered ? entry.name : `${entry.name} (not registered)`}
+              </option>
+            ))}
+          </select>
+          <button class="secondary" type="submit">
+            Go
+          </button>
+        </form>
+      )
     return renderPage(
       context,
-      <Document
-        title={listing.value.title}
-        project={project}
-        pageTitle={`Check · ${listing.value.title}`}
-        content={CheckPage(project, diagnostics.value)}
-        switcher={switcher}
-        diagnostics={diagnosticCounts(diagnostics.value)}
-        scriptEntry={scriptEntryOf(context)}
-        {...(flash === undefined ? {} : { flash })}
-      />,
+      <MiniDocument title={`Check · ${listing.value.title}`} entry={scriptEntryOf(context)}>
+        <AppShell
+          brand={listing.value.title}
+          brandHref={routes.project.board.href({ project })}
+          nav={nav}
+          actions={switcherNode}
+        >
+          {flash === undefined ? null : (
+            <div class={`flash ${flash.tone}`} role="status">
+              {flash.message}
+            </div>
+          )}
+          <div class="reload-notice info" data-reload-notice hidden>
+            The list changed. <a href={routes.project.board.href({ project })}>Reload</a>
+          </div>
+          <div data-live-region data-project={project}>
+            <CheckPage project={project} diagnostics={diagnostics.value} />
+          </div>
+        </AppShell>
+      </MiniDocument>,
     )
   } catch (defect) {
     return respondDefect(context, defect)

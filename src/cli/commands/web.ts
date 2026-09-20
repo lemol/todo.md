@@ -1,7 +1,6 @@
 import { Effect, Option, Path } from "effect"
 import { Command, Flag } from "effect/unstable/cli"
 import { Hub } from "../../hub/index.ts"
-import { startServer } from "../../web/server.ts"
 import { CliContext, Dir, output, Project } from "../context.ts"
 import { UsageError } from "../errors.ts"
 
@@ -39,6 +38,7 @@ export const web = Command.make(
     })
     yield* Effect.scoped(
       Effect.gen(function* () {
+        const { startServer } = yield* Effect.promise(() => import("../../web/server.ts"))
         const started = yield* Effect.acquireRelease(
           Effect.promise(() =>
             startServer({

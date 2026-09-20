@@ -9,6 +9,7 @@ import { createAssets } from "../../src/web/app/assets.ts"
 import { routes } from "../../src/web/app/routes.ts"
 import { Document } from "../../src/web/app/ui/document.tsx"
 import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
+import { CheckPage } from "../../src/web/app/ui/secondary.tsx"
 import { statusTone, syncStatusBadge } from "../../src/web/app/ui/status.tsx"
 import { makeRouter } from "./harness.ts"
 
@@ -115,4 +116,34 @@ test("renders the shared document shell with the project badge", async () => {
   expect(html).toContain("Check")
   expect(html).toContain(`data-project="${project}"`)
   expect(html).toContain("diagnostic")
+})
+
+test("renders CheckPage with diagnostics using @lemol/ui components", async () => {
+  const html = await renderToString(
+    <CheckPage
+      project="acme"
+      diagnostics={[
+        {
+          code: "unknown-dependency",
+          message: "Task depends on unknown task 999",
+          severity: "error",
+          taskId: "1",
+          file: "todo/TODO.md",
+          line: 42,
+        },
+      ]}
+    />,
+  )
+  expect(html).toContain("Errors")
+  expect(html).toContain("unknown-dependency")
+  expect(html).toContain("Task depends on unknown task 999")
+  expect(html).toContain("task 01")
+  expect(html).toContain('href="/p/acme/tasks/1"')
+  expect(html).toContain("todo/TODO.md:42")
+})
+
+test("renders CheckPage empty state", async () => {
+  const html = await renderToString(<CheckPage project="acme" diagnostics={[]} />)
+  expect(html).toContain("Check")
+  expect(html).toContain("No diagnostics.")
 })
