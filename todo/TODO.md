@@ -19,3 +19,19 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 ## M3 — @lemol/ui adoption
 
 - [ ] [25 - Adopt @lemol/ui in src/web (M3)](./m3-lemol-ui-adoption/25-adopt-lemol-ui-in-src-web-m3.md)
+- [ ] [26 - Wire @lemol/ui into src/web](./m3-lemol-ui-adoption/26-wire-lemol-ui-into-src-web.md)
+- [ ] [27 - M3 render spike: one page on mini](./m3-lemol-ui-adoption/27-m3-render-spike-one-page-on-mini.md)
+- [ ] [28 - Adopt mini theme and shell](./m3-lemol-ui-adoption/28-adopt-mini-theme-and-shell.md)
+- [ ] [29 - Rewrite board and task pages on ui components](./m3-lemol-ui-adoption/29-rewrite-board-and-task-pages-on-ui-components.md)
+- [ ] [30 - Rewrite dashboard, projects, done and check pages](./m3-lemol-ui-adoption/30-rewrite-dashboard-projects-done-and-check-pages.md)
+- [ ] [31 - Dialogs for add, edit and move plus client wiring](./m3-lemol-ui-adoption/31-dialogs-for-add-edit-and-move-plus-client-wiring.md)
+- [ ] [32 - M3 test closeout, docs and green check](./m3-lemol-ui-adoption/32-m3-test-closeout-docs-and-green-check.md)
+- [ ] [33 - M3b: toasts, live filter, command palette, Table](./m3-lemol-ui-adoption/33-m3b-toasts-live-filter-command-palette-table.md)
+
+
+
+
+
+
+
+
