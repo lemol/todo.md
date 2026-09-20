@@ -56,7 +56,8 @@ describe("dashboard", () => {
     expect(html).toContain("1 ready")
     expect(html).toContain("Write docs")
     expect(html).toContain('href="/p/acme"')
-    expect(html).toContain('class="badge muted">memory</span>')
+    expect(html).toContain("memory")
+    expect(html).toContain("--ui-badge-neutral-bg")
   })
 
   test("shows at most five ready tasks per project", async () => {
@@ -73,8 +74,9 @@ describe("dashboard", () => {
   test("the source filter lists every loaded source kind", async () => {
     const app = await open({ extraSources: [fsSource] })
     const html = await (await fetchApp(app.router, "/")).text()
-    expect(html).toContain('name="source" value="memory"')
-    expect(html).toContain('name="source" value="fs"')
+    expect(html).toContain('name="source"')
+    expect(html).toContain('value="memory"')
+    expect(html).toContain('value="fs"')
   })
 
   test("each filter narrows the results", async () => {
@@ -124,14 +126,14 @@ describe("dashboard", () => {
 
   const registerFormFields = (html: string): Record<string, string> => {
     const match = html.match(
-      /<form method="post" action="\/projects" class="inline">([\s\S]*?)<button class="secondary" type="submit">Register<\/button><\/form>/,
+      /<form method="post" action="\/projects" class="inline">([\s\S]*?)<button[^>]*>Register<\/button><\/form>/,
     )
     if (match === null) throw new Error("register form not found")
     const body = match[1]
     if (body === undefined) throw new Error("register form not found")
     const fields: Record<string, string> = {}
     for (const [, name, value] of body.matchAll(
-      /<input type="hidden" name="([^"]+)" value="([^"]*)">/g,
+      /<input type="hidden" name="([^"]+)" value="([^"]*)"\s*\/?>/g,
     )) {
       if (name === undefined) continue
       fields[name] = value ?? ""

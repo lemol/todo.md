@@ -32,17 +32,13 @@ const renderProjects = async (
     <Document
       title="todo.md"
       pageTitle="Projects · todo.md"
-      content={ProjectsPage({
-        projects,
-        sources: kinds,
-        now: DateTime.nowUnsafe(),
-        ...extra,
-      })}
       switcher={projects.map((info) => ({ name: info.name, registered: info.registered }))}
       liveEvents={LIVE_EVENTS}
       scriptEntry={scriptEntryOf(context)}
       {...(flash === undefined ? {} : { flash })}
-    />,
+    >
+      <ProjectsPage projects={projects} sources={kinds} now={DateTime.nowUnsafe()} {...extra} />
+    </Document>,
     { status },
   )
 }

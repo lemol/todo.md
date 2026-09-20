@@ -134,12 +134,14 @@ const done = async (context: WebContext): Promise<Response> => {
         title={listing.value.title}
         project={project}
         pageTitle={`Done · ${listing.value.title}`}
-        content={DonePage(project, listing.value.done)}
         switcher={switcher}
         diagnostics={diagnosticCounts(diagnostics.value)}
         scriptEntry={scriptEntryOf(context)}
+        currentNav="done"
         {...(flash === undefined ? {} : { flash })}
-      />,
+      >
+        <DonePage project={project} tasks={listing.value.done} />
+      </Document>,
     )
   } catch (defect) {
     return respondDefect(context, defect)

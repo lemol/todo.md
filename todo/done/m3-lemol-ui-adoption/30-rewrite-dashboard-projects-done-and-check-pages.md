@@ -2,6 +2,9 @@
 title: Rewrite dashboard, projects, done and check pages
 tags: [web]
 depends_on: [28]
+group: M3 — @lemol/ui adoption
+completed_at: 2026-09-20T17:32:09Z
+outcome: completed
 ---
 M3 page rewrite, second slice (plan: docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md, item 5).
 

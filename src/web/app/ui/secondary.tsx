@@ -1,25 +1,59 @@
 /** @jsxImportSource remix/ui */
+
+import { EmptyState } from "@lemol/ui/mini"
 import { Badge, type BadgeTone, Heading, Stack, Text } from "@lemol/ui/remix"
 import type { Handle } from "remix/ui"
 import type { TaskView } from "../../../core/index.ts"
 import type { Diagnostic } from "../../../spec/index.ts"
 import { routes } from "../routes.ts"
-import { escapeHtml } from "./document.tsx"
 import { formatDate, showId } from "./format.ts"
 
-export const DonePage = (project: string, tasks: ReadonlyArray<TaskView>): string => {
-  if (tasks.length === 0) return '<h1>Done</h1><p class="empty">Nothing done.</p>'
-  const rows = tasks
-    .map(({ task }) => {
-      const group = task.group === undefined ? "Ungrouped" : task.group
-      // Absent `outcome` on a done task means completed (spec §1.1): branch on
-      // "cancelled" explicitly so every historical done task keeps reading as
-      // completed.
-      const outcome = task.outcome === "cancelled" ? "cancelled" : formatDate(task.completedAt)
-      return `<article class="done-row"><code>${showId(task.id)}</code><a href="${routes.project.tasks.show.href({ project, id: task.id })}">${escapeHtml(task.title)}</a><span><code>${outcome}</code> · ${escapeHtml(group)}</span><form method="post" action="${routes.project.tasks.reopen.href({ project, id: task.id })}"><button class="secondary" type="submit">Reopen</button></form></article>`
-    })
-    .join("")
-  return `<h1>Done</h1>${rows}`
+export interface DonePageProps {
+  readonly project: string
+  readonly tasks: ReadonlyArray<TaskView>
+}
+
+export function DonePage(handle: Handle<DonePageProps>) {
+  return () => {
+    const { project, tasks } = handle.props
+    if (tasks.length === 0) {
+      return (
+        <Stack gap={4}>
+          <Heading level={1}>Done</Heading>
+          <EmptyState title="Nothing done." />
+        </Stack>
+      )
+    }
+    return (
+      <Stack gap={4}>
+        <Heading level={1}>Done</Heading>
+        {tasks.map(({ task }) => {
+          const group = task.group === undefined ? "Ungrouped" : task.group
+          // Absent `outcome` on a done task means completed (spec §1.1): branch on
+          // "cancelled" explicitly so every historical done task keeps reading as
+          // completed.
+          const outcome = task.outcome === "cancelled" ? "cancelled" : formatDate(task.completedAt)
+          return (
+            <article class="done-row" key={task.id}>
+              <code>{showId(task.id)}</code>
+              <a href={routes.project.tasks.show.href({ project, id: task.id })}>{task.title}</a>
+              <span>
+                <code>{outcome}</code> · {group}
+              </span>
+              <form
+                method="post"
+                action={routes.project.tasks.reopen.href({ project, id: task.id })}
+              >
+                <button class="secondary" type="submit">
+                  Reopen
+                </button>
+              </form>
+            </article>
+          )
+        })}
+      </Stack>
+    )
+  }
 }
 
 const severities = ["error", "warning", "info"] as const

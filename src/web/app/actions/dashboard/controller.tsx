@@ -49,14 +49,6 @@ export const dashboardAction =
         <Document
           title="todo.md"
           pageTitle="Projects · todo.md"
-          content={DashboardPage({
-            overview,
-            projects,
-            sources: kinds,
-            query,
-            now: DateTime.nowUnsafe(),
-            syncable: projects.some((info) => info.syncable),
-          })}
           switcher={projects.map((info) => ({
             name: info.name,
             registered: info.registered,
@@ -64,7 +56,16 @@ export const dashboardAction =
           liveEvents={LIVE_EVENTS}
           scriptEntry={scriptEntryOf(context)}
           {...(flash === undefined ? {} : { flash })}
-        />,
+        >
+          <DashboardPage
+            overview={overview}
+            projects={projects}
+            sources={kinds}
+            query={query}
+            now={DateTime.nowUnsafe()}
+            syncable={projects.some((info) => info.syncable)}
+          />
+        </Document>,
       )
     } catch (defect) {
       return respondDefect(context, defect)
