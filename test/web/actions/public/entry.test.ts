@@ -15,3 +15,12 @@ test("entry.ts only reacts to changed/synced events for its own project", () => 
   expect(source).toContain('addEventListener("registry"')
   expect(source).toContain("createLiveRegionRefresher")
 })
+
+test("entry.ts wires case-insensitive Cmd/Ctrl+K shortcut and focuses input", () => {
+  const source = readFileSync(
+    resolve(import.meta.dir, "../../../../src/web/app/actions/public/entry.ts"),
+    "utf8",
+  )
+  expect(source).toContain('key.toLowerCase() === "k"')
+  expect(source).toContain('palette.querySelector("input")?.focus()')
+})

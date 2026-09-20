@@ -94,12 +94,16 @@ const triggerFlashToast = () => {
 
 if (typeof document !== "undefined") {
   document.addEventListener("keydown", (event) => {
-    if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
       event.preventDefault()
       const palette = document.getElementById("command-palette")
       if (palette instanceof HTMLDialogElement) {
-        if (palette.open) palette.close()
-        else palette.showModal()
+        if (palette.open) {
+          palette.close()
+        } else {
+          palette.showModal()
+          palette.querySelector("input")?.focus()
+        }
       }
     }
   })
