@@ -56,13 +56,21 @@ supplies request capabilities, including `loadProject` for `/p/:project` and
 shared rendering and styles. Hosting/authentication and GitHub-backed storage
 are deferred (task 09).
 
-## Adopting @lemol/ui
+## Adoption of @lemol/ui
 
-The web app is adopting `@lemol/ui` (M3). Key architectural patterns established in the render spike:
+The web app is built on `@lemol/ui` (`mini` design). Key architectural patterns and decisions:
 
-- **Node-returning components:** Pages and UI elements return Remix JSX nodes rather than HTML strings. The shell is composed using `@lemol/ui/mini/document` (`Document`) and `@lemol/ui/mini` (`AppShell`, `Nav`), with page content composed from `@lemol/ui/remix` components (`Heading`, `Stack`, `Text`, `Badge`, etc.).
+- **Node-returning components:** Pages and UI elements return Remix JSX nodes rather than HTML strings. The shell is composed using `@lemol/ui/mini/document` (`Document`) and `@lemol/ui/mini` (`AppShell`, `Nav`), with page content composed from `@lemol/ui/remix` components (`Heading`, `Stack`, `Row`, `Grid`, `Text`, `Badge`, `Field`, `Button`, `Dialog`).
+- **Theme and styles:** Hand-rolled `styles.css` is removed in favor of `miniTheme` + `ThemeStyle`. Any theme deviation must be justified and pinned in `test/web/theme.test.ts`.
+- **Dialogs & progressive enhancement:** Add task on the board, and Edit, Move, and Remove on the task page use native `<dialog>` modals powered by `@lemol/ui` `overlay()` and invoker commands (`command="show-modal"`, `commandfor="..."`). The Remove task dialog confirms destructive deletion, warns of open dependent tasks, and toggles between "Remove" and "Remove anyway". Every route keeps working without JavaScript: deep links (such as `:id/edit`, `:id/remove`) render full-page forms, and 422 validation errors re-render inline with error feedback.
+- **Toaster & flash messages:** Flash messages adopt `toast("flash-toast")` from `@lemol/ui/remix` in `Document`/`AppShell`, with runtime auto-dismiss via `--dismiss-toast` and a `<noscript>` status fallback for environments without JavaScript.
+- **CommandPalette:** Global navigation and command palette (`CommandPaletteInput`, `CommandPaletteList`, `CommandPaletteItem`) in `AppShell` with a `⌘K` / `Ctrl+K` keyboard shortcut and button trigger, featuring case-insensitive shortcut activation and automatic search input autofocus.
+- **LiveForm & filter bar:** The dashboard filter bar adopts `LiveForm` with `liveSubmit` from `@lemol/ui/remix`, submitting on filter control changes while retaining GET queries and standard form submission without JavaScript.
+- **Table & column sorting:** The projects page adopts `Table` and `SortableColumnHeader` from `@lemol/ui/remix` for sortable project listings across name, source, location, and status columns, alongside button actions for sync, rename, and remove.
 - **Live region accommodation:** `<main id="main">` in `AppShell` does not carry arbitrary data attributes. Instead, the page content inside `<main>` is wrapped in `<div data-live-region data-project={project} ...>`, which `entry.ts` locates via `querySelector("[data-live-region]")` and replaces upon live events with no upstream shell changes required.
 - **Nav badges:** Upstream `NavItem` in `@lemol/ui/mini` takes a string `label`. Badges on nav items (e.g. diagnostics count on Check) are represented in text (e.g. `Check (2)`) pending an upstream accommodation in `repos/ui` to allow `badge?: RemixNode` on `NavItem`.
 - **Dialog open on 422:** `DialogPanel` does not have an `open` prop, and native `<dialog open>` without JS is not in modal state. Forms with validation errors on 422 render inline / full-page with error feedback (matching the no-JS and deep-link flow), rather than attempting to force a reopened modal.
 - **Markdown embedding:** `@lemol/ui` has no markdown component. Markdown is parsed and sanitized via `markdownHtml` and embedded into the JSX tree using a wrapper element with `innerHTML={markdownHtml(text)}`.
+- **Client runtime & compat:** `entry.ts` imports `@lemol/ui/remix/compat` to polyfill dialog invokers across browsers below Baseline December 2025.
+
 

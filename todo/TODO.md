@@ -18,8 +18,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## M3 — @lemol/ui adoption
 
-- [ ] [33 - M3b: toasts, live filter, command palette, Table](./m3-lemol-ui-adoption/33-m3b-toasts-live-filter-command-palette-table.md)
-
 
 
 
