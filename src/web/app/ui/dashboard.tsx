@@ -9,10 +9,12 @@ import {
   Field,
   Heading,
   LinkButton,
+  LiveForm,
+  liveSubmit,
   Stack,
 } from "@lemol/ui/remix"
 import type { DateTime } from "effect"
-import type { Handle, RemixNode } from "remix/ui"
+import { attrs, type Handle, type RemixNode } from "remix/ui"
 import type { TaskView } from "../../../core/index.ts"
 import type { Overview, OverviewEntry, OverviewTask, ProjectInfo } from "../../../hub/index.ts"
 import { type DashboardQuery, dashboardHref } from "../actions/dashboard/query.ts"
@@ -168,8 +170,14 @@ const flatRow = (task: OverviewTask): RemixNode => (
 
 const filterBar = (options: DashboardOptions): RemixNode => {
   const { query, projects, sources } = options
+  const submitAttr = liveSubmit("dashboard-filters")
   return (
-    <form class="filters" method="get" action={routes.dashboard.href()}>
+    <LiveForm
+      mix={attrs({ class: "filters" })}
+      id="dashboard-filters"
+      method="get"
+      action={routes.dashboard.href()}
+    >
       <fieldset>
         <legend>Projects</legend>
         {projects.map((info) => (
@@ -179,6 +187,7 @@ const filterBar = (options: DashboardOptions): RemixNode => {
             value={info.name}
             checked={query.projects.includes(info.name)}
             label={info.name}
+            mix={submitAttr}
           />
         ))}
       </fieldset>
@@ -191,12 +200,13 @@ const filterBar = (options: DashboardOptions): RemixNode => {
             value={kind}
             checked={query.sources.includes(kind)}
             label={kind}
+            mix={submitAttr}
           />
         ))}
       </fieldset>
-      <Field label="Tag" name="tag" value={query.tags.join(" ")} />
-      <Field label="Assignee" name="assignee" value={query.assignee ?? ""} />
-      <Field control="select" label="State" name="state">
+      <Field label="Tag" name="tag" value={query.tags.join(" ")} mix={submitAttr} />
+      <Field label="Assignee" name="assignee" value={query.assignee ?? ""} mix={submitAttr} />
+      <Field control="select" label="State" name="state" mix={submitAttr}>
         <option value="" {...((query.state ?? "") === "" ? { selected: true } : {})}>
           Any state
         </option>
@@ -207,7 +217,7 @@ const filterBar = (options: DashboardOptions): RemixNode => {
           blocked
         </option>
       </Field>
-      <Field control="select" label="View" name="view">
+      <Field control="select" label="View" name="view" mix={submitAttr}>
         <option value="projects" {...(query.view === "projects" ? { selected: true } : {})}>
           By project
         </option>
@@ -216,7 +226,7 @@ const filterBar = (options: DashboardOptions): RemixNode => {
         </option>
       </Field>
       <Button type="submit">Filter</Button>
-    </form>
+    </LiveForm>
   )
 }
 

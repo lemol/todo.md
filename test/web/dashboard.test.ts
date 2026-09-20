@@ -257,4 +257,12 @@ describe("dashboard", () => {
     expect(html).toContain('data-live-events="changed synced registry"')
     expect(html).not.toContain("data-project=")
   })
+
+  test("renders LiveForm filter bar with liveSubmit wiring", async () => {
+    const app = await open()
+    const html = await (await fetchApp(app.router, "/")).text()
+    expect(html).toContain('id="dashboard-filters"')
+    expect(html).toContain('command="--live-submit"')
+    expect(html).toContain('commandfor="dashboard-filters"')
+  })
 })

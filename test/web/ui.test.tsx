@@ -3,10 +3,12 @@
 import { afterEach, expect, test } from "bun:test"
 import { DateTime } from "effect"
 import { renderToString } from "remix/ui/server"
+import { parseDashboardQuery } from "../../src/web/app/actions/dashboard/query.ts"
 import { localBack } from "../../src/web/app/actions/forms.ts"
 import { statusFor } from "../../src/web/app/actions/respond.tsx"
 import { createAssets } from "../../src/web/app/assets.ts"
 import { routes } from "../../src/web/app/routes.ts"
+import { DashboardPage } from "../../src/web/app/ui/dashboard.tsx"
 import { Document, ErrorPage } from "../../src/web/app/ui/document.tsx"
 import { markdownHtml } from "../../src/web/app/ui/markdown.tsx"
 import { CheckPage } from "../../src/web/app/ui/secondary.tsx"
@@ -254,4 +256,29 @@ test("renders Command Palette trigger and dialog in Document", async () => {
   expect(html).toContain('data-palette-label="Projects"')
   expect(html).toContain('data-palette-label="Board (acme)"')
   expect(html).toContain('data-palette-label="Switch to project: other"')
+})
+
+test("renders LiveForm filter bar with liveSubmit wiring in DashboardPage", async () => {
+  const html = await renderToString(
+    <DashboardPage
+      overview={{ projects: [], tasks: [] }}
+      projects={[
+        {
+          name: "acme",
+          source: "fs",
+          location: "/tmp/acme",
+          registered: true,
+          syncable: false,
+          status: { result: "ok" },
+        },
+      ]}
+      sources={["fs"]}
+      query={parseDashboardQuery(new URL("http://localhost/"))}
+      now={DateTime.makeUnsafe("2026-09-16T12:00:00.000Z")}
+      syncable={false}
+    />,
+  )
+  expect(html).toContain('id="dashboard-filters"')
+  expect(html).toContain('command="--live-submit"')
+  expect(html).toContain('commandfor="dashboard-filters"')
 })
