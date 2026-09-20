@@ -127,15 +127,18 @@ test("renders the shared document shell with mini theme and shell", async () => 
   expect(html).toContain(`data-project="${project}"`)
 })
 
-test("renders flash banner and reload notice in the shell", async () => {
+test("renders flash toast and reload notice in the shell", async () => {
   const html = await renderDocument({
     title: "Acme",
     content: "<p>body</p>",
     flash: { message: "Saved successfully", tone: "info" },
   })
   expect(html).toContain("Saved successfully")
-  expect(html).toContain('class="flash info')
+  expect(html).toContain('id="flash-toast"')
+  expect(html).toContain('popover="manual"')
   expect(html).toContain('role="status"')
+  expect(html).toContain("<noscript>")
+  expect(html).toContain('class="flash info"')
   expect(html).toContain("data-reload-notice")
 })
 

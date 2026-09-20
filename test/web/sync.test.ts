@@ -102,7 +102,7 @@ describe("sync", () => {
       )
     ).text()
     expect(html).toContain("auth failed")
-    expect(html).toContain("flash error")
+    expect(html).toContain('id="flash-toast"')
     expect(response.status).toBe(303)
   })
 

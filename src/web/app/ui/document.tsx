@@ -1,7 +1,7 @@
 /** @jsxImportSource remix/ui */
 import { AppShell, ErrorState, Nav, type NavItem } from "@lemol/ui/mini"
 import { Document as MiniDocument } from "@lemol/ui/mini/document"
-import { Badge, Button, LinkButton } from "@lemol/ui/remix"
+import { Badge, Button, LinkButton, type ToastTone, toast } from "@lemol/ui/remix"
 import type { ScriptEntry } from "remix/assets"
 import { css, type Handle, type RemixNode } from "remix/ui"
 import { routes } from "../routes.ts"
@@ -69,37 +69,7 @@ const switcherSelectStyle = css({
   fontSize: "var(--fs-sm)",
 })
 
-const flashBaseStyle = css({
-  padding: "var(--sp-3) var(--sp-4)",
-  borderRadius: "var(--r-sm)",
-  fontSize: "var(--fs-sm)",
-  lineHeight: "var(--lh-base)",
-  marginBottom: "var(--sp-4)",
-})
-
-const flashToneStyles = {
-  info: css({
-    background: "var(--info-subtle)",
-    color: "var(--info)",
-    borderWidth: "1px",
-    borderStyle: "solid",
-    borderColor: "var(--info-border)",
-  }),
-  warning: css({
-    background: "var(--warning-subtle)",
-    color: "var(--warning)",
-    borderWidth: "1px",
-    borderStyle: "solid",
-    borderColor: "var(--warning-border)",
-  }),
-  error: css({
-    background: "var(--danger-subtle)",
-    color: "var(--danger)",
-    borderWidth: "1px",
-    borderStyle: "solid",
-    borderColor: "var(--danger-border)",
-  }),
-}
+const flashToast = toast("flash-toast")
 
 const reloadNoticeStyle = css({
   padding: "var(--sp-3) var(--sp-4)",
@@ -201,15 +171,23 @@ export function Document(handle: Handle<DocumentOptions>) {
         </form>
       )
 
+    const mapFlashTone = (tone: "info" | "warning" | "error"): ToastTone => {
+      if (tone === "error") return "danger"
+      return tone
+    }
+
     const flash =
       options.flash === undefined ? null : (
-        <div
-          class={`flash ${options.flash.tone}`}
-          mix={[flashBaseStyle, flashToneStyles[options.flash.tone]]}
-          role="status"
-        >
-          {options.flash.message}
-        </div>
+        <>
+          <flashToast.Toast tone={mapFlashTone(options.flash.tone)}>
+            {options.flash.message}
+          </flashToast.Toast>
+          <noscript>
+            <div class={`flash ${options.flash.tone}`} role="status">
+              {options.flash.message}
+            </div>
+          </noscript>
+        </>
       )
 
     const reloadNotice = (

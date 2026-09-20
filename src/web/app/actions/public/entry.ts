@@ -1,4 +1,5 @@
 import "@lemol/ui/remix/compat"
+import "@lemol/ui/remix/runtime"
 import { run } from "remix/ui"
 import { routes } from "../../routes.ts"
 import {
@@ -79,6 +80,18 @@ export const startLiveRefresh = () => {
   })
 }
 
+const triggerFlashToast = () => {
+  const toastEl = document.getElementById("flash-toast")
+  if (toastEl) {
+    const invocation = new Event("command", { bubbles: false, cancelable: true, composed: true })
+    Object.defineProperties(invocation, {
+      command: { enumerable: true, value: "--dismiss-toast" },
+      source: { enumerable: true, value: toastEl },
+    })
+    toastEl.dispatchEvent(invocation)
+  }
+}
+
 if (typeof document !== "undefined") {
   const app = run({
     async loadModule(moduleUrl, exportName) {
@@ -89,5 +102,8 @@ if (typeof document !== "undefined") {
       return component
     },
   })
-  void app.ready().then(startLiveRefresh)
+  void app.ready().then(() => {
+    startLiveRefresh()
+    triggerFlashToast()
+  })
 }
