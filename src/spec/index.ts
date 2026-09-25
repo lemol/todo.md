@@ -1,6 +1,7 @@
 export * from "./diagnostic.ts"
 export * from "./errors.ts"
 export * from "./graph.ts"
+export * from "./lock.ts"
 export * as MemoryTodoStore from "./MemoryTodoStore.ts"
 export * from "./model.ts"
 export * from "./TodoStore.ts"

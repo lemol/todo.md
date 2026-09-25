@@ -38,9 +38,10 @@ export class TodoStore extends Context.Service<TodoStore, {
 ## Capabilities
 
 A store declares which optional operations it supports (spec §1.5):
-`groups`, `reorder`, `renameGroup`, `comments`, `promote`, `cancel`, `add` and
-`remove`. `core` fails early with `Unsupported` for the rest, before the store
-is called, and frontends hide what a store can't do.
+`groups`, `reorder`, `renameGroup`, `comments`, `promote`, `cancel`, `add`,
+`remove`, `edit` and `commentAuthor`. `core` fails early with `Unsupported`
+for the operations among them, before the store is called, and frontends hide
+what a store can't do.
 
 **`promote` is a capability, not an `fs` extra.** Promotion moves a task's
 detail into its own document (spec §2.9), which is a property of a store's
@@ -60,6 +61,17 @@ through `given` rather than calling `add`, and a store without `add` passes a
 `seed` to `runConformance` that puts tasks in some other way. Cases that
 exercise `add` or `remove` themselves declare `requires: ["add"]` or
 `requires: ["remove"]` and are skipped as any other capability would be.
+
+**`edit` and `commentAuthor` narrow an operation rather than remove one.**
+`update`, `complete` and `reopen` are always required, but a store over a
+backend it does not own may only be able to write part of a task: Jira keeps
+the description, assignee and links itself. Without `edit`, `update` changes
+only `title` and `tags`, and a patch naming anything else fails with
+`ValidationError` before anything is sent. Without `commentAuthor`, the
+backend signs a comment with its own user, and `input.author` is validated
+and then dropped. The conformance cases that set other fields require `edit`;
+one more case holds a store without it to refusing them; the comment case
+checks the author only when the store records it.
 
 ## Reference implementation and conformance
 

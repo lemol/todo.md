@@ -112,6 +112,10 @@ const addForm = (options: ProjectsOptions): RemixNode => {
     source: undefined,
     branch: "",
     list: "",
+    email: "",
+    tokenEnv: "",
+    tokenCommand: "",
+    jql: "",
     issues: [],
   }
   const issues = options.issues ?? []
@@ -134,7 +138,7 @@ const addForm = (options: ProjectsOptions): RemixNode => {
           label="Target"
           name="target"
           value={values.target}
-          placeholder="~/labs/acme or https://github.com/owner/repo.git"
+          placeholder="~/labs/acme, https://github.com/owner/repo.git or https://acme.atlassian.net"
           required
         />
         <Field label="Name" name="name" value={values.name} placeholder="optional" />
@@ -162,6 +166,33 @@ const addForm = (options: ProjectsOptions): RemixNode => {
             name="list"
             value={values.list}
             placeholder="todo/ or the repository root"
+          />
+        </fieldset>
+        <fieldset class="jira-only">
+          <legend>jira only</legend>
+          <Field
+            label="Email"
+            name="email"
+            value={values.email}
+            placeholder="the account the API token belongs to"
+          />
+          <Field
+            label="Token variable"
+            name="token_env"
+            value={values.tokenEnv}
+            placeholder="JIRA_TOKEN, in the server's environment"
+          />
+          <Field
+            label="Token command"
+            name="token_command"
+            value={values.tokenCommand}
+            placeholder="or a command printing the token"
+          />
+          <Field
+            label="JQL"
+            name="jql"
+            value={values.jql}
+            placeholder="assigned to me and not done"
           />
         </fieldset>
         <Button tone="primary" type="submit">

@@ -105,6 +105,8 @@ export const jiraSourceWith = (
         dir,
         site: project.config.site,
         client,
+        doneTransition: project.config.done_transition,
+        reopenTransition: project.config.reopen_transition,
       })
     })
 
@@ -143,13 +145,14 @@ export const jiraSourceWith = (
       const client = yield* clientFor(project.config)
       const queries = queriesOf(project.config)
       const site = project.config.site
+      const startedAt = yield* DateTime.now
       const { open, done } = yield* Effect.gen(function* () {
         const open = yield* fetchAll(client, queries.open, site)
         const done = yield* fetchAll(client, queries.done, site)
         return { open, done }
       }).pipe(Effect.mapError((error) => asSyncError(project.name, error)))
       const syncedAt = yield* DateTime.now
-      yield* writeMirror(dir, { version: 1, syncedAt, open, done }).pipe(
+      yield* writeMirror(dir, { version: 1, syncedAt, open, done }, startedAt).pipe(
         Effect.mapError(
           (error) =>
             new SyncError({ project: project.name, reason: "remote", message: error.message }),

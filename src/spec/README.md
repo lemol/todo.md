@@ -13,10 +13,11 @@ module depends on.
 | Model schemas       | `TaskId`, `Task`, `Group`, `TodoList`, `Comment`, `TaskInput`, `TaskPatch`, `Placement` (Effect `Schema`) |
 | Errors              | `TaskNotFound`, `GroupNotFound`, `InvalidTransition`, `ValidationError`, `Unsupported`, `StoreError` (`Schema.TaggedError`) |
 | `Diagnostic`        | Non-fatal issue found while reading a list (spec §1.6).                                 |
-| `Capabilities`      | What a store supports: `groups`, `reorder`, `renameGroup`, `comments`, `promote`, `cancel`, `add`, `remove` (spec §1.5). |
+| `Capabilities`      | What a store supports: `groups`, `reorder`, `renameGroup`, `comments`, `promote`, `cancel`, `add`, `remove`, `edit`, `commentAuthor` (spec §1.5). |
 | `TodoStore`         | The adapter contract: a `Context.Service` with one method per spec operation.           |
 | `MemoryTodoStore`   | The in-memory reference implementation of `TodoStore`.                                  |
 | Helpers             | `findCycle`, `validate` (schema decode → `ValidationError`), `ensureAcyclic`, `unique`, for adapters and `core`. |
+| `makeLock(root, options?)`, `Lock`, `defaultLockOptions`, `lockFile` | A directory's advisory lock: `<root>/.todo.lock`, created exclusively. `makeLock` returns a `Lock`, a function that runs an effect while holding it and fails with `StoreError` after `timeout`. It lives here so every adapter can take it: `fs` (and so the hub and git, through it) and `jira`, which may not import `fs`. |
 
 The `@lemol/todo-md/spec/testing` entry point is for tests only:
 

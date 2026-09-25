@@ -174,6 +174,8 @@ ordering). An implementation declares a set of capabilities:
 | `cancel`      | `cancel` fails with `Unsupported`; no task has outcome `cancelled`.                                   |
 | `add`         | `add` fails with `Unsupported`. A store that mirrors work it does not own declares it absent.          |
 | `remove`      | `remove` fails with `Unsupported`.                                                                    |
+| `edit`        | `update` changes only `title` and `tags`; a patch naming any other field fails with `ValidationError`, changing nothing. A store over a backend it cannot fully write declares it absent. |
+| `commentAuthor` | `comment` records the backend's own user as the author; `input.author` is still validated, then ignored. |
 
 `load`, `get`, `listDone`, `update`, `complete` and `reopen` are always
 required. Tools SHOULD hide unsupported operations rather than offer them and

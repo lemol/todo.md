@@ -1,7 +1,9 @@
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
+import { FetchHttpClient } from "effect/unstable/http"
 import { GitSource } from "../git/index.ts"
 import { fsSource, Hub } from "../hub/index.ts"
+import { JiraSource } from "../jira/index.ts"
 import type { HubRuntime } from "./app/middleware/project.tsx"
 import { createAppRouter } from "./app/router.ts"
 
@@ -25,12 +27,17 @@ export const startServer = async (options: ServerOptions) => {
   }
   const runtime = ManagedRuntime.make(
     Layer.unwrap(
-      Effect.map(GitSource.make({ env: options.env }), (gitSource) =>
-        Hub.layer({
-          home: options.home,
-          userHome: options.userHome,
-          sources: [fsSource, gitSource],
-        }),
+      Effect.map(
+        Effect.all([
+          GitSource.make({ env: options.env }),
+          JiraSource.make({ env: options.env }).pipe(Effect.provide(FetchHttpClient.layer)),
+        ]),
+        ([gitSource, jiraSource]) =>
+          Hub.layer({
+            home: options.home,
+            userHome: options.userHome,
+            sources: [fsSource, gitSource, jiraSource],
+          }),
       ),
     ).pipe(Layer.provide(BunServices.layer)),
   )

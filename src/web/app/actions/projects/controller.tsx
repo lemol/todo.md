@@ -30,7 +30,7 @@ const renderProjects = async (
   const url = new URL(context.request.url)
   const sort = url.searchParams.get("sort")
   const dir = url.searchParams.get("dir") === "desc" ? "desc" : "asc"
-  let sortedProjects = [...projects]
+  const sortedProjects = [...projects]
   if (sort) {
     const statusString = (p: ProjectInfo) => (p.syncable ? statusText(p.status, now) : "—")
     sortedProjects.sort((a, b) => {
@@ -109,6 +109,10 @@ export const createProjectsController = (options: {
               ...(values.name === "" ? {} : { name: values.name }),
               ...(values.branch === "" ? {} : { branch: values.branch }),
               ...(values.list === "" ? {} : { list: values.list }),
+              ...(values.email === "" ? {} : { email: values.email }),
+              ...(values.tokenEnv === "" ? {} : { tokenEnv: values.tokenEnv }),
+              ...(values.tokenCommand === "" ? {} : { tokenCommand: values.tokenCommand }),
+              ...(values.jql === "" ? {} : { jql: values.jql }),
             },
             (cwd, relative) => {
               if (relative.startsWith("/")) return relative
@@ -116,16 +120,19 @@ export const createProjectsController = (options: {
               return `${base}/${relative}`
             },
           )
-          if (input.source !== "git" && (values.branch !== "" || values.list !== "")) {
-            return await renderProjects(
-              options.runtime,
-              web,
-              {
-                values,
-                issues: [`Branch and list are for git projects; this is a ${input.source} project`],
-              },
-              422,
+          const misplaced = [
+            ...(input.source !== "git" && (values.branch !== "" || values.list !== "")
+              ? [`Branch and list are for git projects; this is a ${input.source} project`]
+              : []),
+            ...(input.source !== "jira" &&
+            [values.email, values.tokenEnv, values.tokenCommand, values.jql].some(
+              (field) => field !== "",
             )
+              ? [`Email, token and JQL are for jira projects; this is a ${input.source} project`]
+              : []),
+          ]
+          if (misplaced.length > 0) {
+            return await renderProjects(options.runtime, web, { values, issues: misplaced }, 422)
           }
           const result = await options.runtime.runPromise(
             Effect.result(Effect.flatMap(Hub, (hub) => hub.add(input))),

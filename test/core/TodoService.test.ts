@@ -211,6 +211,8 @@ const limited = Layer.unwrap(
             cancel: false,
             add: false,
             remove: false,
+            edit: true,
+            commentAuthor: true,
           },
           add: refuse("add"),
           remove: refuse("remove"),

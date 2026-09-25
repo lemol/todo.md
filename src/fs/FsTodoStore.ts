@@ -36,6 +36,8 @@ import {
   GroupNotFound,
   InvalidTransition,
   Label,
+  type LockOptions,
+  makeLock,
   Placement,
   type StoreError,
   type Task,
@@ -50,7 +52,6 @@ import {
   validate,
 } from "../spec/index.ts"
 import { type Files, makeFiles } from "./files.ts"
-import { type LockOptions, makeLock } from "./lock.ts"
 import { type NormalizeReport, normalizeList } from "./normalization.ts"
 import {
   doneTask,

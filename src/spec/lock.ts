@@ -1,5 +1,5 @@
 import { Clock, Duration, Effect, FileSystem, Option, Path, type PlatformError } from "effect"
-import { StoreError } from "../spec/index.ts"
+import { StoreError } from "./errors.ts"
 
 export interface LockOptions {
   /** How long to wait for another process's lock before failing. */
@@ -29,7 +29,7 @@ const newToken = (): string =>
     : Math.random().toString(36).slice(2)
 
 /**
- * The list's advisory lock: `<root>/.todo.lock`, created exclusively, so
+ * A directory's advisory lock: `<root>/.todo.lock`, created exclusively, so
  * concurrent processes (typically agents) cannot lose each other's writes.
  * The lock is released however the locked effect ends.
  */
@@ -42,7 +42,7 @@ export const makeLock = (
     const fs = yield* FileSystem.FileSystem
     const lock = (yield* Path.Path).join(root, lockFile)
     const failure = (error: PlatformError.PlatformError) =>
-      new StoreError({ message: `could not lock the list: ${error.message}`, cause: error })
+      new StoreError({ message: `could not lock ${root}: ${error.message}`, cause: error })
 
     const acquire = Effect.gen(function* () {
       const deadline = (yield* Clock.currentTimeMillis) + Duration.toMillis(opts.timeout)
@@ -64,7 +64,7 @@ export const makeLock = (
         }
         if (now >= deadline) {
           return yield* new StoreError({
-            message: `the list is locked by another process (${lock})`,
+            message: `${root} is locked by another process (${lock})`,
           })
         }
         yield* Effect.sleep(opts.retryEvery)

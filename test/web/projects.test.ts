@@ -7,7 +7,9 @@ import { Effect } from "effect"
 import { gitSourceWith, makeGit } from "../../src/git/index.ts"
 import { fsSource, SourceError } from "../../src/hub/index.ts"
 import { memorySource } from "../../src/hub/testing.ts"
+import { JiraSource } from "../../src/jira/index.ts"
 import { defaultBranch, remoteIn, subjects } from "../git/helpers.ts"
+import { anIssue, makeFakeJira } from "../jira/fake.ts"
 import { makeRouter } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -147,6 +149,66 @@ describe("projects page", () => {
     })
     expect(refused.status).toBe(422)
     expect(await refused.text()).toContain("Branch and list are for git projects")
+  })
+
+  test("adds a jira project from its site and credentials, and the dashboard lists it", async () => {
+    const { jira, layer } = makeFakeJira()
+    jira.put(anIssue("PROJ-1", { summary: "Rework auth" }))
+    const source = await Effect.runPromise(
+      JiraSource.make({ env: { JIRA_TOKEN: "s3cret" } }).pipe(
+        Effect.provide(layer),
+        Effect.provide(BunServices.layer),
+      ),
+    )
+    const app = await open({ extraSources: [source] })
+    expect(await (await fetchApp(app.router, "/projects")).text()).toContain('name="token_env"')
+
+    const added = await postApp(app.router, "/projects", {
+      target: jira.site,
+      name: "work",
+      source: "jira",
+      email: "tester@acme.test",
+      token_env: "JIRA_TOKEN",
+      jql: "project = PROJ",
+    })
+    expect(added.status).toBe(303)
+    expect(added.headers.get("Location")).toBe("/p/work")
+    expect(jira.searches[0]).toStartWith("project = PROJ")
+
+    expect(await (await fetchApp(app.router, "/p/work")).text()).toContain("Rework auth")
+    const dashboard = await (await fetchApp(app.router, "/")).text()
+    expect(dashboard).toContain("work")
+    expect(dashboard).toContain("Rework auth")
+    expect(await (await fetchApp(app.router, "/projects")).text()).toContain(jira.site)
+
+    // Only the title and tags are Jira's to change from here.
+    const form = await (await fetchApp(app.router, "/p/work/tasks/PROJ-1/edit")).text()
+    expect(form).toContain('name="tags"')
+    expect(form).not.toContain('name="description"')
+    expect(form).not.toContain('name="assignee"')
+    const saved = await postApp(app.router, "/p/work/tasks/PROJ-1", {
+      title: "Rework sessions",
+      tags: "api backend",
+    })
+    expect(saved.status).toBe(303)
+    expect(jira.issue("PROJ-1")?.fields).toMatchObject({
+      summary: "Rework sessions",
+      labels: ["api", "backend"],
+    })
+    expect(await (await fetchApp(app.router, "/p/work")).text()).toContain("Rework sessions")
+  })
+
+  test("refuses jira's fields on a project of another source", async () => {
+    const app = await open({ extraSources: [fsSource] })
+    const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+    writeFileSync(join(dir, "TODO.md"), "# Local\n")
+    const refused = await postApp(app.router, "/projects", {
+      target: dir,
+      name: "local",
+      email: "tester@acme.test",
+    })
+    expect(refused.status).toBe(422)
+    expect(await refused.text()).toContain("Email, token and JQL are for jira projects")
   })
 
   test("a duplicate name re-renders the form with 422", async () => {

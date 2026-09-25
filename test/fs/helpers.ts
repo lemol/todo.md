@@ -2,7 +2,7 @@ import { BunServices } from "@effect/platform-bun"
 import { Context, Effect, FileSystem, Layer, Path } from "effect"
 import * as FsTodoStore from "../../src/fs/FsTodoStore.ts"
 import { type Files, makeFiles } from "../../src/fs/files.ts"
-import type { LockOptions } from "../../src/fs/lock.ts"
+import type { LockOptions } from "../../src/spec/lock.ts"
 
 export const md = (...lines: string[]) => `${lines.join("\n")}\n`
 

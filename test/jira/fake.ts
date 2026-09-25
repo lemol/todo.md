@@ -5,9 +5,13 @@
  * from Atlassian's own OpenAPI document, so the suite never touches a network.
  * Nothing here interprets JQL: a query is matched on whether it asks for done
  * issues, which is the only distinction the source makes.
+ *
+ * Writes follow a three-status workflow (To Do, In Progress, Done) whose
+ * transitions a test can replace per status. Timestamps come from `Clock`, so
+ * a test's `TestClock` decides them.
  */
 
-import { Effect, Layer } from "effect"
+import { Clock, DateTime, Effect, Layer } from "effect"
 import { HttpClient, HttpClientError, HttpClientResponse } from "effect/unstable/http"
 
 /** A raw issue payload, as Jira sends it. */
@@ -16,6 +20,44 @@ export interface RawIssue {
   readonly key: string
   readonly fields: Record<string, unknown>
 }
+
+/** A status as Jira sends it, with its category. */
+export interface RawStatus {
+  readonly name: string
+  readonly statusCategory: { readonly key: string; readonly name: string }
+}
+
+export const statuses = {
+  toDo: { name: "To Do", statusCategory: { key: "new", name: "To Do" } },
+  inProgress: {
+    name: "In Progress",
+    statusCategory: { key: "indeterminate", name: "In Progress" },
+  },
+  done: { name: "Done", statusCategory: { key: "done", name: "Done" } },
+} satisfies Record<string, RawStatus>
+
+/** A workflow move, as `GET /issue/{key}/transitions` lists it. */
+export interface RawTransition {
+  readonly id: string
+  readonly name: string
+  readonly to: RawStatus
+}
+
+/** The transitions each status offers until a test says otherwise. */
+const defaultWorkflow: Record<string, ReadonlyArray<RawTransition>> = {
+  "To Do": [
+    { id: "21", name: "Start", to: statuses.inProgress },
+    { id: "31", name: "Done", to: statuses.done },
+  ],
+  "In Progress": [
+    { id: "11", name: "Stop", to: statuses.toDo },
+    { id: "31", name: "Done", to: statuses.done },
+  ],
+  Done: [{ id: "41", name: "Reopen", to: statuses.toDo }],
+}
+
+/** The user the fake's credentials belong to; the author of every comment added. */
+export const myself = { accountId: "5b10a2", displayName: "Test User" }
 
 /** How the fake should misbehave, instead of answering. */
 export type Failure = "auth" | "forbidden" | "rateLimited" | "network" | "serverError"
@@ -27,8 +69,16 @@ export interface FakeJira {
   remove(key: string): void
   /** Answers every later request with this failure; `undefined` restores it. */
   fail(failure: Failure | undefined): void
-  /** Every request the client made, in order. */
-  readonly requests: ReadonlyArray<{ readonly method: string; readonly url: string }>
+  /** The transitions an issue in `status` is offered from now on. */
+  workflow(status: string, transitions: ReadonlyArray<RawTransition>): void
+  /** An issue's current raw payload. */
+  issue(key: string): RawIssue | undefined
+  /** Every request the client made, in order, with its JSON body when it had one. */
+  readonly requests: ReadonlyArray<{
+    readonly method: string
+    readonly url: string
+    readonly body?: unknown
+  }>
   /** The `jql` of every search, in order. */
   readonly searches: ReadonlyArray<string>
   /** The `Authorization` header of the last request. */
@@ -53,10 +103,7 @@ export const anIssue = (
   key,
   fields: {
     summary: key,
-    status:
-      options.done === true
-        ? { name: "Done", statusCategory: { key: "done", name: "Done" } }
-        : { name: "To Do", statusCategory: { key: "new", name: "To Do" } },
+    status: options.done === true ? statuses.done : statuses.toDo,
     project: { key: key.split("-")[0] ?? key },
     ...fields,
   },
@@ -105,7 +152,9 @@ export const makeFakeJira = (
   const pageSize = options.pageSize ?? 50
   const commentPageSize = options.commentPageSize ?? 20
   const issues = new Map<string, RawIssue>()
-  const requests: Array<{ method: string; url: string }> = []
+  const requests: Array<{ method: string; url: string; body?: unknown }> = []
+  const workflow = new Map(Object.entries(defaultWorkflow))
+  let nextComment = 1000
   const searches: Array<string> = []
   let failure: Failure | undefined
   let lastAuthorization: string | undefined
@@ -121,6 +170,10 @@ export const makeFakeJira = (
     fail: (next) => {
       failure = next
     },
+    workflow: (status, transitions) => {
+      workflow.set(status, transitions)
+    },
+    issue: (key) => issues.get(key),
     get requests() {
       return requests
     },
@@ -135,7 +188,15 @@ export const makeFakeJira = (
   const layer = Layer.succeed(
     HttpClient.HttpClient,
     HttpClient.make((request, url) => {
-      requests.push({ method: request.method, url: url.toString() })
+      const body =
+        request.body._tag === "Uint8Array"
+          ? JSON.parse(new TextDecoder().decode(request.body.body))
+          : undefined
+      requests.push({
+        method: request.method,
+        url: url.toString(),
+        ...(body === undefined ? {} : { body }),
+      })
       lastAuthorization = request.headers.authorization
 
       if (failure === "network") {
@@ -148,11 +209,11 @@ export const makeFakeJira = (
           }),
         )
       }
-      const answer = (status: number, body: unknown, headers?: Record<string, string>) =>
+      const answer = (status: number, payload: unknown, headers?: Record<string, string>) =>
         Effect.succeed(
           HttpClientResponse.fromWeb(
             request,
-            new Response(JSON.stringify(body), {
+            new Response(payload === undefined ? null : JSON.stringify(payload), {
               status,
               headers: { "content-type": "application/json", ...headers },
             }),
@@ -173,7 +234,7 @@ export const makeFakeJira = (
       const fields = (url.searchParams.get("fields") ?? "").split(",").filter((one) => one !== "")
 
       if (path === "/myself") {
-        return answer(200, { accountId: "5b10a2", displayName: "Test User" })
+        return answer(200, myself)
       }
 
       if (path === "/search/jql") {
@@ -189,14 +250,68 @@ export const makeFakeJira = (
         })
       }
 
-      const one = /^\/issue\/([^/]+)(\/comment)?$/.exec(path)
+      const one = /^\/issue\/([^/]+)(\/comment|\/transitions)?$/.exec(path)
       if (one !== null) {
-        const issue = issues.get(decodeURIComponent(one[1] ?? ""))
+        const key = decodeURIComponent(one[1] ?? "")
+        const issue = issues.get(key)
         if (issue === undefined) {
           return answer(404, {
             errorMessages: ["Issue does not exist or you do not have permission to see it."],
             errors: {},
           })
+        }
+        const status = (issue.fields.status as RawStatus | undefined)?.name ?? ""
+        const offered = workflow.get(status) ?? []
+        const edited = (changes: Record<string, unknown>) =>
+          issues.set(key, { ...issue, fields: { ...issue.fields, ...changes } })
+
+        if (one[2] === "/transitions" && request.method === "GET") {
+          return answer(200, { transitions: offered })
+        }
+        if (one[2] === "/transitions") {
+          const id = (body as { transition?: { id?: string } } | undefined)?.transition?.id
+          const chosen = offered.find((transition) => transition.id === id)
+          if (chosen === undefined) {
+            return answer(400, {
+              errorMessages: [`Transition id '${id}' is not valid for this issue.`],
+              errors: {},
+            })
+          }
+          return Effect.flatMap(DateTime.now, (now) => {
+            edited({
+              status: chosen.to,
+              resolutiondate:
+                chosen.to.statusCategory.key === "done" ? DateTime.formatIso(now) : null,
+            })
+            return answer(204, undefined)
+          })
+        }
+        if (one[2] === "/comment" && request.method === "POST") {
+          return Effect.flatMap(Clock.currentTimeMillis, (millis) => {
+            const created = {
+              id: String(nextComment++),
+              author: myself,
+              created: new Date(millis).toISOString(),
+              body: (body as { body?: unknown } | undefined)?.body,
+            }
+            const existing = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []
+            edited({ comment: [...existing, created] })
+            return answer(201, created)
+          })
+        }
+        if (one[2] === undefined && request.method === "PUT") {
+          const changes = (body as { fields?: Record<string, unknown> } | undefined)?.fields ?? {}
+          const unknown = Object.keys(changes).filter(
+            (name) => !["summary", "labels"].includes(name),
+          )
+          if (unknown.length > 0) {
+            return answer(400, {
+              errorMessages: [],
+              errors: Object.fromEntries(unknown.map((name) => [name, "not editable here"])),
+            })
+          }
+          edited(changes)
+          return answer(204, undefined)
         }
         if (one[2] === undefined) return answer(200, project(issue, fields, commentPageSize))
         const comments = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []

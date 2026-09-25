@@ -29,6 +29,10 @@ export const Capabilities = Schema.Struct({
   cancel: Schema.Boolean,
   add: Schema.Boolean,
   remove: Schema.Boolean,
+  /** `update` may change every field, not only `title` and `tags`. */
+  edit: Schema.Boolean,
+  /** `comment` records `input.author`, rather than the backend's own user. */
+  commentAuthor: Schema.Boolean,
 })
 export type Capabilities = typeof Capabilities.Type
 
@@ -41,6 +45,8 @@ export const allCapabilities: Capabilities = {
   cancel: true,
   add: true,
   remove: true,
+  edit: true,
+  commentAuthor: true,
 }
 
 /**

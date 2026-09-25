@@ -252,6 +252,7 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
           project={project}
           task={task}
           values={valuesOf(task)}
+          edit={capabilities.edit}
           issues={[]}
           close={<EditTask.Close tone="ghost">Cancel</EditTask.Close>}
         />
@@ -449,13 +450,15 @@ export interface EditTaskFormProps {
   readonly project: string
   readonly task: Pick<Task, "id">
   readonly values: EditValues
+  /** The store's `edit` capability: without it only the title and tags are offered. */
+  readonly edit: boolean
   readonly issues?: ReadonlyArray<string> | undefined
   readonly close?: RemixNode | undefined
 }
 
 export function EditTaskForm(handle: Handle<EditTaskFormProps>) {
   return () => {
-    const { project, task, values, issues = [], close } = handle.props
+    const { project, task, values, edit, issues = [], close } = handle.props
     return (
       <>
         {issueList(issues)}
@@ -465,15 +468,21 @@ export function EditTaskForm(handle: Handle<EditTaskFormProps>) {
           action={routes.project.tasks.update.href({ project, id: task.id })}
         >
           <Field label="Title" name="title" value={values.title} required />
-          <Field
-            control="textarea"
-            label="Description"
-            name="description"
-            value={values.description}
-          />
+          {edit ? (
+            <Field
+              control="textarea"
+              label="Description"
+              name="description"
+              value={values.description}
+            />
+          ) : null}
           <Field label="Tags" name="tags" value={values.tags} />
-          <Field label="Assignee" name="assignee" value={values.assignee} />
-          <Field label="Depends on" name="dependsOn" value={values.dependsOn} />
+          {edit ? (
+            <>
+              <Field label="Assignee" name="assignee" value={values.assignee} />
+              <Field label="Depends on" name="dependsOn" value={values.dependsOn} />
+            </>
+          ) : null}
           <div class="actions">
             <Button tone="primary" type="submit">
               Save
@@ -490,12 +499,13 @@ export interface EditTaskPageProps {
   readonly project: string
   readonly task: Pick<Task, "id">
   readonly values: EditValues
+  readonly edit: boolean
   readonly issues?: ReadonlyArray<string> | undefined
 }
 
 export function EditTaskPage(handle: Handle<EditTaskPageProps>) {
   return () => {
-    const { project, task, values, issues = [] } = handle.props
+    const { project, task, values, edit, issues = [] } = handle.props
     return (
       <>
         <Heading level={1}>Edit task {showId(task.id)}</Heading>
@@ -503,6 +513,7 @@ export function EditTaskPage(handle: Handle<EditTaskPageProps>) {
           project={project}
           task={task}
           values={values}
+          edit={edit}
           issues={issues}
           close={
             <LinkButton

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import { BunServices } from "@effect/platform-bun"
 import { Effect } from "effect"
-import { type LockOptions, makeLock } from "../../src/fs/lock.ts"
-import { Disk, diskWith, filesOnDisk } from "./helpers.ts"
+import { type LockOptions, makeLock } from "../../src/spec/lock.ts"
+import { Disk, diskWith, filesOnDisk } from "../fs/helpers.ts"
 
 // These run on the real clock: the lock waits and ages in real time.
 const run = <A, E>(effect: Effect.Effect<A, E, Disk>) =>
