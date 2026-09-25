@@ -7,7 +7,7 @@
       "dependencies": {
         "@effect/platform-bun": "4.0.0-rc.108",
         "@effect/platform-node-shared": "4.0.0-rc.108",
-        "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.1.0",
+        "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.1.1",
         "hast-util-to-html": "^9.0.5",
         "mdast-util-from-markdown": "^2.0.3",
         "mdast-util-frontmatter": "^2.0.1",
@@ -120,7 +120,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@lemol/ui": ["@lemol/ui@git+ssh://git@github.com/lemol/ui.git#fd72761a3e5d6a7ae2a2201c622315b6f3bf385d", { "peerDependencies": { "remix": "3.0.0-rc.2" } }, "fd72761a3e5d6a7ae2a2201c622315b6f3bf385d"],
+    "@lemol/ui": ["@lemol/ui@git+ssh://git@github.com/lemol/ui.git#39b24abd5cd3382d9e43bdbc61fcccee343e1faa", { "peerDependencies": { "remix": "3.0.0-rc.2" } }, "39b24abd5cd3382d9e43bdbc61fcccee343e1faa"],
 
     "@msgpackr-extract/msgpackr-extract-darwin-arm64": ["@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ=="],
 
