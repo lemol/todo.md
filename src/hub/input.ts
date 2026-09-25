@@ -28,6 +28,8 @@ export interface ProjectInputOptions {
   readonly tokenCommand?: string | undefined
   /** jira: the query behind the project, instead of "assigned to me, not done". */
   readonly jql?: string | undefined
+  /** jira: never write to Jira; read and sync only. */
+  readonly readOnly?: boolean | undefined
 }
 
 const githubWithoutScheme = /^(www\.)?github\.com\//
@@ -76,6 +78,7 @@ export const projectInputFrom = (
                 ? {}
                 : { token_command: options.tokenCommand }),
               ...(options.jql === undefined ? {} : { jql: options.jql }),
+              ...(options.readOnly === true ? { read_only: true } : {}),
             }
           : {}
   return { name: options.name, source, config }

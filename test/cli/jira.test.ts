@@ -185,6 +185,44 @@ describe("jira projects from the CLI", () => {
   )
 
   effectTest(
+    "registers a read-only site that syncs but refuses to change a ticket",
+    withCli((run, jira) =>
+      Effect.gen(function* () {
+        jira.put(anIssue("PROJ-1", { summary: "Rework auth" }))
+        const added = yield* run(
+          "projects",
+          "add",
+          jira.site,
+          "--source",
+          "jira",
+          "--name",
+          "work",
+          "--email",
+          "tester@acme.test",
+          "--token-env",
+          "JIRA_TOKEN",
+          "--read-only",
+        )
+        expect(added.stderr).toBe("")
+        expect(added.code).toBe(0)
+
+        const done = yield* run("done", "work:PROJ-1")
+        expect(done.code).not.toBe(0)
+        expect(done.stderr).toContain("work is read-only")
+        const commented = yield* run("comment", "work:PROJ-1", "Hi", "--author", "ana")
+        expect(commented.code).not.toBe(0)
+        expect(jira.requests.filter((request) => request.method !== "GET")).toEqual([])
+        expect((yield* run("--project", "work", "ls")).stdout).toContain("Rework auth")
+
+        jira.put(anIssue("PROJ-2", { summary: "Filed in Jira" }))
+        expect((yield* run("sync", "work")).code).toBe(0)
+        expect((yield* run("--project", "work", "ls")).stdout).toContain("Filed in Jira")
+      }),
+    ),
+    diskWith({}),
+  )
+
+  effectTest(
     "reports a site that refuses the credentials, and registers nothing",
     withCli((run, jira) =>
       Effect.gen(function* () {
@@ -240,6 +278,9 @@ describe("jira projects from the CLI", () => {
         const wrong = yield* run("projects", "add", root, "--email", "tester@acme.test")
         expect(wrong.code).toBe(2)
         expect(wrong.stderr).toContain("--email")
+        const readOnly = yield* run("projects", "add", root, "--read-only")
+        expect(readOnly.code).toBe(2)
+        expect(readOnly.stderr).toContain("--read-only")
       }),
     ),
     diskWith({ "todo/TODO.md": "# Local\n" }),

@@ -116,6 +116,7 @@ export const parseProjectForm = (form: FormData) => {
   const tokenEnv = value(form, "token_env")
   const tokenCommand = value(form, "token_command")
   const jql = value(form, "jql")
+  const readOnly = form.get("read_only") !== null
   return {
     target,
     name,
@@ -126,6 +127,7 @@ export const parseProjectForm = (form: FormData) => {
     tokenEnv,
     tokenCommand,
     jql,
+    readOnly,
     issues: target === "" ? ["A path or URL is required"] : [],
   }
 }

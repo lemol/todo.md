@@ -116,6 +116,7 @@ const addForm = (options: ProjectsOptions): RemixNode => {
     tokenEnv: "",
     tokenCommand: "",
     jql: "",
+    readOnly: false,
     issues: [],
   }
   const issues = options.issues ?? []
@@ -194,6 +195,15 @@ const addForm = (options: ProjectsOptions): RemixNode => {
             value={values.jql}
             placeholder="assigned to me and not done"
           />
+          <label class="checkbox">
+            <input
+              type="checkbox"
+              name="read_only"
+              value="1"
+              {...(values.readOnly ? { checked: true } : {})}
+            />{" "}
+            Read-only: sync only, never change a ticket in Jira
+          </label>
         </fieldset>
         <Button tone="primary" type="submit">
           Add

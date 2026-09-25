@@ -113,6 +113,7 @@ export const createProjectsController = (options: {
               ...(values.tokenEnv === "" ? {} : { tokenEnv: values.tokenEnv }),
               ...(values.tokenCommand === "" ? {} : { tokenCommand: values.tokenCommand }),
               ...(values.jql === "" ? {} : { jql: values.jql }),
+              ...(values.readOnly ? { readOnly: true } : {}),
             },
             (cwd, relative) => {
               if (relative.startsWith("/")) return relative
@@ -125,10 +126,13 @@ export const createProjectsController = (options: {
               ? [`Branch and list are for git projects; this is a ${input.source} project`]
               : []),
             ...(input.source !== "jira" &&
-            [values.email, values.tokenEnv, values.tokenCommand, values.jql].some(
+            ([values.email, values.tokenEnv, values.tokenCommand, values.jql].some(
               (field) => field !== "",
-            )
-              ? [`Email, token and JQL are for jira projects; this is a ${input.source} project`]
+            ) ||
+              values.readOnly)
+              ? [
+                  `Email, token, JQL and read-only are for jira projects; this is a ${input.source} project`,
+                ]
               : []),
           ]
           if (misplaced.length > 0) {

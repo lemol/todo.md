@@ -54,6 +54,7 @@ to derive one from.
 | `done_jql` | The done ones (default: the same, `statusCategory = Done AND resolved >= -30d`) |
 | `done_transition` | The transition `complete` takes (default: the first into the done category) |
 | `reopen_transition` | The transition `reopen` takes (default: the first into the to-do category) |
+| `read_only` | `true` never writes to Jira (see below); `--read-only` on `todo projects add` |
 
 `ORDER BY Rank ASC` is appended to `jql`, and `ORDER BY resolved DESC` to
 `done_jql`, when the query has no order of its own.
@@ -118,6 +119,13 @@ change straight away without a sync.
 | `reopen` | the same with `reopen_transition`, else the first into `new` (To Do) |
 | `comment` | `POST /issue/{key}/comment`, the body as ADF paragraphs split on blank lines, text only. **The Jira user is the author**: `input.author` is validated, then ignored (no `commentAuthor`) |
 | `update` | `PUT /issue/{key}`: `title` → `summary`, `tags` → `labels`. Jira keeps the rest (no `edit`): `description`, `assignee`, `dependsOn` or `extra` in a patch fails with `ValidationError` ("… is read-only for Jira projects") and nothing is sent |
+
+**`read_only: true`** is for a site whose workflow is not yours to drive. The
+project reads and syncs as usual, but `complete`, `reopen` and `update` fail
+with a `StoreError` ("work is read-only (read_only in its registry entry);
+change PROJ-1 in Jira") before any request is sent, and the store drops
+`comments`, so `comment` is `Unsupported` and frontends hide it. Nothing is
+kept locally to push later: a change is made in Jira, then synced.
 
 **A sync running alongside cannot lose a mutation.** Patches and syncs both
 write under `<dir>/.todo.lock`, re-reading the mirror first. A patch records

@@ -32,9 +32,10 @@ import { type Mirror, patchMirror, readMirror } from "./mirror.ts"
 /**
  * Comments, and nothing else optional. Issues are created and deleted in Jira,
  * which has its own ranking and no groups; only the summary and labels are
- * editable from here, and Jira signs a comment with the token's user.
+ * editable from here, and Jira signs a comment with the token's user. A
+ * read-only project drops `comments` too.
  */
-const capabilities: Capabilities = {
+const writable: Capabilities = {
   groups: false,
   reorder: false,
   renameGroup: false,
@@ -79,10 +80,12 @@ export interface JiraStoreOptions {
   readonly doneTransition?: string | undefined
   /** The transition `reopen` takes; else the first into the to-do category. */
   readonly reopenTransition?: string | undefined
+  /** Never write to Jira: every mutation fails before a request is sent. */
+  readonly readOnly?: boolean | undefined
 }
 
 /** The fields `update` cannot send to Jira, in the order they are reported. */
-const readOnly = ["description", "assignee", "dependsOn", "extra"] as const
+const keptByJira = ["description", "assignee", "dependsOn", "extra"] as const
 
 /**
  * The transition named `name` when one is configured, else the first leading
@@ -119,6 +122,19 @@ export const make = (
   Effect.gen(function* () {
     const env = yield* Effect.context<SourceEnv>()
     const { name, dir, site, client } = options
+    const readOnly = options.readOnly === true
+    const capabilities: Capabilities = readOnly ? { ...writable, comments: false } : writable
+
+    /** Why a read-only project refuses `id`'s change, before anything reaches Jira. */
+    const refused = (id: TaskId) =>
+      readOnly
+        ? Effect.fail(
+            new StoreError({
+              message: `${name} is read-only (read_only in its registry entry); change ${id} in Jira`,
+            }),
+          )
+        : Effect.void
+
     const provided = <A, E>(effect: Effect.Effect<A, E, SourceEnv>) =>
       Effect.provideContext(effect, env)
 
@@ -201,6 +217,7 @@ export const make = (
 
       complete: (id) =>
         Effect.gen(function* () {
+          yield* refused(id)
           const task = yield* find(id)
           if (task.status === "done") {
             return yield* new InvalidTransition({ id, status: "done", operation: "complete" })
@@ -216,6 +233,7 @@ export const make = (
 
       reopen: (id) =>
         Effect.gen(function* () {
+          yield* refused(id)
           const task = yield* find(id)
           if (task.status === "open") {
             return yield* new InvalidTransition({ id, status: "open", operation: "reopen" })
@@ -234,11 +252,12 @@ export const make = (
       // for more.
       update: (id, patch) =>
         Effect.gen(function* () {
+          yield* refused(id)
           const valid = yield* validate(TaskPatch, patch)
-          const refused = readOnly.filter((field) => valid[field] !== undefined)
-          if (refused.length > 0) {
+          const kept = keptByJira.filter((field) => valid[field] !== undefined)
+          if (kept.length > 0) {
             return yield* new ValidationError({
-              issues: refused.map((field) => `${field} is read-only for Jira projects`),
+              issues: kept.map((field) => `${field} is read-only for Jira projects`),
             })
           }
           const fields = {
@@ -254,6 +273,7 @@ export const make = (
       // checked like any input and then left out.
       comment: (id, input) =>
         Effect.gen(function* () {
+          if (readOnly) return yield* new Unsupported({ operation: "comment" })
           const valid = yield* validate(CommentInput, input)
           const created = yield* client
             .addComment(id, valid.body)

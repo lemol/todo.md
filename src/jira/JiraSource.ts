@@ -51,6 +51,11 @@ export const JiraConfig = Schema.Struct({
   /** The transition to use for `complete`, when its name is not the obvious one. */
   done_transition: Schema.optional(Schema.String),
   reopen_transition: Schema.optional(Schema.String),
+  /**
+   * Never write to Jira: the project is read and synced only, and complete,
+   * reopen, edit and comment fail. For a site whose workflow is not ours.
+   */
+  read_only: Schema.optional(Schema.Boolean),
 }).check(oneTokenSource)
 export type JiraConfig = typeof JiraConfig.Type
 
@@ -107,6 +112,7 @@ export const jiraSourceWith = (
         client,
         doneTransition: project.config.done_transition,
         reopenTransition: project.config.reopen_transition,
+        readOnly: project.config.read_only === true,
       })
     })
 

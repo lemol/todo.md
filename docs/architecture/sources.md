@@ -78,4 +78,5 @@ interface SourceProject<C> {
   `comments` and no other capability (spec §1.5): without `add` and `remove`
   it never creates or deletes an issue, without `edit` it changes only the
   title and labels, and without `commentAuthor` Jira's own user signs every
-  comment. See [src/jira/README.md](../../src/jira/README.md).
+  comment. With `read_only: true` it writes nothing at all: every mutation
+  fails before a request is sent, and only `sync` changes the mirror. See [src/jira/README.md](../../src/jira/README.md).

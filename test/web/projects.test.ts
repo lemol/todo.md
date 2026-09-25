@@ -208,7 +208,7 @@ describe("projects page", () => {
       email: "tester@acme.test",
     })
     expect(refused.status).toBe(422)
-    expect(await refused.text()).toContain("Email, token and JQL are for jira projects")
+    expect(await refused.text()).toContain("Email, token, JQL and read-only are for jira projects")
   })
 
   test("a duplicate name re-renders the form with 422", async () => {

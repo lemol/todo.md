@@ -405,3 +405,64 @@ describe("the Jira store: comment", () => {
     onDisk(),
   )
 })
+
+describe("the Jira store: read-only", () => {
+  const readOnly = { config: { read_only: true } }
+
+  effectTest(
+    "declares no optional capability, not even comments",
+    opened(
+      [],
+      (store) =>
+        Effect.sync(() => {
+          expect(Object.values(store.capabilities).every((allowed) => !allowed)).toBe(true)
+        }),
+      readOnly,
+    ),
+    onDisk(),
+  )
+
+  effectTest(
+    "refuses every mutation with the setting's name, and sends nothing",
+    opened(
+      [anIssue("PROJ-1"), anIssue("PROJ-2", {}, { done: true })],
+      (store, { jira, dir }) =>
+        Effect.gen(function* () {
+          const before = jira.requests.length
+          const calls: ReadonlyArray<
+            Effect.Effect<unknown, { readonly _tag: string; readonly message?: string }>
+          > = [
+            store.complete("PROJ-1"),
+            store.reopen("PROJ-2"),
+            store.update("PROJ-1", { title: "Renamed" }),
+          ]
+          for (const call of calls) {
+            const error = yield* Effect.flip(call)
+            expect(error._tag).toBe("StoreError")
+            expect(error.message).toContain("work is read-only (read_only")
+          }
+          const comment = yield* Effect.flip(store.comment("PROJ-1", { author: "me", body: "Hi." }))
+          expect(comment._tag).toBe("Unsupported")
+          expect(jira.requests.length).toBe(before)
+          expect(yield* sides(dir)).toEqual({ open: ["PROJ-1"], done: ["PROJ-2"] })
+        }),
+      readOnly,
+    ),
+    onDisk(),
+  )
+
+  effectTest(
+    "still syncs Jira's own changes",
+    opened(
+      [anIssue("PROJ-1")],
+      (store, { jira, source, project }) =>
+        Effect.gen(function* () {
+          jira.put(anIssue("PROJ-1", {}, { done: true }))
+          yield* source.sync?.(project) ?? Effect.die("no sync")
+          expect((yield* store.get("PROJ-1")).status).toBe("done")
+        }),
+      readOnly,
+    ),
+    onDisk(),
+  )
+})

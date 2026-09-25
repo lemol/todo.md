@@ -123,8 +123,24 @@ export const projectsAdd = Command.make(
         "jira only: the query behind the project (default: assigned to me and not done)",
       ),
     ),
+    readOnly: Flag.boolean("read-only").pipe(
+      Flag.withDescription(
+        "jira only: never write to Jira; sync and read only, and done, reopen, edit and comment fail",
+      ),
+    ),
   },
-  Effect.fn(function* ({ target, name, source, branch, list, email, tokenEnv, tokenCommand, jql }) {
+  Effect.fn(function* ({
+    target,
+    name,
+    source,
+    branch,
+    list,
+    email,
+    tokenEnv,
+    tokenCommand,
+    jql,
+    readOnly,
+  }) {
     const { cwd } = yield* CliContext
     const hub = yield* Hub
     const input = yield* projectInput(target, {
@@ -137,6 +153,7 @@ export const projectsAdd = Command.make(
       ...(Option.isSome(tokenEnv) ? { tokenEnv: tokenEnv.value } : {}),
       ...(Option.isSome(tokenCommand) ? { tokenCommand: tokenCommand.value } : {}),
       ...(Option.isSome(jql) ? { jql: jql.value } : {}),
+      ...(readOnly ? { readOnly } : {}),
     })
     const wrongFor = (
       kind: string,
@@ -155,6 +172,7 @@ export const projectsAdd = Command.make(
         ["--token-env", tokenEnv],
         ["--token-command", tokenCommand],
         ["--jql", jql],
+        ["--read-only", readOnly ? Option.some("") : Option.none()],
       ]),
     ]
     if (misplaced.length > 0) {
@@ -190,6 +208,11 @@ export const projectsAdd = Command.make(
       command:
         "todo projects add https://acme.atlassian.net --source jira --name proj --email me@acme.test --token-command 'security find-generic-password -s jira -w' --jql 'project = PROJ AND statusCategory != Done'",
       description: "Take the token from the macOS keychain and follow one project",
+    },
+    {
+      command:
+        "todo projects add https://acme.atlassian.net --source jira --name work --email me@acme.test --token-env JIRA_TOKEN --read-only",
+      description: "Mirror a site without ever changing a ticket in it",
     },
   ]),
 )
