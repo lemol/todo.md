@@ -9,7 +9,7 @@ are. For what a task *is* and how the files look, see
 | The `TodoStore` contract, capabilities, conformance, writing an adapter | [contract.md](./contract.md) |
 | `markdown` and `fs`: parsing, splicing writes, the write path, locking | [storage.md](./storage.md) |
 | `hub`: projects, the registry, sync, changes, cross-project queries *(partly built)* | [hub.md](./hub.md) |
-| Sources: fs, git and jira behind the hub *(fs and git built; jira reads)* | [sources.md](./sources.md) |
+| Sources: fs, git and jira behind the hub | [sources.md](./sources.md) |
 | The CLI, the web app and the TUI as composition roots | [frontends.md](./frontends.md) |
 | Packaging, the `effect` pin, testing and tooling | [tooling.md](./tooling.md) |
 | Why things are the way they are | [decisions.md](./decisions.md) |
@@ -58,7 +58,7 @@ Today:
 ```
 
 The sources sit beside the hub, built at each composition root and passed in
-(`git` is built; `jira` reads, and its mutations are the rest of task 06):
+(`git` and `jira` are built):
 
 ```
 cli ─┬─► hub ──► core ──► spec
@@ -78,7 +78,7 @@ tui ─┘    ▲      ▲
 | [`src/hub`](../../src/hub)           | `@lemol/todo-md/hub`           | spec, core, fs, `effect`, `yaml`         | Projects: registry, resolution, a `TodoService` per project; the `Source` interface and `fsSource` (sync, changes and cross-project queries: task 15) |
 |                                 | `@lemol/todo-md/hub/testing`   | hub, spec                                | `memorySource`, for tests only                                                  |
 | [`src/git`](../../src/git)           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md` (task 19)      |
-| [`src/jira`](../../src/jira)         | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror; reading built (task 06)       |
+| [`src/jira`](../../src/jira)         | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror; mutations go to Jira first     |
 | [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, git, jira, web, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary        |
 | [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `hub`, `git` (+ `effect`, Remix, Markdown renderers, `@lemol/ui`; `node:`/`bun` only in `server.ts`, `app/assets.ts`) | Local web UI over hub projects |
 

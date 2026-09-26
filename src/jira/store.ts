@@ -2,8 +2,8 @@
  * The `TodoStore` over a Jira project's mirror.
  *
  * Reads come from `mirror.json`, so a list opens instantly and offline; only
- * a key the mirror has never seen costs a request. Writing is not implemented
- * yet: this is the reading half of the source (task 06).
+ * a key the mirror has never seen costs a request. Every mutation goes
+ * straight to Jira, then re-fetches the issue and patches it into the mirror.
  */
 
 import { Effect, Layer, Option } from "effect"
@@ -11,32 +11,41 @@ import type { SourceEnv } from "../hub/index.ts"
 import {
   type Capabilities,
   type Comment,
+  CommentInput,
+  InvalidTransition,
   StoreError,
   type Task,
   type TaskId,
+  TaskPatch,
   type TodoList,
   TodoStore,
   Unsupported,
+  unique,
+  ValidationError,
+  validate,
 } from "../spec/index.ts"
 import type { JiraClient } from "./client.ts"
 import { asStoreError, type JiraError } from "./errors.ts"
-import { commentsOf, type Issue, taskFromIssue } from "./mapping.ts"
-import { type Mirror, readMirror } from "./mirror.ts"
+import { commentsOf, type Issue, type Transition, taskFromIssue } from "./mapping.ts"
+import { type Mirror, patchMirror, readMirror } from "./mirror.ts"
 
 /**
- * Nothing optional yet. `comments` arrives with the mutations, together with
- * complete, reopen and update; a store that claimed it now would fail the
- * conformance suite's comment cases.
+ * Comments, and nothing else optional. Issues are created and deleted in Jira,
+ * which has its own ranking and no groups; only the summary and labels are
+ * editable from here, and Jira signs a comment with the token's user. A
+ * read-only project drops `comments` too.
  */
-const capabilities: Capabilities = {
+const writable: Capabilities = {
   groups: false,
   reorder: false,
   renameGroup: false,
-  comments: false,
+  comments: true,
   promote: false,
   cancel: false,
   add: false,
   remove: false,
+  edit: false,
+  commentAuthor: false,
 }
 
 /**
@@ -67,14 +76,43 @@ export interface JiraStoreOptions {
   readonly dir: string
   readonly site: string
   readonly client: JiraClient
+  /** The transition `complete` takes; else the first into the done category. */
+  readonly doneTransition?: string | undefined
+  /** The transition `reopen` takes; else the first into the to-do category. */
+  readonly reopenTransition?: string | undefined
+  /** Never write to Jira: every mutation fails before a request is sent. */
+  readonly readOnly?: boolean | undefined
 }
 
-const notImplemented = (operation: string) =>
-  Effect.fail(
-    new StoreError({
-      message: `jira: ${operation} is not implemented yet; this project is read-only`,
-    }),
-  )
+/** The fields `update` cannot send to Jira, in the order they are reported. */
+const keptByJira = ["description", "assignee", "dependsOn", "extra"] as const
+
+/**
+ * The transition named `name` when one is configured, else the first leading
+ * into `category`. Failing names what is available, since that is what the
+ * user needs to configure one.
+ */
+export const pickTransition = (
+  transitions: ReadonlyArray<Transition>,
+  options: {
+    readonly name?: string | undefined
+    readonly category: string
+    readonly setting: string
+  },
+): Transition | string => {
+  const { name, category, setting } = options
+  const found =
+    name === undefined
+      ? transitions.find((one) => one.to?.statusCategory?.key?.toLowerCase() === category)
+      : transitions.find((one) => one.name?.trim().toLowerCase() === name.trim().toLowerCase())
+  if (found !== undefined) return found
+  const available = transitions.map((one) => one.name ?? one.id)
+  const offered =
+    available.length === 0 ? "none are available" : `available: ${available.join(", ")}`
+  return name === undefined
+    ? `no transition leads to a ${category} status (${offered}); set ${setting}`
+    : `no transition is named ${name} (${offered}); check ${setting}`
+}
 
 const unsupported = (operation: string) => Effect.fail(new Unsupported({ operation }))
 
@@ -84,6 +122,21 @@ export const make = (
   Effect.gen(function* () {
     const env = yield* Effect.context<SourceEnv>()
     const { name, dir, site, client } = options
+    const readOnly = options.readOnly === true
+    const capabilities: Capabilities = readOnly ? { ...writable, comments: false } : writable
+
+    /** Why a read-only project refuses `id`'s change, before anything reaches Jira. */
+    const refused = (id: TaskId) =>
+      readOnly
+        ? Effect.fail(
+            new StoreError({
+              message: `${name} is read-only (read_only in its registry entry); change ${id} in Jira`,
+            }),
+          )
+        : Effect.void
+
+    const provided = <A, E>(effect: Effect.Effect<A, E, SourceEnv>) =>
+      Effect.provideContext(effect, env)
 
     /** The mirror, or the one thing the user can do about not having it. */
     const mirror: Effect.Effect<Mirror, StoreError> = readMirror(dir).pipe(
@@ -105,6 +158,34 @@ export const make = (
         Effect.mapError(asStoreError),
       )
 
+    /** The task, from the mirror or else from Jira. */
+    const find = (id: TaskId) =>
+      Effect.flatMap(mirror, (current) => {
+        const known = [...current.open, ...current.done].find((task) => task.id === id)
+        return known === undefined ? fetch(id) : Effect.succeed(known)
+      })
+
+    /** The issue as Jira has it now, patched into the mirror. */
+    const refreshed = (id: TaskId) =>
+      Effect.tap(fetch(id), (task) => provided(patchMirror(dir, task)))
+
+    /** Moves the issue through the transition `pick` chooses, then refreshes it. */
+    const transitioned = (
+      id: TaskId,
+      pick: (transitions: ReadonlyArray<Transition>) => Transition | string,
+    ) =>
+      Effect.gen(function* () {
+        const transitions = yield* client.transitions(id)
+        const chosen = pick(transitions)
+        if (typeof chosen === "string") {
+          return yield* new StoreError({ message: `${id}: ${chosen}` })
+        }
+        yield* client.transition(id, chosen.id)
+      }).pipe(
+        Effect.mapError((error) => (error._tag === "JiraError" ? asStoreError(error) : error)),
+        Effect.andThen(refreshed(id)),
+      )
+
     return TodoStore.of({
       capabilities,
 
@@ -121,11 +202,7 @@ export const make = (
 
       listDone: () => Effect.map(mirror, (current) => current.done),
 
-      get: (id) =>
-        Effect.flatMap(mirror, (current) => {
-          const known = [...current.open, ...current.done].find((task) => task.id === id)
-          return known === undefined ? fetch(id) : Effect.succeed(known)
-        }),
+      get: find,
 
       diagnostics: () => Effect.succeed([]),
 
@@ -137,11 +214,77 @@ export const make = (
       renameGroup: () => unsupported("renameGroup"),
       promote: () => unsupported("promote"),
       cancel: () => unsupported("cancel"),
-      comment: () => unsupported("comment"),
 
-      complete: () => notImplemented("complete"),
-      reopen: () => notImplemented("reopen"),
-      update: () => notImplemented("update"),
+      complete: (id) =>
+        Effect.gen(function* () {
+          yield* refused(id)
+          const task = yield* find(id)
+          if (task.status === "done") {
+            return yield* new InvalidTransition({ id, status: "done", operation: "complete" })
+          }
+          return yield* transitioned(id, (transitions) =>
+            pickTransition(transitions, {
+              name: options.doneTransition,
+              category: "done",
+              setting: "done_transition",
+            }),
+          )
+        }),
+
+      reopen: (id) =>
+        Effect.gen(function* () {
+          yield* refused(id)
+          const task = yield* find(id)
+          if (task.status === "open") {
+            return yield* new InvalidTransition({ id, status: "open", operation: "reopen" })
+          }
+          return yield* transitioned(id, (transitions) =>
+            pickTransition(transitions, {
+              name: options.reopenTransition,
+              category: "new",
+              setting: "reopen_transition",
+            }),
+          )
+        }),
+
+      // Jira keeps the description, assignee and links itself; only the
+      // summary and labels are sent, and nothing is sent when a patch asks
+      // for more.
+      update: (id, patch) =>
+        Effect.gen(function* () {
+          yield* refused(id)
+          const valid = yield* validate(TaskPatch, patch)
+          const kept = keptByJira.filter((field) => valid[field] !== undefined)
+          if (kept.length > 0) {
+            return yield* new ValidationError({
+              issues: kept.map((field) => `${field} is read-only for Jira projects`),
+            })
+          }
+          const fields = {
+            ...(valid.title === undefined ? {} : { summary: valid.title }),
+            ...(valid.tags === undefined ? {} : { labels: unique(valid.tags) }),
+          }
+          if (Object.keys(fields).length === 0) return yield* find(id)
+          yield* client.edit(id, fields).pipe(Effect.mapError(asStoreError))
+          return yield* refreshed(id)
+        }),
+
+      // Jira signs a comment with the token's user, so `input.author` is
+      // checked like any input and then left out.
+      comment: (id, input) =>
+        Effect.gen(function* () {
+          if (readOnly) return yield* new Unsupported({ operation: "comment" })
+          const valid = yield* validate(CommentInput, input)
+          const created = yield* client
+            .addComment(id, valid.body)
+            .pipe(Effect.mapError(asStoreError))
+          yield* refreshed(id)
+          const [comment] = commentsOf([created])
+          if (comment === undefined) {
+            return yield* new StoreError({ message: `${id}: Jira returned an unreadable comment` })
+          }
+          return comment
+        }),
     })
   })
 

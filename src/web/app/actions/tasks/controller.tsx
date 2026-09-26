@@ -141,6 +141,7 @@ const renderEdit = async (
         project={project}
         task={task}
         values={values ?? valuesOf(task)}
+        edit={capabilitiesOf(context).edit}
         issues={issues}
       />
     </Document>,
@@ -213,15 +214,20 @@ export const createTasksController = (options: {
           const values = parseEditForm(formOf(context))
           if (values.title === "")
             return renderEdit(context, id, values, ["Title is required"], 422)
-          const result = await runTodo(runtimeContext(context), (todo) =>
-            todo.update(id, {
-              title: values.title,
-              description: values.description,
-              tags: [...(values.tags ? values.tags.split(/[\s,]+/).filter(Boolean) : [])],
-              assignee: values.assignee === "" ? null : values.assignee,
-              dependsOn: normalizeDependencies(values.dependsOn),
-            }),
-          )
+          const titleAndTags = {
+            title: values.title,
+            tags: [...(values.tags ? values.tags.split(/[\s,]+/).filter(Boolean) : [])],
+          }
+          // A store without `edit` refuses the other fields, and its form never offered them.
+          const patch = capabilitiesOf(context).edit
+            ? {
+                ...titleAndTags,
+                description: values.description,
+                assignee: values.assignee === "" ? null : values.assignee,
+                dependsOn: normalizeDependencies(values.dependsOn),
+              }
+            : titleAndTags
+          const result = await runTodo(runtimeContext(context), (todo) => todo.update(id, patch))
           const project = projectOf(context)
           if (result.ok)
             return redirect(routes.project.tasks.show.href({ project, id: result.value.id }), 303)

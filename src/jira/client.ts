@@ -2,21 +2,28 @@
  * Jira Cloud REST v3 over Effect's `HttpClient`.
  *
  * The token is resolved for every call and never kept: an environment
- * variable is read when it is needed, and a token command is run then. Only
- * the reading half of the API lives here; mutations arrive with the store's.
+ * variable is read when it is needed, and a token command is run then.
  */
 
 import { Effect, Schema, Stream } from "effect"
-import { HttpClient, type HttpClientError } from "effect/unstable/http"
+import {
+  HttpClient,
+  type HttpClientError,
+  HttpClientRequest,
+  type HttpClientResponse,
+} from "effect/unstable/http"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { JiraError } from "./errors.ts"
 import {
   CommentPage,
   Issue,
   issueFields,
-  type JiraComment,
+  JiraComment,
   JiraUser,
+  markdownToAdf,
   SearchPage,
+  type Transition,
+  Transitions,
 } from "./mapping.ts"
 
 /** Where the site is and how to authenticate against it. */
@@ -47,6 +54,16 @@ export interface JiraClient {
   issue(key: string): Effect.Effect<Issue, JiraError>
   /** Every comment on an issue, for when the issue's embedded page was truncated. */
   comments(key: string): Effect.Effect<ReadonlyArray<JiraComment>, JiraError>
+  /** The workflow moves the issue's current status allows. */
+  transitions(key: string): Effect.Effect<ReadonlyArray<Transition>, JiraError>
+  transition(key: string, transitionId: string): Effect.Effect<void, JiraError>
+  /** Adds a comment, its Markdown sent as plain ADF paragraphs; Jira's user is its author. */
+  addComment(key: string, markdown: string): Effect.Effect<JiraComment, JiraError>
+  /** Sets the issue's summary and labels; an absent one is left alone. */
+  edit(
+    key: string,
+    fields: { readonly summary?: string; readonly labels?: ReadonlyArray<string> },
+  ): Effect.Effect<void, JiraError>
 }
 
 const ErrorBody = Schema.Struct({
@@ -175,23 +192,28 @@ export const makeClient = (
     )
     const fields = issueFields.join(",")
 
-    /** One GET, decoded. The token is resolved here, so it lives no longer than the call. */
-    const get = <S extends Schema.Top & { readonly DecodingServices: never }>(
-      path: string,
-      schema: S,
-      query: Readonly<Record<string, string>> = {},
+    /**
+     * One request, its answer read by `read`. The token is resolved here, so
+     * it lives no longer than the call.
+     */
+    const send = <A>(
+      request: HttpClientRequest.HttpClientRequest,
+      read: (
+        response: HttpClientResponse.HttpClientResponse,
+      ) => Effect.Effect<A, HttpClientError.HttpClientError | Schema.SchemaError>,
       issue?: string,
-    ): Effect.Effect<S["Type"], JiraError> =>
+    ): Effect.Effect<A, JiraError> =>
       Effect.gen(function* () {
         const secret = yield* token
-        const response = yield* http.get(`${base}${path}`, {
-          urlParams: query,
-          headers: {
-            accept: "application/json",
-            authorization: `Basic ${btoa(`${credentials.email}:${secret}`)}`,
-          },
-        })
-        return yield* Schema.decodeUnknownEffect(schema)(yield* response.json)
+        const response = yield* http.execute(
+          request.pipe(
+            HttpClientRequest.setHeaders({
+              accept: "application/json",
+              authorization: `Basic ${btoa(`${credentials.email}:${secret}`)}`,
+            }),
+          ),
+        )
+        return yield* read(response)
       }).pipe(
         Effect.catchTag("HttpClientError", (error) =>
           Effect.flatMap(failureOf(error, issue), Effect.fail),
@@ -206,6 +228,26 @@ export const makeClient = (
           ),
         ),
       )
+
+    const decoded =
+      <S extends Schema.Top & { readonly DecodingServices: never }>(schema: S) =>
+      (response: HttpClientResponse.HttpClientResponse) =>
+        Effect.flatMap(response.json, Schema.decodeUnknownEffect(schema))
+
+    const ignored = () => Effect.void
+
+    /** One GET, decoded. */
+    const get = <S extends Schema.Top & { readonly DecodingServices: never }>(
+      path: string,
+      schema: S,
+      query: Readonly<Record<string, string>> = {},
+      issue?: string,
+    ): Effect.Effect<S["Type"], JiraError> =>
+      send(HttpClientRequest.get(`${base}${path}`, { urlParams: query }), decoded(schema), issue)
+
+    /** A request carrying `body` as JSON. */
+    const withBody = (method: "POST" | "PUT", path: string, body: unknown) =>
+      HttpClientRequest.make(method)(`${base}${path}`).pipe(HttpClientRequest.bodyJsonUnsafe(body))
 
     const at = (key: string, suffix = "") => `/issue/${encodeURIComponent(key)}${suffix}`
 
@@ -237,5 +279,23 @@ export const makeClient = (
         }),
       issue: (key) => get(at(key), Issue, { fields }, key),
       comments: (key) => commentsFrom(key, 0, []),
+      transitions: (key) =>
+        Effect.map(
+          get(at(key, "/transitions"), Transitions, {}, key),
+          (page) => page.transitions ?? [],
+        ),
+      transition: (key, transitionId) =>
+        send(
+          withBody("POST", at(key, "/transitions"), { transition: { id: transitionId } }),
+          ignored,
+          key,
+        ),
+      addComment: (key, markdown) =>
+        send(
+          withBody("POST", at(key, "/comment"), { body: markdownToAdf(markdown) }),
+          decoded(JiraComment),
+          key,
+        ),
+      edit: (key, fields) => send(withBody("PUT", at(key), { fields }), ignored, key),
     } satisfies JiraClient
   })

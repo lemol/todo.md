@@ -102,9 +102,9 @@ export const localBack = (value_: string | undefined, project: string): string =
   hubBack(value_, routes.project.board.href({ project }))
 
 /**
- * The add-a-project form: a path or URL, an optional name and a source kind,
- * plus the two git-only fields. Whether they fit the target is decided once
- * the source is known, in the controller.
+ * The add-a-project form: a path, URL or Jira site, an optional name and a
+ * source kind, plus the git-only and jira-only fields. Whether they fit the
+ * target is decided once the source is known, in the controller.
  */
 export const parseProjectForm = (form: FormData) => {
   const target = value(form, "target")
@@ -112,12 +112,22 @@ export const parseProjectForm = (form: FormData) => {
   const source = value(form, "source")
   const branch = value(form, "branch")
   const list = value(form, "list")
+  const email = value(form, "email")
+  const tokenEnv = value(form, "token_env")
+  const tokenCommand = value(form, "token_command")
+  const jql = value(form, "jql")
+  const readOnly = form.get("read_only") !== null
   return {
     target,
     name,
     source: source === "" || source === "infer" ? undefined : source,
     branch,
     list,
+    email,
+    tokenEnv,
+    tokenCommand,
+    jql,
+    readOnly,
     issues: target === "" ? ["A path or URL is required"] : [],
   }
 }

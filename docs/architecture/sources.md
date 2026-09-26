@@ -1,7 +1,6 @@
 # Sources
 
-> **Status: fs and git built (tasks 14, 15 and 19); jira reads (task 06).**
-> The Jira mutations are the rest of task 06 and update this page. The full
+> **Status: fs, git and jira built (tasks 14, 15, 19, 06 and 24).** The full
 > design is in the
 > [hub design](../superpowers/specs/2026-09-13-hub-design.md#4-sources).
 
@@ -14,7 +13,7 @@ it.
 | --- | --- | --- | --- | --- |
 | `fs` | `hub` | the list directory | none | files, as `FsTodoStore` |
 | `git` | `src/git` | a partial clone in `projects/<name>/clone` | fetch, `pull --rebase`, push | files, then one commit per mutation and a push |
-| `jira` | `src/jira` | `projects/<name>/mirror.json` | fetch the JQL queries | *(planned)* Jira REST, then re-fetch the issue |
+| `jira` | `src/jira` | `projects/<name>/mirror.json` | fetch the JQL queries | Jira REST, then re-fetch the issue into the mirror |
 
 ## The interface
 
@@ -73,7 +72,11 @@ interface SourceProject<C> {
   works offline; `sync` replaces it, and only once both queries succeeded. A
   project needs a name, since one site holds them all, and the API token is
   resolved per call from `token_env` or `token_command` and never stored.
-  Reading is built; complete, reopen, comment and editing title and labels
-  are the rest of task 06, after which it declares the `comments` capability
-  and no other (spec §1.5): without `add` and `remove` it never creates or
-  deletes an issue. See [src/jira/README.md](../../src/jira/README.md).
+  Complete, reopen, comment and editing the title and labels go straight to
+  Jira, then re-fetch the issue and patch it into the mirror under
+  `.todo.lock`, so a sync running alongside keeps the change. It declares
+  `comments` and no other capability (spec §1.5): without `add` and `remove`
+  it never creates or deletes an issue, without `edit` it changes only the
+  title and labels, and without `commentAuthor` Jira's own user signs every
+  comment. With `read_only: true` it writes nothing at all: every mutation
+  fails before a request is sent, and only `sync` changes the mirror. See [src/jira/README.md](../../src/jira/README.md).

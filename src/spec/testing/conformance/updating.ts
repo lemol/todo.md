@@ -6,6 +6,7 @@ import { type ConformanceCase, given } from "./case.ts"
 export const updatingCases: ReadonlyArray<ConformanceCase> = [
   {
     name: "update changes the given fields and keeps the rest",
+    requires: ["edit"],
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
@@ -30,6 +31,7 @@ export const updatingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "update clears the assignee with null and replaces tags without duplicates",
+    requires: ["edit"],
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
@@ -38,6 +40,40 @@ export const updatingCases: ReadonlyArray<ConformanceCase> = [
       const stored = yield* store.get(task.id)
       equal(stored.assignee, undefined)
       equal(stored.tags, ["x", "y"])
+    }),
+  },
+  {
+    name: "update changes the title and replaces tags without duplicates",
+    setup: true,
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const [task] = yield* given({ title: "Old title", tags: ["a"] })
+      const updated = yield* store.update(task.id, { title: "New title", tags: ["x", "y", "x"] })
+      equal(updated.title, "New title")
+      const stored = yield* store.get(task.id)
+      equal(stored.title, "New title")
+      equal(stored.tags, ["x", "y"])
+    }),
+  },
+  {
+    name: "update refuses fields other than title and tags when the store cannot edit them",
+    setup: true,
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      if (store.capabilities.edit) return
+      const [dependency, task] = yield* given({ title: "Dependency" }, { title: "Task" })
+      const patches = [
+        { description: "Details." },
+        { assignee: "lemol" },
+        { assignee: null },
+        { dependsOn: [dependency.id] },
+        { extra: { estimate: 3 } },
+        { title: "New title", description: "Details." },
+      ]
+      for (const patch of patches) yield* failsWith(store.update(task.id, patch), "ValidationError")
+      const stored = yield* store.get(task.id)
+      equal(stored.title, "Task")
+      equal(stored.dependsOn, [])
     }),
   },
   {

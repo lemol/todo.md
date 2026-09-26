@@ -67,6 +67,8 @@ test("loads the project's runtime, capabilities and info onto the context", asyn
     cancel: true,
     add: true,
     remove: true,
+    edit: true,
+    commentAuthor: true,
   })
   expect(context.get(authorContext)).toBe("tester")
   expect(context.get(todoRuntimeContext)).toBeDefined()

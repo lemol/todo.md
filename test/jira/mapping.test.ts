@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { DateTime, Effect, Schema } from "effect"
-import { Issue, slugOf, taskFromIssue } from "../../src/jira/mapping.ts"
+import { adfToMarkdown } from "../../src/jira/adf.ts"
+import { Issue, markdownToAdf, slugOf, taskFromIssue } from "../../src/jira/mapping.ts"
 
 const site = "https://acme.atlassian.net"
 
@@ -220,5 +221,31 @@ describe("taskFromIssue: extra", () => {
 
   test("leaves out what the issue does not have", () => {
     expect(map(issue({ priority: null })).extra.priority).toBeUndefined()
+  })
+})
+
+describe("Markdown to ADF", () => {
+  test("makes a paragraph per block, with hard breaks between its lines", () => {
+    expect(markdownToAdf("One\r\ntwo  \n\n\n \t\nThree").content).toEqual([
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "One" },
+          { type: "hardBreak" },
+          { type: "text", text: "two" },
+        ],
+      },
+      { type: "paragraph", content: [{ type: "text", text: "Three" }] },
+    ])
+  })
+
+  test("sends Markdown syntax as the text it is", () => {
+    expect(markdownToAdf("**bold** and `code`").content).toEqual([
+      { type: "paragraph", content: [{ type: "text", text: "**bold** and `code`" }] },
+    ])
+  })
+
+  test("reads back as the paragraphs it was given", () => {
+    expect(adfToMarkdown(markdownToAdf("First.\n\nSecond."))).toBe("First.\n\nSecond.")
   })
 })

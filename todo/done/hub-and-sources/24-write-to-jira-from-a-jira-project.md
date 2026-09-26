@@ -1,6 +1,9 @@
 ---
 title: Write to Jira from a Jira project
 tags: [adapter, hub]
+group: Hub and sources
+completed_at: 2026-09-25T21:40:10Z
+outcome: completed
 ---
 ## Goal
 

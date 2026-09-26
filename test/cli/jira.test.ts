@@ -93,6 +93,136 @@ describe("jira projects from the CLI", () => {
   )
 
   effectTest(
+    "completes, reopens, comments on and edits an issue, and shows the new state straight away",
+    withCli((run, jira) =>
+      Effect.gen(function* () {
+        jira.put(anIssue("PROJ-1", { summary: "Rework auth", labels: ["api"] }))
+        yield* run(
+          "projects",
+          "add",
+          jira.site,
+          "--source",
+          "jira",
+          "--name",
+          "work",
+          "--email",
+          "tester@acme.test",
+          "--token-env",
+          "JIRA_TOKEN",
+        )
+
+        const done = yield* run("done", "work:PROJ-1")
+        expect(done.stderr).toBe("")
+        expect(done.code).toBe(0)
+        expect(jira.issue("PROJ-1")?.fields.status).toMatchObject({ name: "Done" })
+        expect((yield* run("--project", "work", "ls")).stdout).not.toContain("Rework auth")
+
+        const reopened = yield* run("reopen", "work:PROJ-1")
+        expect(reopened.code).toBe(0)
+        expect((yield* run("--project", "work", "ls")).stdout).toContain("Rework auth")
+
+        const commented = yield* run(
+          "comment",
+          "work:PROJ-1",
+          "Tokens",
+          "expire",
+          "--author",
+          "ana",
+        )
+        expect(commented.stderr).toBe("")
+        expect(commented.code).toBe(0)
+        const shown = yield* run("show", "work:PROJ-1")
+        expect(shown.stdout).toContain("Tokens expire")
+        expect(shown.stdout).toContain("test-user")
+
+        const edited = yield* run(
+          "edit",
+          "work:PROJ-1",
+          "--title",
+          "Rework sessions",
+          "--tag",
+          "backend",
+        )
+        expect(edited.stderr).toBe("")
+        expect(edited.code).toBe(0)
+        expect(jira.issue("PROJ-1")?.fields).toMatchObject({
+          summary: "Rework sessions",
+          labels: ["api", "backend"],
+        })
+        const listed = (yield* run("--project", "work", "ls")).stdout
+        expect(listed).toContain("Rework sessions")
+        expect(listed).toContain("backend")
+      }),
+    ),
+    diskWith({}),
+  )
+
+  effectTest(
+    "refuses to edit what Jira keeps, and sends nothing",
+    withCli((run, jira) =>
+      Effect.gen(function* () {
+        jira.put(anIssue("PROJ-1"))
+        yield* run(
+          "projects",
+          "add",
+          jira.site,
+          "--source",
+          "jira",
+          "--name",
+          "work",
+          "--email",
+          "tester@acme.test",
+          "--token-env",
+          "JIRA_TOKEN",
+        )
+        const refused = yield* run("edit", "work:PROJ-1", "--description", "More.")
+        expect(refused.code).not.toBe(0)
+        expect(refused.stderr).toContain("description is read-only for Jira projects")
+        expect(jira.requests.filter((request) => request.method !== "GET")).toEqual([])
+      }),
+    ),
+    diskWith({}),
+  )
+
+  effectTest(
+    "registers a read-only site that syncs but refuses to change a ticket",
+    withCli((run, jira) =>
+      Effect.gen(function* () {
+        jira.put(anIssue("PROJ-1", { summary: "Rework auth" }))
+        const added = yield* run(
+          "projects",
+          "add",
+          jira.site,
+          "--source",
+          "jira",
+          "--name",
+          "work",
+          "--email",
+          "tester@acme.test",
+          "--token-env",
+          "JIRA_TOKEN",
+          "--read-only",
+        )
+        expect(added.stderr).toBe("")
+        expect(added.code).toBe(0)
+
+        const done = yield* run("done", "work:PROJ-1")
+        expect(done.code).not.toBe(0)
+        expect(done.stderr).toContain("work is read-only")
+        const commented = yield* run("comment", "work:PROJ-1", "Hi", "--author", "ana")
+        expect(commented.code).not.toBe(0)
+        expect(jira.requests.filter((request) => request.method !== "GET")).toEqual([])
+        expect((yield* run("--project", "work", "ls")).stdout).toContain("Rework auth")
+
+        jira.put(anIssue("PROJ-2", { summary: "Filed in Jira" }))
+        expect((yield* run("sync", "work")).code).toBe(0)
+        expect((yield* run("--project", "work", "ls")).stdout).toContain("Filed in Jira")
+      }),
+    ),
+    diskWith({}),
+  )
+
+  effectTest(
     "reports a site that refuses the credentials, and registers nothing",
     withCli((run, jira) =>
       Effect.gen(function* () {
@@ -148,6 +278,9 @@ describe("jira projects from the CLI", () => {
         const wrong = yield* run("projects", "add", root, "--email", "tester@acme.test")
         expect(wrong.code).toBe(2)
         expect(wrong.stderr).toContain("--email")
+        const readOnly = yield* run("projects", "add", root, "--read-only")
+        expect(readOnly.code).toBe(2)
+        expect(readOnly.stderr).toContain("--read-only")
       }),
     ),
     diskWith({ "todo/TODO.md": "# Local\n" }),

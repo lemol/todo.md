@@ -6,8 +6,6 @@
 Multi-project support: the hub library, projects, sync, and git and Jira
 sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md).
 
-- [ ] [24 - Write to Jira from a Jira project](./hub-and-sources/24-write-to-jira-from-a-jira-project.md)
-
 ## Release
 
 ## Later

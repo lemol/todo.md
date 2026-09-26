@@ -51,6 +51,11 @@ export const JiraConfig = Schema.Struct({
   /** The transition to use for `complete`, when its name is not the obvious one. */
   done_transition: Schema.optional(Schema.String),
   reopen_transition: Schema.optional(Schema.String),
+  /**
+   * Never write to Jira: the project is read and synced only, and complete,
+   * reopen, edit and comment fail. For a site whose workflow is not ours.
+   */
+  read_only: Schema.optional(Schema.Boolean),
 }).check(oneTokenSource)
 export type JiraConfig = typeof JiraConfig.Type
 
@@ -105,6 +110,9 @@ export const jiraSourceWith = (
         dir,
         site: project.config.site,
         client,
+        doneTransition: project.config.done_transition,
+        reopenTransition: project.config.reopen_transition,
+        readOnly: project.config.read_only === true,
       })
     })
 
@@ -143,13 +151,14 @@ export const jiraSourceWith = (
       const client = yield* clientFor(project.config)
       const queries = queriesOf(project.config)
       const site = project.config.site
+      const startedAt = yield* DateTime.now
       const { open, done } = yield* Effect.gen(function* () {
         const open = yield* fetchAll(client, queries.open, site)
         const done = yield* fetchAll(client, queries.done, site)
         return { open, done }
       }).pipe(Effect.mapError((error) => asSyncError(project.name, error)))
       const syncedAt = yield* DateTime.now
-      yield* writeMirror(dir, { version: 1, syncedAt, open, done }).pipe(
+      yield* writeMirror(dir, { version: 1, syncedAt, open, done }, startedAt).pipe(
         Effect.mapError(
           (error) =>
             new SyncError({ project: project.name, reason: "remote", message: error.message }),

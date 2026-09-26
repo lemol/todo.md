@@ -97,7 +97,7 @@ const webTodoPackages = [
   "@lemol/todo-md/spec/testing",
   "@lemol/todo-md/hub/testing",
 ]
-const webModules = ["spec", "core", "hub", "git"]
+const webModules = ["spec", "core", "hub", "git", "jira"]
 
 export const webViolations = (file: string, source: string): string[] => {
   const isTest = file.startsWith("test/") || file.includes(".test.")

@@ -69,6 +69,18 @@ export const Issue = Schema.Struct({
 })
 export type Issue = typeof Issue.Type
 
+/** A workflow move `GET /issue/{key}/transitions` offers, and the status it leads to. */
+export const Transition = Schema.Struct({
+  id: Schema.String,
+  name: Maybe(Schema.String),
+  to: Maybe(Status),
+})
+export type Transition = typeof Transition.Type
+
+export const Transitions = Schema.Struct({
+  transitions: Maybe(Schema.Array(Transition)),
+})
+
 /** One page of `GET /search/jql`: `nextPageToken` is absent on the last page. */
 export const SearchPage = Schema.Struct({
   issues: Maybe(Schema.Array(Issue)),
@@ -180,6 +192,30 @@ export const taskFromIssue = (issue: Issue, options: MappingOptions): Task => {
     dependsOn: dependsOnOf(issue),
     comments: commentsOf(fields?.comment?.comments ?? []),
     ...(completedAt === undefined ? {} : { completedAt }),
+    // Jira has no cancelled outcome to map from (the store lacks `cancel`).
+    ...(done ? { outcome: "completed" as const } : {}),
     extra: extraOf(issue, options.site),
   }
 }
+
+/**
+ * Markdown as an ADF `doc` of plain paragraphs: a paragraph per run of lines
+ * between blank lines, each kept as its text with hard breaks between lines.
+ * Nothing else is interpreted; Jira shows the Markdown as it was written.
+ */
+export const markdownToAdf = (markdown: string) => ({
+  type: "doc",
+  version: 1,
+  content: markdown
+    .replace(/\r\n?/g, "\n")
+    .split(/\n[ \t]*\n/)
+    .map((block) => block.split("\n").filter((line) => line.trim() !== ""))
+    .filter((lines) => lines.length > 0)
+    .map((lines) => ({
+      type: "paragraph",
+      content: lines.flatMap((line, i) => [
+        ...(i === 0 ? [] : [{ type: "hardBreak" }]),
+        { type: "text", text: line.trimEnd() },
+      ]),
+    })),
+})

@@ -65,7 +65,7 @@ projects:
 - A missing file is an empty registry; the home is created on the first
   write.
 - Edits use yaml's `Document` API, so comments and order survive. Each edit
-  takes `<home>/.todo.lock` (`fs`'s `makeLock`), re-reads the file, then
+  takes `<home>/.todo.lock` (`spec`'s `makeLock`, through `fs`), re-reads the file, then
   writes `projects.yaml.tmp` and renames it over. Nothing is written from a
   stale document.
 - Unparsable YAML, a top level that is not a map, or `projects` that is not

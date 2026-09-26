@@ -12,6 +12,8 @@ test("the public entry point exposes the model, contract, reference store and he
     cancel: true,
     add: true,
     remove: true,
+    edit: true,
+    commentAuthor: true,
   })
   expect(typeof spec.MemoryTodoStore.layer).toBe("function")
   for (const name of ["Task", "TaskInput", "TaskNotFound", "Diagnostic", "findCycle", "validate"]) {
