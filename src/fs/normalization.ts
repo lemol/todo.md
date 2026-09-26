@@ -2,6 +2,7 @@ import { Effect } from "effect"
 import { normalize, removeItem } from "../markdown/index.ts"
 import type { StoreError, TaskId } from "../spec/index.ts"
 import type { Files } from "./files.ts"
+import type { Parser } from "./parsing.ts"
 import { isInterrupted, readSnapshot, todoPath } from "./snapshot.ts"
 import { completeEntry } from "./writing.ts"
 
@@ -20,9 +21,12 @@ export interface NormalizeReport {
  * and syncs link text, finishes interrupted completions, then completes
  * checked items. Call it while holding the lock.
  */
-export const normalizeList = (files: Files): Effect.Effect<NormalizeReport, StoreError> =>
+export const normalizeList = (
+  files: Files,
+  parser: Parser,
+): Effect.Effect<NormalizeReport, StoreError> =>
   Effect.gen(function* () {
-    const first = yield* readSnapshot(files)
+    const first = yield* readSnapshot(files, parser)
     const { text, assigned } = normalize(first.todo, {
       usedIds: first.usedIds,
       titles: first.titles,
@@ -31,7 +35,7 @@ export const normalizeList = (files: Files): Effect.Effect<NormalizeReport, Stor
 
     const finished: TaskId[] = []
     while (true) {
-      const snapshot = yield* readSnapshot(files)
+      const snapshot = yield* readSnapshot(files, parser)
       const entry = snapshot.entries.find((candidate) => isInterrupted(snapshot, candidate))
       if (entry === undefined) break
       yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
@@ -48,7 +52,7 @@ export const normalizeList = (files: Files): Effect.Effect<NormalizeReport, Stor
 
     const swept: TaskId[] = []
     while (true) {
-      const snapshot = yield* readSnapshot(files)
+      const snapshot = yield* readSnapshot(files, parser)
       const entry = snapshot.entries.find((candidate) => candidate.item.checked)
       if (entry === undefined) break
       yield* completeEntry(files, snapshot, entry)

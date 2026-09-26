@@ -59,9 +59,18 @@ release lock
 Reads (`load`, `get`, `listDone`, `diagnostics`) take the snapshot without
 the lock and never write.
 
-- **No cache.** Every operation re-reads the files, so hand edits made
-  between commands are always seen. A long-running host (the web app) watches
-  files instead of caching them.
+- **No cache of the list.** Every operation re-reads the files, so hand edits
+  made between commands are always seen. A long-running host (the web app)
+  watches files instead of caching them.
+- **Parses are cached by content.** Reading is cheap; parsing Markdown into a
+  syntax tree is nearly all the cost of a snapshot (about 3 ms a task file),
+  and between two reads almost every file is unchanged. So a store remembers
+  each task file's parse by path and text (`fs/parsing.ts`), in memory and,
+  given `cacheDir`, in a file there between processes. The hub passes
+  `<home>/cache`, so the file stays outside the list. Only an identical text
+  reuses a parse, so the cache cannot go stale and needs no watcher; a
+  missing or unreadable cache file only costs a full parse. Bump
+  `taskFileParserVersion` when `parseTaskFile`'s output changes.
 - **Atomic writes.** Each file is written to a temporary file in the same
   directory, then renamed over the original.
 - **Advisory lock.** `<root>/.todo.lock` is created exclusively for the

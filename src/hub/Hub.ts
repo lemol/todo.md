@@ -202,7 +202,10 @@ const make = (options: HubOptions) =>
         const { config } = project
         if (config._tag === "Invalid") return yield* config.problem
         const name = project.name
-        const opened = config.source.open(sourceProjectOf(project, config.value))
+        const opened = config.source.open({
+          ...sourceProjectOf(project, config.value),
+          cacheDir: path.join(options.home, "cache"),
+        })
         // Sources with `changes` report every change themselves; for the others, the hub
         // reports its own mutations.
         const store =

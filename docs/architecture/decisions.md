@@ -15,6 +15,7 @@
 | `effect` as an exact peer dependency       | One shared copy of `effect` across all lemol repositories.                           |
 | `bun test` instead of vitest               | Zero config; the helper we lose is about 20 lines.                                   |
 | Fine-grained contract, no cache            | Maps to remote APIs; always sees hand edits.                                         |
+| Parses cached by content, not a database   | Parsing, not I/O, made large lists slow. A cache keyed by file text is exact after any hand edit; a synced index would need a watcher running to stay right. |
 | Remix 3, local server first                | The first web UI is a private Bun server over one filesystem list; server-rendered forms keep the app useful without JS. |
 | A `hub` library, not a server              | The CLI, web app and TUI share project logic in-process; no daemon to run or secure. `server-core` would have suggested HTTP. |
 | Sources injected into the hub              | The hub never imports git or jira; new or third-party sources are values passed at the composition root. |

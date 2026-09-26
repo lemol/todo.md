@@ -82,6 +82,12 @@ const layout = (source: string) => {
   return { text, tree, yaml, bodyStart, comments }
 }
 
+/**
+ * The version of `parseTaskFile`'s output. Parses are cached by content, so
+ * bump this whenever the same text would parse to something different.
+ */
+export const taskFileParserVersion = 1
+
 /** Parses a task file. `file` (its root-relative path) locates diagnostics. Never fails. */
 export const parseTaskFile = (source: string, file: string): TaskFile => {
   const { text, tree, yaml, bodyStart, comments: commentsLine } = layout(source)

@@ -101,7 +101,10 @@ export const fsSource: Source<FsConfig> = {
             message: `no TODO.md at ${project.config.path}`,
           })
         }
-        return FsTodoStore.layer({ root: root.value })
+        return FsTodoStore.layer({
+          root: root.value,
+          ...(project.cacheDir === undefined ? {} : { cacheDir: project.cacheDir }),
+        })
       }),
     ),
   changes: changesOf,
