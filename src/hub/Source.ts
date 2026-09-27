@@ -11,6 +11,8 @@ export interface SourceProject<C> {
   readonly config: C
   /** The project's data directory, `<home>/projects/<name>`; `undefined` for unregistered projects. */
   readonly dir: string | undefined
+  /** `<home>/cache`: disposable data a source may derive from its project, such as parses. Given to `open` only. */
+  readonly cacheDir?: string
 }
 
 /** What a successful sync reports. */

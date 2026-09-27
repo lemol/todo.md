@@ -53,6 +53,7 @@ import {
 } from "../spec/index.ts"
 import { type Files, makeFiles } from "./files.ts"
 import { type NormalizeReport, normalizeList } from "./normalization.ts"
+import { makeParser, type Parser } from "./parsing.ts"
 import {
   doneTask,
   type Entry,
@@ -68,6 +69,11 @@ export interface Options {
   /** Absolute path of the list root: the directory that contains `TODO.md`. */
   readonly root: string
   readonly lock?: Partial<LockOptions>
+  /**
+   * A directory to keep parsed task files in between processes, outside the
+   * list. Without it, parses are only reused within this store.
+   */
+  readonly cacheDir?: string
 }
 
 /** Open entries as the model sees them: not checked and not mid-completion. */
@@ -179,15 +185,15 @@ const byCompletion = (a: Task, b: Task) =>
   (b.completedAt === undefined ? 0 : DateTime.toEpochMillis(b.completedAt)) -
   (a.completedAt === undefined ? 0 : DateTime.toEpochMillis(a.completedAt))
 
-const makeStore = (files: Files, options: Options) =>
+const makeStore = (files: Files, parser: Parser, options: Options) =>
   Effect.gen(function* () {
     const lock = yield* makeLock(files.root, options.lock)
-    const read = readSnapshot(files)
+    const read = readSnapshot(files, parser)
     const writeTodo = (text: string) => files.write(todoPath, text)
 
     /** Runs `f` under the lock, on a freshly normalized snapshot (spec §2.11). */
     const mutate = <A, E>(f: (snapshot: Snapshot) => Effect.Effect<A, E>) =>
-      lock(normalizeList(files).pipe(Effect.andThen(read), Effect.flatMap(f)))
+      lock(normalizeList(files, parser).pipe(Effect.andThen(read), Effect.flatMap(f)))
 
     return TodoStore.of({
       capabilities: allCapabilities,
@@ -480,7 +486,11 @@ export const layer = (
 ): Layer.Layer<TodoStore, never, FileSystem.FileSystem | Path.Path> =>
   Layer.effect(
     TodoStore,
-    Effect.flatMap(makeFiles(options.root), (files) => makeStore(files, options)),
+    Effect.gen(function* () {
+      const files = yield* makeFiles(options.root)
+      const parser = yield* makeParser(options.root, options.cacheDir)
+      return yield* makeStore(files, parser, options)
+    }),
   )
 
 /** Normalizes the list at `root` on request, holding the lock (spec §2.11). Backs `todo fmt`. */
@@ -490,6 +500,7 @@ export const normalize = (
 ): Effect.Effect<NormalizeReport, StoreError, FileSystem.FileSystem | Path.Path> =>
   Effect.gen(function* () {
     const files = yield* makeFiles(root)
+    const parser = yield* makeParser(root, undefined)
     const withLock = yield* makeLock(root, lock)
-    return yield* withLock(normalizeList(files))
+    return yield* withLock(normalizeList(files, parser))
   })

@@ -2,9 +2,11 @@ import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import { doneTask, entryTask, isInterrupted, readSnapshot } from "../../src/fs/snapshot.ts"
 import { effectTest } from "../../src/spec/testing.ts"
-import { diskWith, filesOnDisk, md } from "./helpers.ts"
+import { diskWith, filesOnDisk, md, parserOnDisk } from "./helpers.ts"
 
-const snapshot = Effect.flatMap(filesOnDisk, readSnapshot)
+const snapshot = Effect.flatMap(Effect.all([filesOnDisk, parserOnDisk]), ([files, parser]) =>
+  readSnapshot(files, parser),
+)
 
 const codes = Effect.map(snapshot, (s) =>
   s.diagnostics.map((d) => [d.code, d.severity, d.taskId ?? d.file]),

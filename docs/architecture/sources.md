@@ -38,6 +38,7 @@ interface SourceProject<C> {
   readonly name: string
   readonly config: C
   readonly dir: string | undefined  // undefined for unregistered projects
+  readonly cacheDir?: string        // <home>/cache, given to open: disposable derived data
 }
 ```
 

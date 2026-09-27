@@ -3,9 +3,11 @@ import { Effect } from "effect"
 import { TestClock } from "effect/testing"
 import { normalizeList } from "../../src/fs/normalization.ts"
 import { effectTest } from "../../src/spec/testing.ts"
-import { Disk, diskWith, filesOnDisk, md } from "./helpers.ts"
+import { Disk, diskWith, filesOnDisk, md, parserOnDisk } from "./helpers.ts"
 
-const normalizeDisk = Effect.flatMap(filesOnDisk, normalizeList)
+const normalizeDisk = Effect.flatMap(Effect.all([filesOnDisk, parserOnDisk]), ([files, parser]) =>
+  normalizeList(files, parser),
+)
 
 const rateLimiting = md("---", "title: Add rate limiting", "---", "Token bucket.")
 

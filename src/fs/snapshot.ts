@@ -8,7 +8,6 @@ import {
   joinPath,
   parseId,
   parseTaskFile,
-  parseTodoFile,
   staleLinkText,
   type TaskFile,
   type TodoFile,
@@ -17,6 +16,7 @@ import {
 } from "../markdown/index.ts"
 import { type Diagnostic, StoreError, type Task, type TaskId, unique } from "../spec/index.ts"
 import type { Files } from "./files.ts"
+import type { Parser } from "./parsing.ts"
 
 export const todoPath = "TODO.md"
 
@@ -89,23 +89,40 @@ export const doneTask = (done: DoneEntry): Task =>
     group: done.file.group,
   })
 
-/** Reads the whole list. Never writes. */
-export const readSnapshot = (files: Files): Effect.Effect<Snapshot, StoreError> =>
+/** Reads the whole list. Never writes to it; unchanged files reuse their last parse. */
+export const readSnapshot = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> =>
   Effect.gen(function* () {
+    yield* parser.begin
     const source = yield* files.read(todoPath)
     if (source === undefined) {
       return yield* new StoreError({ message: `no ${todoPath} in ${files.root}` })
     }
-    const todo = parseTodoFile(source)
+    const todo = parser.todoFile(source)
     const { tasksDir, doneDir } = todo.config
     const diagnostics: Diagnostic[] = [...todo.diagnostics]
 
+    // Every file the snapshot needs, read concurrently: done files, then linked task files.
+    const donePaths = (yield* files.list(doneDir, { recursive: true })).filter(
+      (path) => idOfFile(path) !== undefined,
+    )
+    const linkedPaths = todo.sections.flatMap((section) =>
+      section.items.flatMap((item) =>
+        item.id === undefined || item.path === undefined ? [] : [item.path],
+      ),
+    )
+    const texts = new Map<string, string | undefined>()
+    yield* Effect.forEach(
+      unique([...donePaths, ...linkedPaths]),
+      (path) => Effect.map(files.read(path), (text) => texts.set(path, text)),
+      { concurrency: 16, discard: true },
+    )
+
     const done: DoneEntry[] = []
-    for (const path of yield* files.list(doneDir, { recursive: true })) {
+    for (const path of donePaths) {
       const id = idOfFile(path)
-      const text = id === undefined ? undefined : yield* files.read(path)
+      const text = texts.get(path)
       if (id === undefined || text === undefined) continue
-      const file = parseTaskFile(text, path)
+      const file = parser.taskFile(path, text)
       diagnostics.push(...file.diagnostics)
       done.push({ id, path, source: text, file })
     }
@@ -115,9 +132,9 @@ export const readSnapshot = (files: Files): Effect.Effect<Snapshot, StoreError> 
       for (const item of section.items) {
         if (item.id === undefined) continue
         const path = item.path
-        const text = path === undefined ? undefined : yield* files.read(path)
+        const text = path === undefined ? undefined : texts.get(path)
         const file =
-          path === undefined || text === undefined ? undefined : parseTaskFile(text, path)
+          path === undefined || text === undefined ? undefined : parser.taskFile(path, text)
         const entry: Entry = { id: item.id, item, section, source: text, file }
         const location = { taskId: item.id, file: todoPath, line: item.start + 1 }
         if (file !== undefined) {
@@ -191,6 +208,7 @@ export const readSnapshot = (files: Files): Effect.Effect<Snapshot, StoreError> 
         claim(entry.id, entry.path)
     }
 
+    yield* parser.end
     return {
       source,
       todo,

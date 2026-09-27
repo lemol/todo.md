@@ -194,7 +194,14 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
                 lock,
               }),
             ),
-          ).pipe(Layer.provide(FsTodoStore.layer({ root })))
+          ).pipe(
+            Layer.provide(
+              FsTodoStore.layer({
+                root,
+                ...(project.cacheDir === undefined ? {} : { cacheDir: project.cacheDir }),
+              }),
+            ),
+          )
         }),
       ),
 

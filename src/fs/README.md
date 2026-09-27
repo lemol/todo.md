@@ -11,7 +11,7 @@ same conformance suite as `MemoryTodoStore`.
 
 | Export | What it is |
 | --- | --- |
-| `FsTodoStore.layer({ root, lock? })` | A `TodoStore` over the list at `root`, the absolute path of the directory holding `TODO.md`. Requires Effect's `FileSystem` and `Path` (e.g. `BunServices.layer`). All capabilities. |
+| `FsTodoStore.layer({ root, lock?, cacheDir? })` | A `TodoStore` over the list at `root`, the absolute path of the directory holding `TODO.md`. Requires Effect's `FileSystem` and `Path` (e.g. `BunServices.layer`). All capabilities. `cacheDir` keeps parsed task files between processes (below). |
 | `FsTodoStore.normalize(root, lock?)` | Normalizes the list on request (spec §2.11) and returns a `NormalizeReport` (`assigned`, `finished`, `swept`). Backs `todo fmt`. |
 | `findListRoot(cwd)` | Discovery: walking up from `cwd`, the first level with `todo/TODO.md` or `TODO.md` (in that order) is the list. Returns an `Option`. |
 | `initList(dir, { title, description? })` | Creates a list (`TODO.md`), creating `dir`. Fails if `dir` already has one. Backs `todo init`. |
@@ -31,7 +31,14 @@ same conformance suite as `MemoryTodoStore`.
   lock → normalize (spec §2.11) → read a snapshot → edit → write files → unlock
   ```
 
-- **No cache.** Hand edits made between commands are always seen.
+- **No cache of the list.** Every read reads every file, so hand edits made
+  between commands are always seen.
+- **Parses are cached by content** (`parsing.ts`). A task file whose path and
+  text are unchanged reuses its last parse: in memory for the store's
+  lifetime, and in `<cacheDir>/<hash of root>.json` between processes. Only
+  an identical text hits, so the cache never needs invalidating; a missing or
+  unreadable cache file is ignored. Bump `taskFileParserVersion` when
+  `parseTaskFile`'s output changes.
 - **Atomic files.** Each write goes to a temporary file, then is renamed over
   the original.
 - **Lock.** `<root>/.todo.lock` is created exclusively for the duration of a

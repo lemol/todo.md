@@ -2,6 +2,7 @@ import { BunServices } from "@effect/platform-bun"
 import { Context, Effect, FileSystem, Layer, Path } from "effect"
 import * as FsTodoStore from "../../src/fs/FsTodoStore.ts"
 import { type Files, makeFiles } from "../../src/fs/files.ts"
+import { makeParser, type Parser } from "../../src/fs/parsing.ts"
 import type { LockOptions } from "../../src/spec/lock.ts"
 
 export const md = (...lines: string[]) => `${lines.join("\n")}\n`
@@ -63,11 +64,27 @@ export const filesOnDisk: Effect.Effect<Files, never, Disk> = Effect.gen(functio
   return yield* makeFiles((yield* Disk).root).pipe(Effect.provide(BunServices.layer))
 })
 
-/** A temporary list holding `files`, with an `FsTodoStore` over it and `Disk` to inspect it. */
-export const listWith = (files: Readonly<Record<string, string>>, lock?: Partial<LockOptions>) =>
+/** A parser for the temporary list, with no cache file. */
+export const parserOnDisk: Effect.Effect<Parser, never, Disk> = Effect.gen(function* () {
+  return yield* makeParser((yield* Disk).root, undefined).pipe(Effect.provide(BunServices.layer))
+})
+
+/**
+ * A temporary list holding `files`, with an `FsTodoStore` over it and `Disk`
+ * to inspect it. `cacheDir` is relative to the temporary directory.
+ */
+export const listWith = (
+  files: Readonly<Record<string, string>>,
+  lock?: Partial<LockOptions>,
+  cacheDir?: string,
+) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const { root } = yield* Disk
-      return FsTodoStore.layer({ root, ...(lock === undefined ? {} : { lock }) })
+      return FsTodoStore.layer({
+        root,
+        ...(lock === undefined ? {} : { lock }),
+        ...(cacheDir === undefined ? {} : { cacheDir: `${root}/${cacheDir}` }),
+      })
     }),
   ).pipe(Layer.provideMerge(diskWith(files)), Layer.provide(BunServices.layer))
