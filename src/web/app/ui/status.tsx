@@ -1,8 +1,8 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { Badge, type BadgeTone } from "@lemol/ui/remix"
 import type { DateTime } from "effect"
-import type { RemixNode } from "remix/ui"
+import type { RemixNode } from "remix/component"
 import { type ProjectStatus, statusText } from "../../../hub/index.ts"
 
 /**

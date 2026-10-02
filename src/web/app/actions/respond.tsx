@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 import { ErrorPage } from "../ui/document.tsx"
 import { currentProject, renderPage, scriptEntryOf, type WebContext } from "./page.ts"
 

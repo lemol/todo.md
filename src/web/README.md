@@ -70,7 +70,7 @@ The web app is built on `@lemol/ui` (`mini` design). Key architectural patterns 
 - **Live region accommodation:** `<main id="main">` in `AppShell` does not carry arbitrary data attributes. Instead, the page content inside `<main>` is wrapped in `<div data-live-region data-project={project} ...>`, which `entry.ts` locates via `querySelector("[data-live-region]")` and replaces upon live events with no upstream shell changes required.
 - **Nav badges:** Upstream `NavItem` in `@lemol/ui/mini` takes a string `label`. Badges on nav items (e.g. diagnostics count on Check) are represented in text (e.g. `Check (2)`) pending an upstream accommodation in `repos/ui` to allow `badge?: RemixNode` on `NavItem`.
 - **Dialog open on 422:** `DialogPanel` does not have an `open` prop, and native `<dialog open>` without JS is not in modal state. Forms with validation errors on 422 render inline / full-page with error feedback (matching the no-JS and deep-link flow), rather than attempting to force a reopened modal.
-- **Markdown embedding:** `@lemol/ui` has no markdown component. Markdown is parsed and sanitized via `markdownHtml` and embedded into the JSX tree using a wrapper element with `innerHTML={markdownHtml(text)}`.
+- **Markdown embedding:** `@lemol/ui` has no markdown component. Markdown is parsed and sanitized via `markdownHtml` and embedded into the JSX tree using a wrapper element with `innerHTML={unsafeHTML(markdownHtml(text))}` — `unsafeHTML()` marks the sanitized string as trusted raw HTML, which Remix requires for `innerHTML`.
 - **Client runtime & compat:** `entry.ts` imports `@lemol/ui/remix/compat` to polyfill dialog invokers across browsers below Baseline December 2025.
 
 

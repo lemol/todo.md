@@ -1,6 +1,6 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 import { Badge, type BadgeTone, Button, Field, Heading, overlay } from "@lemol/ui/remix"
-import type { Handle, RemixNode } from "remix/ui"
+import { type Handle, type RemixNode, unsafeHTML } from "remix/component"
 import type { Listing, TaskView } from "../../../core/index.ts"
 import type { Capabilities } from "../../../spec/index.ts"
 import { routes } from "../routes.ts"
@@ -267,7 +267,7 @@ export function BoardPage(handle: Handle<BoardPageProps>) {
             {section.description === "" ? null : (
               <div
                 class="section-description markdown"
-                innerHTML={markdownHtml(section.description)}
+                innerHTML={unsafeHTML(markdownHtml(section.description))}
               />
             )}
             {section.tasks.map((view, index) => (
@@ -336,7 +336,10 @@ export function BoardPage(handle: Handle<BoardPageProps>) {
         <Heading level={1}>{listing.title}</Heading>
         {sync}
         {listing.description === "" ? null : (
-          <div class="list-description markdown" innerHTML={markdownHtml(listing.description)} />
+          <div
+            class="list-description markdown"
+            innerHTML={unsafeHTML(markdownHtml(listing.description))}
+          />
         )}
         <p class="summary">
           {views.length} open · {ready} ready · {blocked} blocked

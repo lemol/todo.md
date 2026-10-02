@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { DateTime, Effect } from "effect"
 import { redirect } from "remix/response/redirect"

@@ -1,6 +1,6 @@
 import "@lemol/ui/remix/compat"
 import "@lemol/ui/remix/runtime"
-import { run } from "remix/ui"
+import { run } from "remix/component"
 import { routes } from "../../routes.ts"
 import {
   createLiveRegionRefresher,

@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { redirect } from "remix/response/redirect"
 import { createController } from "remix/router"

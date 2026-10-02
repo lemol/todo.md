@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { Button } from "@lemol/ui/remix"
 import { DateTime, Deferred, Effect, Fiber, Stream } from "effect"

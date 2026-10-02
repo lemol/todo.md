@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { EmptyState } from "@lemol/ui/mini"
 import {
@@ -17,7 +17,7 @@ import {
   Text,
 } from "@lemol/ui/remix"
 import type { DateTime } from "effect"
-import type { Handle, RemixNode } from "remix/ui"
+import type { Handle, RemixNode } from "remix/component"
 import type { ProjectInfo } from "../../../hub/index.ts"
 import type { ProjectValues } from "../actions/forms.ts"
 import { routes } from "../routes.ts"

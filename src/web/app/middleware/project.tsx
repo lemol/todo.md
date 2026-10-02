@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 import { Effect, Result } from "effect"
 import type { Middleware } from "remix/router"
 import { TodoService } from "../../../core/index.ts"

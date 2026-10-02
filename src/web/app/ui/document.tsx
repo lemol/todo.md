@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 import { AppShell, ErrorState, Nav, type NavItem } from "@lemol/ui/mini"
 import { Document as MiniDocument } from "@lemol/ui/mini/document"
 import {
@@ -14,7 +14,7 @@ import {
   toast,
 } from "@lemol/ui/remix"
 import type { ScriptEntry } from "remix/assets"
-import { css, type Handle, type RemixNode } from "remix/ui"
+import { css, type Handle, type RemixNode, unsafeHTML } from "remix/component"
 import { routes } from "../routes.ts"
 import { theme } from "./theme.ts"
 
@@ -291,7 +291,7 @@ export function Document(handle: Handle<DocumentOptions>) {
 
     const content =
       options.children ??
-      (options.content === undefined ? null : <div innerHTML={options.content} />)
+      (options.content === undefined ? null : <div innerHTML={unsafeHTML(options.content)} />)
 
     const liveRegion = (
       <div

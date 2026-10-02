@@ -1,4 +1,4 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { EmptyState } from "@lemol/ui/mini"
 import {
@@ -14,7 +14,7 @@ import {
   Stack,
 } from "@lemol/ui/remix"
 import type { DateTime } from "effect"
-import { attrs, type Handle, type RemixNode } from "remix/ui"
+import { attrs, type Handle, type RemixNode } from "remix/component"
 import type { TaskView } from "../../../core/index.ts"
 import type { Overview, OverviewEntry, OverviewTask, ProjectInfo } from "../../../hub/index.ts"
 import { type DashboardQuery, dashboardHref } from "../actions/dashboard/query.ts"

@@ -1,6 +1,6 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 import { Badge, type BadgeTone, Button, Field, Heading, LinkButton, overlay } from "@lemol/ui/remix"
-import type { Handle, RemixNode } from "remix/ui"
+import { type Handle, type RemixNode, unsafeHTML } from "remix/component"
 import type { TaskDetail } from "../../../core/index.ts"
 import type { Capabilities, Task } from "../../../spec/index.ts"
 import type { EditValues } from "../actions/forms.ts"
@@ -184,7 +184,7 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
                 @{comment.author} · {formatMinute(comment.at)}
               </code>
             </div>
-            <div class="markdown" innerHTML={markdownHtml(comment.body)} />
+            <div class="markdown" innerHTML={unsafeHTML(markdownHtml(comment.body))} />
           </article>
         ))
       )
@@ -351,7 +351,7 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
         {task.description === "" ? null : (
           <section>
             <Heading level={2}>Description</Heading>
-            <div class="markdown" innerHTML={markdownHtml(task.description)} />
+            <div class="markdown" innerHTML={unsafeHTML(markdownHtml(task.description))} />
           </section>
         )}
         <section>

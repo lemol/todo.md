@@ -1,8 +1,8 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { afterEach, expect, test } from "bun:test"
 import { DateTime } from "effect"
-import { renderToString } from "remix/ui/server"
+import { renderToString } from "remix/component/server"
 import type { Dependency } from "../../src/core/index.ts"
 import { allCapabilities, type Task } from "../../src/spec/index.ts"
 import { parseDashboardQuery } from "../../src/web/app/actions/dashboard/query.ts"
@@ -114,8 +114,10 @@ test("compiles the browser entry with its workspace import map", async () => {
   const assets = createAssets()
   try {
     const entry = await assets.getScriptEntry("app/actions/public/entry.ts")
-    expect(JSON.stringify(entry.importMap)).toContain("remix/routes")
-    expect(JSON.stringify(entry.importMap)).toContain("remix/ui")
+    // `remix/*` subpaths are barrels, and the asset server rewrites named
+    // imports through them to the implementation modules, so they reach the
+    // browser as preloads rather than import-map entries.
+    expect(entry.preloads.some((href) => href.includes("remix-run/component/dist/"))).toBe(true)
     expect(JSON.stringify(entry.importMap)).toContain("@lemol/ui")
     expect(entry.preloads.length).toBeGreaterThan(0)
     expect((await assets.fetch(new Request(`http://localhost${entry.href}`)))?.status).toBe(200)

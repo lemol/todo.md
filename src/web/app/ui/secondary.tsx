@@ -1,8 +1,8 @@
-/** @jsxImportSource remix/ui */
+/** @jsxImportSource remix/component */
 
 import { EmptyState } from "@lemol/ui/mini"
 import { Badge, type BadgeTone, Heading, Stack, Text } from "@lemol/ui/remix"
-import type { Handle } from "remix/ui"
+import type { Handle } from "remix/component"
 import type { TaskView } from "../../../core/index.ts"
 import type { Diagnostic } from "../../../spec/index.ts"
 import { routes } from "../routes.ts"
