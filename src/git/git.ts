@@ -5,7 +5,7 @@
  */
 
 import { Effect, Schema, Stream } from "effect"
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
+import { ChildProcess, ChildProcessSpawner } from "effect/process"
 
 /** A `git` invocation that failed; `code` is -1 when git could not be started. */
 export class GitError extends Schema.TaggedError<GitError>()("GitError", {

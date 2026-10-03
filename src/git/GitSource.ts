@@ -14,7 +14,7 @@ import {
   Schema,
   Stream,
 } from "effect"
-import type { ChildProcessSpawner } from "effect/unstable/process"
+import type { ChildProcessSpawner } from "effect/process"
 import { FsTodoStore, makeLock } from "../fs/index.ts"
 import {
   nameFrom,

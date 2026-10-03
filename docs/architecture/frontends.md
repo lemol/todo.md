@@ -29,7 +29,7 @@ in the [hub](./hub.md)).
 
 ## cli
 
-The CLI is built with `effect/unstable/cli` (`Command`, `Flag`, `Argument`,
+The CLI is built with `effect/cli` (`Command`, `Flag`, `Argument`,
 `GlobalFlag`) and runs on `BunRuntime`. Each command resolves the current
 project through the hub (`hub.resolve`, then `hub.todo`):
 

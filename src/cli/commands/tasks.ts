@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command, Flag } from "effect/cli"
 import { type Placement, type TaskPatch, unique } from "../../spec/index.ts"
 import {
   author,
@@ -14,25 +14,25 @@ import {
 import { UsageError } from "../errors.ts"
 import { label, renderCancellation, renderCompletions, showId } from "../render.ts"
 
-const idArgument = Argument.string("id").pipe(
+const idArgument = Argument.String("id").pipe(
   Argument.withDescription("The task's ID, e.g. 7 or 07, or <project>:<id> for another project"),
 )
 
 /** Words of a variadic argument joined with spaces, so quotes are optional: `todo add Fix the bug --quick`. */
 const words = (name: string, description: string) =>
-  Argument.string(name).pipe(Argument.variadic({ min: 1 }), Argument.withDescription(description))
+  Argument.String(name).pipe(Argument.variadic({ min: 1 }), Argument.withDescription(description))
 
 const repeated = (name: string, description: string) =>
-  Flag.string(name).pipe(Flag.atLeast(0), Flag.withDescription(description))
+  Flag.String(name).pipe(Flag.atLeast(0), Flag.withDescription(description))
 
 const optional = (name: string, description: string) =>
-  Flag.string(name).pipe(Flag.optional, Flag.withDescription(description))
+  Flag.String(name).pipe(Flag.optional, Flag.withDescription(description))
 
 const some = <A>(key: string, value: Option.Option<A>) =>
   Option.isSome(value) ? { [key]: value.value } : {}
 
 const flagged = (name: string, description: string) =>
-  Flag.boolean(name).pipe(Flag.withDescription(description))
+  Flag.Boolean(name).pipe(Flag.withDefault(false), Flag.withDescription(description))
 
 /** What `-` does, said the same way wherever text accepts it; `as` shows the form. */
 const orStdin = (as: string) =>
@@ -201,7 +201,10 @@ export const edit = Command.make(
     tag: repeated("tag", "Add a tag; repeat for several"),
     untag: repeated("untag", "Remove a tag; repeat for several"),
     assignee: optional("assignee", "Assign it to this handle"),
-    unassign: Flag.boolean("unassign").pipe(Flag.withDescription("Remove the assignee")),
+    unassign: Flag.Boolean("unassign").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Remove the assignee"),
+    ),
     dependsOn: repeated(
       "depends-on",
       "Add a dependency; repeat for several (<project>:<id> works too)",
@@ -288,7 +291,7 @@ export const edit = Command.make(
 export const done = Command.make(
   "done",
   {
-    ids: Argument.string("id").pipe(
+    ids: Argument.String("id").pipe(
       Argument.variadic({ min: 1 }),
       Argument.withDescription("The tasks to complete (<project>:<id> works too)"),
     ),
@@ -323,7 +326,7 @@ export const cancel = Command.make(
   "cancel",
   {
     id: idArgument,
-    reason: Flag.string("reason").pipe(
+    reason: Flag.String("reason").pipe(
       Flag.withDescription(`Why the task is being abandoned (required). ${orStdin("--reason -")}`),
     ),
   },
@@ -383,13 +386,20 @@ export const mv = Command.make(
   {
     id: idArgument,
     group: optional("group", "Move to the end of this group (created if missing)"),
-    ungrouped: Flag.boolean("ungrouped").pipe(
+    ungrouped: Flag.Boolean("ungrouped").pipe(
+      Flag.withDefault(false),
       Flag.withDescription("Move to the end of the ungrouped tasks"),
     ),
     before: optional("before", "Move right before this task (<project>:<id> works too)"),
     after: optional("after", "Move right after this task (<project>:<id> works too)"),
-    top: Flag.boolean("top").pipe(Flag.withDescription("Move to the top of its group")),
-    bottom: Flag.boolean("bottom").pipe(Flag.withDescription("Move to the bottom of its group")),
+    top: Flag.Boolean("top").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Move to the top of its group"),
+    ),
+    bottom: Flag.Boolean("bottom").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Move to the bottom of its group"),
+    ),
   },
   Effect.fn(function* (flags) {
     const chosen = [
@@ -464,7 +474,8 @@ export const rm = Command.make(
   "rm",
   {
     id: idArgument,
-    force: Flag.boolean("force").pipe(
+    force: Flag.Boolean("force").pipe(
+      Flag.withDefault(false),
       Flag.withDescription("Remove it even if open tasks depend on it"),
     ),
   },

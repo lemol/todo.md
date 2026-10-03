@@ -1,5 +1,5 @@
 import { Console, Effect } from "effect"
-import { CliOutput, Command } from "effect/unstable/cli"
+import { CliOutput, Command } from "effect/cli"
 import { Hub } from "../hub/index.ts"
 import { fmt, init } from "./commands/lists.ts"
 import { projects, sync } from "./commands/projects.ts"

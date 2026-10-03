@@ -1,5 +1,5 @@
 import { Effect, Option, Path } from "effect"
-import { Command, Flag } from "effect/unstable/cli"
+import { Command, Flag } from "effect/cli"
 import { Hub } from "../../hub/index.ts"
 import { CliContext, Dir, output, Project } from "../context.ts"
 import { UsageError } from "../errors.ts"
@@ -9,11 +9,11 @@ const loopback = (host: string) => host === "127.0.0.1" || host === "localhost" 
 export const web = Command.make(
   "web",
   {
-    port: Flag.integer("port").pipe(
+    port: Flag.Int("port").pipe(
       Flag.withDescription("Port to listen on; the next free port is used when busy"),
       Flag.withDefault(4400),
     ),
-    host: Flag.string("host").pipe(
+    host: Flag.String("host").pipe(
       Flag.withDescription("Host to bind; anyone who can reach it can edit the list"),
       Flag.withDefault("127.0.0.1"),
     ),

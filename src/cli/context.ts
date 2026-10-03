@@ -1,5 +1,5 @@
 import { Console, Context, Effect, Option } from "effect"
-import { Flag, GlobalFlag } from "effect/unstable/cli"
+import { Flag, GlobalFlag } from "effect/cli"
 import type { TodoService } from "../core/index.ts"
 import { type AnySource, Hub, type ProjectInfo, parseRef, type TaskRef } from "../hub/index.ts"
 import { UsageError } from "./errors.ts"
@@ -72,14 +72,15 @@ export const wordsText = (name: string, parts: ReadonlyArray<string>) =>
       )
     : Effect.succeed(parts.join(" ").trim())
 
-export const Json = GlobalFlag.setting("json")({
-  flag: Flag.boolean("json").pipe(
+export const Json = GlobalFlag.Setting("json")({
+  flag: Flag.Boolean("json").pipe(
+    Flag.withDefault(false),
     Flag.withDescription("Print the result as JSON on stdout; failures go to stderr as JSON"),
   ),
 })
 
-export const Dir = GlobalFlag.setting("dir")({
-  flag: Flag.string("dir").pipe(
+export const Dir = GlobalFlag.Setting("dir")({
+  flag: Flag.String("dir").pipe(
     Flag.optional,
     Flag.withDescription(
       "The list's directory (the one holding TODO.md). Default: the nearest todo/TODO.md or TODO.md above the working directory",
@@ -87,8 +88,8 @@ export const Dir = GlobalFlag.setting("dir")({
   ),
 })
 
-export const Project = GlobalFlag.setting("project")({
-  flag: Flag.string("project").pipe(
+export const Project = GlobalFlag.Setting("project")({
+  flag: Flag.String("project").pipe(
     Flag.optional,
     Flag.withDescription(
       "The project to work on (a name in the registry). Cannot be used with --dir",

@@ -1,5 +1,5 @@
 import { Effect, Option, Path } from "effect"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command, Flag } from "effect/cli"
 import { FsTodoStore, initList, type NormalizeReport } from "../../fs/index.ts"
 import { Hub } from "../../hub/index.ts"
 import { listRootOf } from "../../hub/sources/fs.ts"
@@ -9,11 +9,11 @@ import { NoListFound, UsageError } from "../errors.ts"
 export const init = Command.make(
   "init",
   {
-    dir: Argument.string("dir").pipe(
+    dir: Argument.String("dir").pipe(
       Argument.optional,
       Argument.withDescription("Where to create the list (default: ./todo)"),
     ),
-    title: Flag.string("title").pipe(
+    title: Flag.String("title").pipe(
       Flag.optional,
       Flag.withDescription("The list's title (default: the working directory's name)"),
     ),

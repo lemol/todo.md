@@ -1,6 +1,6 @@
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
-import { FetchHttpClient } from "effect/unstable/http"
+import { FetchHttpClient } from "effect/http"
 import { GitSource } from "../git/index.ts"
 import { fsSource, Hub } from "../hub/index.ts"
 import { JiraSource } from "../jira/index.ts"

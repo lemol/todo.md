@@ -55,13 +55,13 @@ The web UI lives in `src/web` and ships in the published package, so `remix` (ex
 ## Tooling
 
 - **Bun 1.4** with a single `package.json` at the repository root.
-- **Effect 4 RC.** `effect` is a pinned peer dependency (plus the same
+- **Effect 4.** `effect` is a pinned peer dependency (plus the same
   version as a dev dependency), and `@effect/platform-bun` uses the same
   version. Upgrade them together with the other lemol repositories.
 - **`@effect/platform-node-shared` is pinned too**, as a dependency and in
-  `overrides`. `@effect/platform-bun` asks for it with a range
-  (`^4.0.0-rc.108`) that otherwise resolves to a newer release candidate,
-  which imports modules missing from our `effect`.
+  `overrides`. `@effect/platform-bun` asks for it with a caret range, which
+  would otherwise resolve to a newer release than our `effect`. Effect
+  releases every package at one version, so all of them must match.
 - **TypeScript**, strict, with `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`.
 - **Biome** for linting and formatting.

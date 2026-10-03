@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command, Flag } from "effect/cli"
 import type { TaskFilter } from "../../core/index.ts"
 import { Hub } from "../../hub/index.ts"
 import { output, projectOfRefs, refOf, withTodo } from "../context.ts"
@@ -15,15 +15,15 @@ import {
 
 /** Filters shared by `list` and `next`. */
 const filterFlags = {
-  tag: Flag.string("tag").pipe(
+  tag: Flag.String("tag").pipe(
     Flag.atLeast(0),
     Flag.withDescription("Only tasks with this tag; repeat to require several"),
   ),
-  assignee: Flag.string("assignee").pipe(
+  assignee: Flag.String("assignee").pipe(
     Flag.optional,
     Flag.withDescription("Only tasks assigned to this handle"),
   ),
-  group: Flag.string("group").pipe(Flag.optional, Flag.withDescription("Only tasks in this group")),
+  group: Flag.String("group").pipe(Flag.optional, Flag.withDescription("Only tasks in this group")),
 }
 
 const filterOf = (flags: {
@@ -98,12 +98,20 @@ export const list = Command.make(
   "list",
   {
     ...filterFlags,
-    ready: Flag.boolean("ready").pipe(Flag.withDescription("Only tasks that are ready")),
-    blocked: Flag.boolean("blocked").pipe(
+    ready: Flag.Boolean("ready").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Only tasks that are ready"),
+    ),
+    blocked: Flag.Boolean("blocked").pipe(
+      Flag.withDefault(false),
       Flag.withDescription("Only tasks blocked by an unfinished dependency"),
     ),
-    done: Flag.boolean("done").pipe(Flag.withDescription("Only done tasks, newest first")),
-    all: Flag.boolean("all").pipe(
+    done: Flag.Boolean("done").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Only done tasks, newest first"),
+    ),
+    all: Flag.Boolean("all").pipe(
+      Flag.withDefault(false),
       Flag.withDescription("Open and done tasks, or every registered project when any exist"),
     ),
   },
@@ -135,11 +143,12 @@ export const next = Command.make(
   "next",
   {
     ...filterFlags,
-    limit: Flag.integer("limit").pipe(
+    limit: Flag.Int("limit").pipe(
       Flag.withDefault(1),
       Flag.withDescription("How many ready tasks to show (0 for all)"),
     ),
-    all: Flag.boolean("all").pipe(
+    all: Flag.Boolean("all").pipe(
+      Flag.withDefault(false),
       Flag.withDescription(
         "Every registered project (or every ready task when none are registered)",
       ),
@@ -175,7 +184,7 @@ export const next = Command.make(
 export const show = Command.make(
   "show",
   {
-    id: Argument.string("id").pipe(
+    id: Argument.String("id").pipe(
       Argument.withDescription(
         "The task's ID, e.g. 7 or 07, or <project>:<id> for another project",
       ),

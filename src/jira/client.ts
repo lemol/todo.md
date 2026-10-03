@@ -11,8 +11,8 @@ import {
   type HttpClientError,
   HttpClientRequest,
   type HttpClientResponse,
-} from "effect/unstable/http"
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
+} from "effect/http"
+import { ChildProcess, ChildProcessSpawner } from "effect/process"
 import { JiraError } from "./errors.ts"
 import {
   CommentPage,

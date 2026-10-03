@@ -1,5 +1,5 @@
 import { DateTime, Effect, Option } from "effect"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command, Flag } from "effect/cli"
 import {
   Hub,
   type ProjectInfo,
@@ -84,46 +84,47 @@ export const projectsLs = Command.make("ls", {}, () => listProjects).pipe(
 export const projectsAdd = Command.make(
   "add",
   {
-    target: Argument.string("target").pipe(
+    target: Argument.String("target").pipe(
       Argument.withDescription("A directory path for a local list, a git URL, or a Jira site"),
     ),
-    name: Flag.string("name").pipe(
+    name: Flag.String("name").pipe(
       Flag.optional,
       Flag.withDescription("The project's name (default: from the target; required for jira)"),
     ),
-    source: Flag.string("source").pipe(
+    source: Flag.String("source").pipe(
       Flag.optional,
       Flag.withDescription("The source kind: fs, git or jira (default: inferred from the target)"),
     ),
-    branch: Flag.string("branch").pipe(
+    branch: Flag.String("branch").pipe(
       Flag.optional,
       Flag.withDescription("git only: the branch to track (default: the repository's own)"),
     ),
-    list: Flag.string("list").pipe(
+    list: Flag.String("list").pipe(
       Flag.optional,
       Flag.withDescription(
         "git only: the list directory in the repository (default: todo/ or its root)",
       ),
     ),
-    email: Flag.string("email").pipe(
+    email: Flag.String("email").pipe(
       Flag.optional,
       Flag.withDescription("jira only: the account the API token belongs to"),
     ),
-    tokenEnv: Flag.string("token-env").pipe(
+    tokenEnv: Flag.String("token-env").pipe(
       Flag.optional,
       Flag.withDescription("jira only: the environment variable holding the API token"),
     ),
-    tokenCommand: Flag.string("token-command").pipe(
+    tokenCommand: Flag.String("token-command").pipe(
       Flag.optional,
       Flag.withDescription("jira only: a command printing the API token, e.g. from a keychain"),
     ),
-    jql: Flag.string("jql").pipe(
+    jql: Flag.String("jql").pipe(
       Flag.optional,
       Flag.withDescription(
         "jira only: the query behind the project (default: assigned to me and not done)",
       ),
     ),
-    readOnly: Flag.boolean("read-only").pipe(
+    readOnly: Flag.Boolean("read-only").pipe(
+      Flag.withDefault(false),
       Flag.withDescription(
         "jira only: never write to Jira; sync and read only, and done, reopen, edit and comment fail",
       ),
@@ -220,8 +221,9 @@ export const projectsAdd = Command.make(
 export const projectsRm = Command.make(
   "rm",
   {
-    name: Argument.string("name").pipe(Argument.withDescription("The project to remove")),
-    force: Flag.boolean("force").pipe(
+    name: Argument.String("name").pipe(Argument.withDescription("The project to remove")),
+    force: Flag.Boolean("force").pipe(
+      Flag.withDefault(false),
       Flag.withDescription("Remove it even if the source refuses (e.g. unpushed commits)"),
     ),
   },
@@ -241,8 +243,8 @@ export const projectsRm = Command.make(
 export const projectsRename = Command.make(
   "rename",
   {
-    from: Argument.string("from").pipe(Argument.withDescription("The project's current name")),
-    to: Argument.string("to").pipe(Argument.withDescription("The project's new name")),
+    from: Argument.String("from").pipe(Argument.withDescription("The project's current name")),
+    to: Argument.String("to").pipe(Argument.withDescription("The project's new name")),
   },
   Effect.fn(function* ({ from, to }) {
     const hub = yield* Hub
@@ -258,11 +260,14 @@ export const projectsRename = Command.make(
 export const sync = Command.make(
   "sync",
   {
-    names: Argument.string("name").pipe(
+    names: Argument.String("name").pipe(
       Argument.variadic(),
       Argument.withDescription("The projects to sync (default: the current project)"),
     ),
-    all: Flag.boolean("all").pipe(Flag.withDescription("Sync every project whose source can sync")),
+    all: Flag.Boolean("all").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Sync every project whose source can sync"),
+    ),
   },
   Effect.fn(function* ({ names, all }) {
     if (all && names.length > 0) {

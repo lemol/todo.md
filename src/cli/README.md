@@ -1,7 +1,7 @@
 # @lemol/todo-md/cli
 
 The `todo` command: manage a todo.md list from a terminal or from an agent.
-Built with `effect/unstable/cli` on `@effect/platform-bun`.
+Built with `effect/cli` on `@effect/platform-bun`.
 
 > Status: implemented for spec 0.1.
 

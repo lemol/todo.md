@@ -12,7 +12,7 @@
  */
 
 import { Clock, DateTime, Effect, Layer } from "effect"
-import { HttpClient, HttpClientError, HttpClientResponse } from "effect/unstable/http"
+import { HttpClient, HttpClientError, HttpClientResponse } from "effect/http"
 
 /** A raw issue payload, as Jira sends it. */
 export interface RawIssue {

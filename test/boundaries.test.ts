@@ -220,7 +220,7 @@ describe("module boundaries", () => {
         'import { FsTodoStore } from "../fs/index.ts"',
         'import { watchList } from "../hub/index.ts"',
         'import { TodoStore } from "../spec/index.ts"',
-        'import { ChildProcess } from "effect/unstable/process"',
+        'import { ChildProcess } from "effect/process"',
       ].join("\n")
       expect(violations(at("git", "GitSource.ts"), source)).toEqual([])
       expect(
@@ -241,8 +241,8 @@ describe("module boundaries", () => {
       const source = [
         'import { watchList } from "../hub/index.ts"',
         'import { TodoStore } from "../spec/index.ts"',
-        'import { HttpClient } from "effect/unstable/http"',
-        'import { ChildProcessSpawner } from "effect/unstable/process"',
+        'import { HttpClient } from "effect/http"',
+        'import { ChildProcessSpawner } from "effect/process"',
       ].join("\n")
       expect(violations(at("jira", "JiraSource.ts"), source)).toEqual([])
       expect(

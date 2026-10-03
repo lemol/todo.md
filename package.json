@@ -30,11 +30,11 @@
     "nzila": "bun ../nzila/src/cli/bin.ts"
   },
   "peerDependencies": {
-    "effect": "4.0.0-rc.108"
+    "effect": "4.0.0"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.0-rc.108",
-    "@effect/platform-node-shared": "4.0.0-rc.108",
+    "@effect/platform-bun": "4.0.0",
+    "@effect/platform-node-shared": "4.0.0",
     "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.2.0",
     "hast-util-to-html": "^9.0.5",
     "mdast-util-from-markdown": "^2.0.3",
@@ -50,10 +50,10 @@
     "@biomejs/biome": "^2.5.13",
     "@types/bun": "^1.4.2",
     "@types/mdast": "^4.0.4",
-    "effect": "4.0.0-rc.108",
+    "effect": "4.0.0",
     "typescript": "^7.0.2"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.0-rc.108"
+    "@effect/platform-node-shared": "4.0.0"
   }
 }
