@@ -106,7 +106,7 @@ describe("finding the list, errors and exit codes", () => {
     Effect.gen(function* () {
       const result = yield* todo("--version")
       expect(result.code).toBe(0)
-      expect(result.stdout).toContain("0.1.0")
+      expect(result.stdout).toContain("0.2.0")
     }),
     diskWith({}),
   )

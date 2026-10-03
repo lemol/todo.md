@@ -8,7 +8,7 @@ dependency pinned to a tag, which a composition root such as
 
 ```jsonc
 // consumer
-"@lemol/todo-md": "git+ssh://git@github.com/lemol/todo.md.git#todo-md@0.1.0"
+"@lemol/todo-md": "git+ssh://git@github.com/lemol/todo.md.git#todo-md@0.2.0"
 // composition root
 "overrides": { "@lemol/todo-md": "file:./repos/todo-md" }
 ```
