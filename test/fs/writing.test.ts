@@ -258,7 +258,7 @@ describe("FsTodoStore writes the todo.md format", () => {
       const beforeTodo = yield* disk.read("TODO.md")
       const beforeTree = yield* disk.tree()
 
-      for (const body of ["## ATX 2", "### ATX 3", "Setext\n---"]) {
+      for (const body of ["## ATX 2", "### ATX 3", "Setext\n---", "---\ntitle: x\n---"]) {
         yield* failsWith(store.comment("1", { author: "lemol", body }), "ValidationError")
 
         expect(yield* disk.read("TODO.md")).toBe(beforeTodo)

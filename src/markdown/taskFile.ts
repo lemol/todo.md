@@ -362,6 +362,10 @@ export const prependComment = (source: string, comment: Comment): string => {
   return joinLines(spliceLines(text, last + 1, text.lines.length - last - 1, insert))
 }
 
-/** Returns true if the markdown contains unescaped level-1 to level-3 headings (spec §2.6, §2.10). */
+/**
+ * Returns true if the markdown contains unescaped level-1 to level-3 headings
+ * (spec §2.6, §2.10). The body is parsed after a blank line, as the reader
+ * sees it: a leading `---` fence is a thematic break there, not frontmatter.
+ */
 export const hasUnescapedHeading = (body: string): boolean =>
-  parseAst(body).children.some((node) => node.type === "heading" && node.depth <= 3)
+  parseAst(`\n${body}`).children.some((node) => node.type === "heading" && node.depth <= 3)

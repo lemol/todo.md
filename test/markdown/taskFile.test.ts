@@ -388,6 +388,8 @@ describe("hasUnescapedHeading", () => {
     expect(hasUnescapedHeading("# Heading 1")).toBe(true)
     expect(hasUnescapedHeading("Heading\n---")).toBe(true)
     expect(hasUnescapedHeading("Heading\n===")).toBe(true)
+    expect(hasUnescapedHeading("---\ntitle: x\n---")).toBe(true)
+    expect(hasUnescapedHeading("---\n## sneaky\n---")).toBe(true)
   })
 
   test("allows depth 4 or deeper, code fences, inline code, and escapes", () => {
@@ -397,5 +399,6 @@ describe("hasUnescapedHeading", () => {
     expect(hasUnescapedHeading("Use `## Code` here")).toBe(false)
     expect(hasUnescapedHeading("\\## Not a heading")).toBe(false)
     expect(hasUnescapedHeading("Text\n\n---\n\nMore text")).toBe(false)
+    expect(hasUnescapedHeading("---\n\n---")).toBe(false)
   })
 })
