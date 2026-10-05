@@ -14,6 +14,7 @@ import {
 import { TodoService } from "../core/index.ts"
 import { type StoreError, TodoStore } from "../spec/index.ts"
 import { type Changes, type HubChange, makeChanges, notifying, type Watched } from "./changes.ts"
+import { makeDependencyResolver } from "./dependencies.ts"
 import {
   type InvalidProjectConfig,
   type NoListFound,
@@ -217,7 +218,8 @@ const make = (options: HubOptions) =>
                   notifying(store, changes.publish({ kind: "changed", project: name })),
                 ),
               ).pipe(Layer.provide(opened))
-        return Layer.fresh(TodoService.layer).pipe(Layer.provide(store))
+        const resolver = makeDependencyResolver(name, { find, serviceOf, registered })
+        return Layer.fresh(TodoService.layer).pipe(Layer.provide(Layer.merge(store, resolver)))
       })
 
     const services = yield* LayerMap.make(

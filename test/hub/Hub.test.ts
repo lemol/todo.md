@@ -636,6 +636,30 @@ describe("rename", () => {
 
 describe("todo", () => {
   effectTest(
+    "evaluates cross-project dependencies across registered projects",
+    Effect.gen(function* () {
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.add({ name: "upstream", source: "memory", config: {} })
+      yield* hub.add({ name: "downstream", source: "memory", config: {} })
+      const upstream = yield* hub.todo("upstream")
+      const downstream = yield* hub.todo("downstream")
+
+      const t1 = yield* upstream.add({ title: "Upstream task" })
+      const t2 = yield* downstream.add({
+        title: "Downstream task",
+        dependsOn: [`upstream:${t1.id}`],
+      })
+
+      const nextBefore = yield* downstream.next()
+      expect(nextBefore.some((v) => v.task.id === t2.id)).toBe(false)
+
+      yield* upstream.complete(t1.id)
+      const nextAfter = yield* downstream.next()
+      expect(nextAfter.some((v) => v.task.id === t2.id)).toBe(true)
+    }),
+    diskWith({}),
+  )
+  effectTest(
     "returns services over the same store each time",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
