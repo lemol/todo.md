@@ -74,6 +74,10 @@ export class TodoService extends Context.Service<
     /** Ready open tasks in priority order: "what should I work on?" */
     next(filter?: TaskFilter): Effect.Effect<ReadonlyArray<TaskView>, StoreError>
     show(id: TaskId): Effect.Effect<TaskDetail, TaskNotFound | StoreError>
+    /** Returns a task directly from the store without computing derived board state. */
+    get(id: TaskId): Effect.Effect<Task, TaskNotFound | StoreError>
+    /** Returns all tasks (open and done) directly from the store without computing derived board state. */
+    tasks(): Effect.Effect<ReadonlyArray<Task>, StoreError>
     /** The store's diagnostics plus the model checks of spec §1.6. */
     check(): Effect.Effect<ReadonlyArray<Diagnostic>, StoreError>
     add(
@@ -180,6 +184,14 @@ export class TodoService extends Context.Service<
               .map(view(b))
               .filter((v) => v.state === "ready" && matches(filter)(v)),
           ),
+
+        get: (id) => store.get(id),
+
+        tasks: () =>
+          Effect.map(Effect.all([store.load(), store.listDone()]), ([list, done]) => [
+            ...inPriorityOrder(list),
+            ...done,
+          ]),
 
         show: (id) =>
           Effect.gen(function* () {

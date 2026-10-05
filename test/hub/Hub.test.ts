@@ -659,6 +659,61 @@ describe("todo", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "detects cross-project cycles without infinite recursion and reports diagnostic",
+    Effect.gen(function* () {
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.add({ name: "project-a", source: "memory", config: {} })
+      yield* hub.add({ name: "project-b", source: "memory", config: {} })
+      const a = yield* hub.todo("project-a")
+      const b = yield* hub.todo("project-b")
+
+      const tA = yield* a.add({ title: "Task A", dependsOn: ["project-b:1"] })
+      const tB = yield* b.add({ title: "Task B", dependsOn: ["project-a:1"] })
+
+      const nextA = yield* a.next()
+      expect(nextA.some((v) => v.task.id === tA.id)).toBe(false)
+      const nextB = yield* b.next()
+      expect(nextB.some((v) => v.task.id === tB.id)).toBe(false)
+      const listA = yield* a.list()
+      const viewA = listA.sections.flatMap((s) => s.tasks).find((v) => v.task.id === tA.id)
+      expect(viewA?.state).toBe("blocked")
+
+      const diagsA = yield* a.check()
+      const cycleDiagA = diagsA.find((d) => d.code === "dependency-cycle")
+      expect(cycleDiagA).toBeDefined()
+      expect(cycleDiagA?.severity).toBe("error")
+      expect(cycleDiagA?.message).toContain("project-a:1")
+      expect(cycleDiagA?.message).toContain("project-b:1")
+
+      const diagsB = yield* b.check()
+      const cycleDiagB = diagsB.find((d) => d.code === "dependency-cycle")
+      expect(cycleDiagB).toBeDefined()
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "hub check warns on unknown foreign ID and unresolvable project",
+    Effect.gen(function* () {
+      const hub = yield* hubOn([memorySource()])
+      yield* hub.add({ name: "app", source: "memory", config: {} })
+      yield* hub.add({ name: "dep", source: "memory", config: {} })
+      const app = yield* hub.todo("app")
+      yield* app.add({ title: "Needs missing task", dependsOn: ["dep:999"] })
+      yield* app.add({ title: "Needs unknown project", dependsOn: ["nonexistent:1"] })
+
+      const diags = yield* app.check()
+      expect(diags.some((d) => d.code === "unknown-dependency" && d.severity === "warning")).toBe(
+        true,
+      )
+      expect(diags.some((d) => d.code === "unresolvable-project" && d.severity === "warning")).toBe(
+        true,
+      )
+    }),
+    diskWith({}),
+  )
   effectTest(
     "returns services over the same store each time",
     Effect.gen(function* () {

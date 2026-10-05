@@ -522,6 +522,15 @@ describe("todo add with cross-project dependencies", () => {
       expect(nextBefore.stdout).toBe("Nothing is ready.")
 
       yield* runTodo(["add", "Blocking Task", "--project", "slash-usage", "--quick"], { home })
+
+      const showResult = yield* runTodo(["show", "--project", "workspace", "01"], { home })
+      expect(showResult.stdout).toContain("blocked by slash-usage:01")
+      expect(showResult.stdout).toContain("slash-usage:01  Blocking Task  ready")
+
+      const lsResult = yield* runTodo(["ls", "--project", "workspace"], { home })
+      expect(lsResult.stdout).toContain("01  Dependent Task")
+      expect(lsResult.stdout).toContain("blocked by slash-usage:01")
+
       const doneResult = yield* runTodo(["done", "slash-usage:1"], { home })
       expect(doneResult.stdout).toContain("workspace:01  Dependent Task")
     }),

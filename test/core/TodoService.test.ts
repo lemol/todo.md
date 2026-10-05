@@ -108,6 +108,21 @@ describe("TodoService queries", () => {
   )
 
   effectTest(
+    "get and tasks return raw tasks from the store without derived board state",
+    Effect.gen(function* () {
+      const todo = yield* seed
+      const task = yield* todo.get("2")
+      expect(task.id).toBe("2")
+      expect(task.title).toBe("Add rate limiting")
+      expect((yield* Effect.flip(todo.get("999")))._tag).toBe("TaskNotFound")
+
+      const all = yield* todo.tasks()
+      expect(all.map((t) => t.id)).toEqual(["1", "2", "3", "4"])
+    }),
+    service,
+  )
+
+  effectTest(
     "check adds model problems to the store's diagnostics",
     Effect.gen(function* () {
       const todo = yield* seed
