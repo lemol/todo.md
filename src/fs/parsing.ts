@@ -25,7 +25,11 @@ export interface Parser {
   readonly taskFile: (path: string, source: string) => TaskFile
   /** Starts a read: loads the cache file the first time. */
   readonly begin: Effect.Effect<void>
-  /** Ends a read: forgets parses no read used since the last `end`, then saves the cache file if any parse was new. */
+  /**
+   * Ends a read. When no other read is in flight, forgets parses no read used
+   * since the last time that happened, then saves the cache file if any parse
+   * was new. Every `begin` needs its `end`, on every exit.
+   */
   readonly end: Effect.Effect<void>
 }
 
@@ -114,6 +118,9 @@ export const makeParser = (
     let used = new Map<string, TaskFile>()
     let fresh = false
     let loaded = false
+    // Reads in flight. Forgetting waits for the last of them: an earlier one
+    // ending must not drop what a later one has used and will look up again.
+    let active = 0
     let lastTodo: { readonly source: string; readonly todo: TodoFile } | undefined
 
     const load = Effect.gen(function* () {
@@ -161,8 +168,13 @@ export const makeParser = (
         used.set(key, parsed)
         return parsed
       },
-      begin: Effect.suspend(() => (loaded ? Effect.void : load)),
+      begin: Effect.suspend(() => {
+        active++
+        return loaded ? Effect.void : load
+      }),
       end: Effect.suspend(() => {
+        active = Math.max(0, active - 1)
+        if (active > 0) return Effect.void
         taskFiles = used
         used = new Map()
         if (!fresh) return Effect.void

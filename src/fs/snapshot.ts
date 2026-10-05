@@ -91,8 +91,14 @@ export const doneTask = (done: DoneEntry): Task =>
 
 /** Reads the whole list. Never writes to it; unchanged files reuse their last parse. */
 export const readSnapshot = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> =>
+  Effect.acquireUseRelease(
+    parser.begin,
+    () => readWith(files, parser),
+    () => parser.end,
+  )
+
+const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> =>
   Effect.gen(function* () {
-    yield* parser.begin
     const source = yield* files.read(todoPath)
     if (source === undefined) {
       return yield* new StoreError({ message: `no ${todoPath} in ${files.root}` })
@@ -208,7 +214,6 @@ export const readSnapshot = (files: Files, parser: Parser): Effect.Effect<Snapsh
         claim(entry.id, entry.path)
     }
 
-    yield* parser.end
     return {
       source,
       todo,

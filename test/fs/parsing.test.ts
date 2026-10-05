@@ -60,6 +60,27 @@ describe("makeParser", () => {
   )
 
   effectTest(
+    "overlapping reads keep each other's parses",
+    Effect.gen(function* () {
+      const parser = yield* parserWith()
+      const files = { "01-a.md": withComment, "02-b.md": withComment.replace("api", "web") }
+      const [a, b] = yield* read(parser, files)
+      // Two reads in flight, ending out of order: the first `end` must not
+      // forget what the read still running has used.
+      yield* parser.begin
+      yield* parser.begin
+      parser.taskFile("01-a.md", files["01-a.md"])
+      yield* parser.end
+      parser.taskFile("02-b.md", files["02-b.md"])
+      yield* parser.end
+      const [againA, againB] = yield* read(parser, files)
+      expect(againA).toBe(a)
+      expect(againB).toBe(b)
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
     "keeps parses in the cache file, for the next parser of the same list",
     Effect.gen(function* () {
       const disk = yield* Disk
