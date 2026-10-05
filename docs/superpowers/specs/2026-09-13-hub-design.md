@@ -31,7 +31,6 @@ document records the decisions, their reasons and the task breakdown.
 - A daemon or HTTP API. Each process creates its own hub over shared state
   in `~/.todo-md`.
 - Multi-user hosting and authentication (task 09 builds on this later).
-- Cross-project dependencies.
 - Watching remote sources. Remote data refreshes on `sync` only.
 - A global content index or search database (see Decisions).
 

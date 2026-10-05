@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test"
 import { formatRef, parseRef } from "../../src/hub/index.ts"
+import {
+  isValidName,
+  formatRef as specFormatRef,
+  parseRef as specParseRef,
+} from "../../src/spec/index.ts"
 
 describe("refs", () => {
   test("formats project:id", () => {
@@ -33,5 +38,12 @@ describe("refs", () => {
     ] as const) {
       expect(parseRef(formatRef(project, id))).toEqual({ project, id })
     }
+  })
+
+  test("exports ref parsing and validation from spec", () => {
+    expect(isValidName("slash-usage")).toBe(true)
+    expect(isValidName("Invalid Name")).toBe(false)
+    expect(specParseRef("slash-usage:1")).toEqual({ project: "slash-usage", id: "1" })
+    expect(specFormatRef("slash-usage", "1")).toBe("slash-usage:1")
   })
 })

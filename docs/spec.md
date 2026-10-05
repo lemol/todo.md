@@ -118,6 +118,10 @@ These are computed, never stored:
   absent, per §2.6 — never test `outcome === "completed"` to mean this). A
   dependency on a cancelled task is unsatisfied, and it is also reported as a
   diagnostic (§1.6).
+- A `dependsOn` entry MAY be qualified as `<project>:<id>` (a foreign
+  reference, resolved through the hub). A plain `TodoService` keeps the entry
+  but cannot resolve it: it treats the dependency as unsatisfied and reports
+  an `unresolvable-project` warning (§1.6).
 - A task is **ready** when it is open and all its dependencies are satisfied.
 - A task is **blocked** when it is open and not ready. A dependency on an
   unknown ID is unsatisfied, and it is also reported as a validation error
@@ -203,6 +207,7 @@ can report them (for example `todo check`). The model-level checks are:
 | ---------------------- | -------- | ------------------------------------------------- |
 | `duplicate-id`         | error    | Two tasks share an ID.                            |
 | `unknown-dependency`   | error    | `dependsOn` refers to an ID that doesn't exist.   |
+| `unresolvable-project` | warning  | `dependsOn` refers to `<project>:<id>` whose project cannot be resolved here. Foreign failures warn, never fail the list. |
 | `self-dependency`      | error    | A task depends on itself.                         |
 | `dependency-cycle`     | error    | Dependencies form a cycle.                        |
 | `cancelled-dependency` | warning  | `dependsOn` refers to a cancelled task.           |
@@ -357,7 +362,7 @@ Otherwise the line is ordinary description.
 - **Multiple assignees.** More than one `@name` is a `multiple-assignees`
   diagnostic (error); parsers use the first.
 - **Invalid values.** A `depends_on` value that is not a comma-separated list
-  of IDs is an `invalid-metadata` diagnostic (error), and the field is
+  of IDs (each a local ID or a `<project>:<id>` foreign reference) is an `invalid-metadata` diagnostic (error), and the field is
   ignored.
 - **Escaping.** A writer producing an inline task whose description's first
   line would itself parse as metadata MUST put a blank line between the item
@@ -400,7 +405,7 @@ YAML between `---` lines at the start of the file.
 | `title`        | string                | Takes precedence over the link text in `TODO.md`. REQUIRED in done files. |
 | `tags`         | list of strings       | A single string is accepted as one tag.                                  |
 | `assignee`     | string                |                                                                          |
-| `depends_on`   | list of IDs           | Integers or digit strings; a single value is accepted.                   |
+| `depends_on`   | list of IDs           | Integers or digit strings, or `<project>:<id>` foreign references; a single value is accepted.                   |
 | `completed_at` | timestamp             | Done files only; REQUIRED there. ISO 8601 with offset.                   |
 | `group`        | string                | Done files only: the group display name at completion.                   |
 | `outcome`      | `completed` \| `cancelled` | Done files only. Absent means `completed`. Any other value is `invalid-frontmatter`. |

@@ -1,5 +1,6 @@
-/** Project names: lowercase letters, digits and dashes, starting with a letter or digit. */
-export const isValidName = (name: string): boolean => /^[a-z0-9][a-z0-9-]*$/.test(name)
+import { isValidName } from "../spec/index.ts"
+
+export { isValidName }
 
 /** A valid name made from free text such as a directory name (`My App` → `my-app`); `undefined` if nothing is left. */
 export const nameFrom = (text: string): string | undefined => {
