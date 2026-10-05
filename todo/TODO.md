@@ -6,8 +6,6 @@
 Multi-project support: the hub library, projects, sync, and git and Jira
 sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md).
 
-- [ ] [35 - Support dependencies on tasks in other projects](./hub-and-sources/35-support-dependencies-on-tasks-in-other-projects.md)
-
 
 ## Release
 
