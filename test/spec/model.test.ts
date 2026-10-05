@@ -4,6 +4,7 @@ import { CommentInput, Label, Task, TaskInput, TaskPatch } from "../../src/spec/
 
 const accepts = <S extends Schema.Top>(schema: S, value: unknown) =>
   expect(Schema.is(schema)(value)).toBe(true)
+
 const rejects = <S extends Schema.Top>(schema: S, value: unknown) =>
   expect(Schema.is(schema)(value)).toBe(false)
 

@@ -15,6 +15,7 @@ export const validate = <S extends Schema.Top & { readonly DecodingServices: nev
 /** Fails with `ValidationError` if the tasks' dependencies contain a self-dependency or a cycle (spec §1.6). */
 export const ensureAcyclic = (tasks: Iterable<Task>): Effect.Effect<void, ValidationError> => {
   const cycle = findCycle(new Map(Array.from(tasks, (task) => [task.id, task.dependsOn])))
+
   return cycle === undefined
     ? Effect.void
     : Effect.fail(new ValidationError({ issues: [`dependency cycle: ${cycle.join(" → ")}`] }))

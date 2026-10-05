@@ -9,7 +9,9 @@ import { type Diagnostic, findCycle, parseRef, type Task, type TaskId } from "..
 export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diagnostic> => {
   const diagnostics: Diagnostic[] = []
   const counts = new Map<TaskId, number>()
+
   for (const task of tasks) counts.set(task.id, (counts.get(task.id) ?? 0) + 1)
+
   for (const [id, count] of counts) {
     if (count > 1) {
       diagnostics.push({
@@ -20,12 +22,15 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
       })
     }
   }
+
   const cancelled = new Set(
     tasks.filter((task) => task.outcome === "cancelled").map((task) => task.id),
   )
+
   for (const task of tasks) {
     for (const dependency of task.dependsOn) {
       const ref = parseRef(dependency)
+
       if (ref.project !== undefined) {
         if (dependency === task.id) {
           diagnostics.push({
@@ -42,8 +47,10 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
             taskId: task.id,
           })
         }
+
         continue
       }
+
       if (dependency === task.id) {
         diagnostics.push({
           severity: "error",
@@ -68,12 +75,15 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
       }
     }
   }
+
   // Self-dependencies are reported above, so they are left out of the cycle search.
   const edges = new Map(
     tasks.map((task) => [task.id, task.dependsOn.filter((id) => id !== task.id)] as const),
   )
+
   const cycle = findCycle(edges)
   const [first] = cycle ?? []
+
   if (cycle !== undefined && first !== undefined) {
     diagnostics.push({
       severity: "error",
@@ -82,6 +92,7 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
       taskId: first,
     })
   }
+
   return diagnostics
 }
 

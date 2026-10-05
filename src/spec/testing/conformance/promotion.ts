@@ -21,6 +21,7 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
         tags: ["cli"],
         assignee: "lemol",
       })
+
       const before = yield* store.get(id)
       equal(yield* store.promote(id), before)
       equal(yield* store.get(id), before)
@@ -61,7 +62,9 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       if (store.capabilities.promote) return
+
       const [task] = yield* given({ title: "Task" })
       yield* failsWith(store.promote(task.id), "Unsupported")
     }),

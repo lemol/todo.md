@@ -27,6 +27,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
         { title: "A", placement: { group: "Backend" } },
         { title: "B", placement: { group: "Frontend" } },
       )
+
       const moved = yield* store.move(a.id, { group: "Frontend" })
       equal(moved.group, "Frontend")
       equal((yield* store.get(a.id)).group, "Frontend")

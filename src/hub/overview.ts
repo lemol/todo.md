@@ -64,6 +64,7 @@ export interface OverviewDeps {
 /** The entry for a name no project has. */
 const missing = (name: string): OverviewEntry => {
   const error = new ProjectNotFound({ name })
+
   return {
     project: {
       name,
@@ -80,11 +81,13 @@ const missing = (name: string): OverviewEntry => {
 export const tasksOf = (entries: ReadonlyArray<OverviewEntry>): ReadonlyArray<OverviewTask> =>
   entries.flatMap((entry) => {
     if (!("listing" in entry)) return []
+
     const { name } = entry.project
     const views = [
       ...entry.listing.sections.flatMap((section) => section.tasks),
       ...entry.listing.done,
     ]
+
     return views.map((view) => ({ project: name, ref: formatRef(name, view.task.id), view }))
   })
 
@@ -99,14 +102,17 @@ export const overviewOf = (
       query.projects === undefined
         ? all.filter((project) => project.registered)
         : query.projects.map((name) => all.find((project) => project.name === name) ?? name)
+
     const { sources } = query
     const kept =
       sources === undefined
         ? chosen
         : chosen.filter((item) => Predicate.isString(item) || sources.includes(item.kind))
+
     const entryOf = (project: Project) =>
       Effect.gen(function* () {
         const info = yield* deps.describe(project)
+
         return yield* deps.listing(project, query.filter).pipe(
           Effect.match({
             onSuccess: (listing): OverviewEntry => ({ project: info, listing }),
@@ -114,11 +120,13 @@ export const overviewOf = (
           }),
         )
       })
+
     const entries = yield* Effect.forEach(
       kept,
       (item) => (Predicate.isString(item) ? Effect.succeed(missing(item)) : entryOf(item)),
       { concurrency: 4 },
     )
+
     return { projects: entries, tasks: tasksOf(entries) }
   })
 
@@ -145,17 +153,21 @@ export const dashboardOf = (
     const byName = new Map(
       all.flatMap((project, index) => {
         const info = infos[index]
+
         return info === undefined ? [] : [[project.name, info] as const]
       }),
     )
+
     const startup = options.startup
     const startupRow =
       startup === undefined ? undefined : infos.find((info) => info.name === startup)
+
     const projectOrder =
       query.projects ??
       (startupRow !== undefined && !startupRow.registered
         ? [startupRow.name, ...infos.filter((info) => info.registered).map((info) => info.name)]
         : undefined)
+
     const overview = yield* overviewOf(
       {
         ...query,
@@ -165,6 +177,7 @@ export const dashboardOf = (
         projects: Effect.succeed(all),
         describe: (project) => {
           const info = byName.get(project.name)
+
           return info === undefined
             ? Effect.die(`dashboard snapshot missing ${project.name}`)
             : Effect.succeed(info)
@@ -172,5 +185,6 @@ export const dashboardOf = (
         listing: deps.listing,
       },
     )
+
     return { projects: infos, overview }
   })

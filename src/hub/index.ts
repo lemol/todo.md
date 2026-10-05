@@ -1,12 +1,7 @@
 export type { HubChange } from "./changes.ts"
 export * from "./errors.ts"
 export { Hub, type HubOptions } from "./Hub.ts"
-export {
-  type AddInput,
-  type ProjectInputOptions,
-  projectInput,
-  projectInputFrom,
-} from "./input.ts"
+export { type AddInput, type ProjectInputOptions, projectInput, projectInputFrom } from "./input.ts"
 export { isValidName, nameFrom } from "./names.ts"
 export type {
   Overview,

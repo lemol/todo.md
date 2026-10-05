@@ -83,8 +83,10 @@ const openEntries = (snapshot: Snapshot): ReadonlyArray<Entry> =>
 const toList = (snapshot: Snapshot): TodoList => {
   const open = openEntries(snapshot)
   const [ungrouped, ...groups] = snapshot.todo.sections
+
   const tasksOf = (name: string | undefined) =>
     open.filter((entry) => entry.section.name === name).map(entryTask)
+
   return {
     title: snapshot.todo.title,
     description: snapshot.todo.description,
@@ -101,8 +103,11 @@ const findTask = (snapshot: Snapshot, id: TaskId): Effect.Effect<Task, TaskNotFo
   const entry = snapshot.entries.find(
     (candidate) => candidate.id === id && !isInterrupted(snapshot, candidate),
   )
+
   if (entry !== undefined) return Effect.succeed(entryTask(entry))
+
   const done = snapshot.done.find((candidate) => candidate.id === id)
+
   return done === undefined ? Effect.fail(new TaskNotFound({ id })) : Effect.succeed(doneTask(done))
 }
 
@@ -112,8 +117,11 @@ const findOpen = (
   operation: string,
 ): Effect.Effect<Entry, TaskNotFound | InvalidTransition> => {
   const entry = openEntries(snapshot).find((candidate) => candidate.id === id)
+
   if (entry !== undefined) return Effect.succeed(entry)
+
   const known = snapshot.done.some((d) => d.id === id) || snapshot.entries.some((e) => e.id === id)
+
   return Effect.fail(
     known ? new InvalidTransition({ id, status: "done", operation }) : new TaskNotFound({ id }),
   )
@@ -137,24 +145,32 @@ const resolve = (
       new ValidationError({ issues: ["a placement takes before or after, not both"] }),
     )
   }
+
   const anchorId = placement.before ?? placement.after
+
   if (anchorId === undefined) {
     const section = todo.sections.find((candidate) => candidate.name === placement.group)
+
     return Effect.succeed({ group: placement.group, index: section?.items.length ?? 0 })
   }
+
   for (const section of todo.sections) {
     const index = section.items.findIndex((item) => item.id === anchorId && !item.checked)
+
     if (index === -1) continue
+
     if (placement.group !== undefined && placement.group !== section.name) {
       return Effect.fail(
         new ValidationError({ issues: [`task ${anchorId} is not in group ${placement.group}`] }),
       )
     }
+
     return Effect.succeed({
       group: section.name,
       index: placement.before === undefined ? index + 1 : index,
     })
   }
+
   return Effect.fail(new TaskNotFound({ id: anchorId }))
 }
 
@@ -189,6 +205,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
   Effect.gen(function* () {
     const lock = yield* makeLock(files.root, options.lock)
     const read = readSnapshot(files, parser)
+
     const writeTodo = (text: string) => files.write(todoPath, text)
 
     /** Runs `f` under the lock, on a freshly normalized snapshot (spec §2.11). */
@@ -228,9 +245,11 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   group: target.group,
                   extra: valid.extra ?? {},
                 }
+
                 yield* ensureAcyclic([...allTasks(snapshot), task])
                 const lines = yield* itemLinesFor(files, snapshot.todo.config, task)
                 yield* writeTodo(insertItem(snapshot.todo, target.group, target.index, lines))
+
                 return task
               }),
             ),
@@ -247,13 +266,19 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   allTasks(snapshot).map((task) => (task.id === id ? updated : task)),
                 )
                 const done = snapshot.done.find((candidate) => candidate.id === id)
+
                 if (done !== undefined) {
                   yield* files.write(done.path, updateTaskFile(done.source, changesOf(valid)))
+
                   return updated
                 }
+
                 const entry = snapshot.entries.find((candidate) => candidate.id === id)
+
                 if (entry === undefined) return yield* new TaskNotFound({ id })
+
                 const { item } = entry
+
                 if (!item.linked) {
                   const lines = yield* itemLinesFor(files, snapshot.todo.config, updated)
                   yield* writeTodo(replaceItem(snapshot.todo, item, lines))
@@ -264,10 +289,12 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                       ? formatTaskFile(taskFileFor(updated))
                       : updateTaskFile(entry.source, changesOf(valid)),
                   )
+
                   if (updated.title !== item.title) {
                     yield* writeTodo(setItemHead(snapshot.todo, item, id, updated.title))
                   }
                 }
+
                 return updated
               }),
             ),
@@ -280,17 +307,20 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             mutate((snapshot) =>
               Effect.gen(function* () {
                 const entry = yield* findOpen(snapshot, id, "move")
+
                 if (where.before === id || where.after === id) {
                   return yield* new ValidationError({
                     issues: [`task ${id} cannot be placed next to itself`],
                   })
                 }
+
                 const { item } = entry
                 const rest = parseTodoFile(removeItem(snapshot.todo, item))
                 const target = yield* resolve(rest, where)
                 const task: Task = { ...entryTask(entry), group: target.group }
                 let lines = snapshot.todo.text.lines.slice(item.start, item.end)
                 const { tasksDir } = snapshot.todo.config
+
                 if (
                   target.group !== entry.section.name &&
                   item.linked &&
@@ -301,7 +331,9 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   yield* files.move(item.path, path)
                   lines = linkedItemFor(task, path)
                 }
+
                 yield* writeTodo(insertItem(rest, target.group, target.index, lines))
+
                 return task
               }),
             ),
@@ -328,6 +360,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
         mutate((snapshot) =>
           Effect.gen(function* () {
             const done = snapshot.done.find((candidate) => candidate.id === id)
+
             if (done === undefined) {
               return yield* Effect.fail(
                 snapshot.entries.some((entry) => entry.id === id)
@@ -335,10 +368,12 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   : new TaskNotFound({ id }),
               )
             }
+
             const task = doneTask(done)
             const section = snapshot.todo.sections.find(
               (candidate) => candidate.name !== undefined && candidate.name === task.group,
             )
+
             const group = section?.name
             const reopened: Task = {
               ...task,
@@ -348,6 +383,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
               cancelledReason: undefined,
               group,
             }
+
             const path = taskPath(snapshot.todo.config.tasksDir, group, id, reopened.title)
             // The done file is the commit point, so it is deleted last (spec §2.10).
             const end = (section ?? snapshot.todo.sections[0])?.items.length ?? 0
@@ -362,6 +398,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
               }),
             )
             yield* files.remove(done.path)
+
             return reopened
           }),
         ),
@@ -370,14 +407,21 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
         mutate((snapshot) =>
           Effect.gen(function* () {
             const entry = snapshot.entries.find((candidate) => candidate.id === id)
+
             if (entry !== undefined) {
               yield* writeTodo(removeItem(snapshot.todo, entry.item))
-              if (entry.item.linked && entry.item.path !== undefined)
+
+              if (entry.item.linked && entry.item.path !== undefined) {
                 yield* files.remove(entry.item.path)
+              }
+
               return
             }
+
             const done = snapshot.done.find((candidate) => candidate.id === id)
+
             if (done === undefined) return yield* new TaskNotFound({ id })
+
             yield* files.remove(done.path)
           }),
         ),
@@ -388,33 +432,46 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             const section = snapshot.todo.sections.find(
               (candidate) => candidate.name !== undefined && candidate.name === from,
             )
+
             if (section === undefined) return yield* new GroupNotFound({ name: from })
+
             const name = yield* validate(Label, to)
+
             if (name === from) return
+
             const taken = snapshot.todo.sections.some(
               (other) =>
                 other !== section &&
                 other.name !== undefined &&
                 (other.name === name || groupSlug(other.name) === groupSlug(name)),
             )
-            if (taken)
+
+            if (taken) {
               return yield* new ValidationError({ issues: [`group ${name} already exists`] })
+            }
 
             const { tasksDir } = snapshot.todo.config
             const oldDir = groupDir(tasksDir, from)
             const newDir = groupDir(tasksDir, name)
             let text = renameSection(snapshot.todo, from, name)
+
             if (oldDir !== newDir && (yield* files.exists(oldDir))) {
               const moveWhole = !(yield* files.exists(newDir))
+
               if (moveWhole) yield* files.move(oldDir, newDir)
+
               while (true) {
                 const todo = parseTodoFile(text)
                 const item = allItems(todo).find((candidate) =>
                   candidate.path?.startsWith(`${oldDir}/`),
                 )
+
                 if (item?.path === undefined || item.id === undefined) break
+
                 const path = `${newDir}/${item.path.slice(oldDir.length + 1)}`
+
                 if (!moveWhole) yield* files.move(item.path, path)
+
                 text = replaceItem(
                   todo,
                   item,
@@ -422,6 +479,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                 )
               }
             }
+
             yield* writeTodo(text)
           }),
         ),
@@ -437,8 +495,10 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   body: valid.body,
                   at: yield* DateTime.now,
                 }
+
                 const done = snapshot.done.find((candidate) => candidate.id === id)
                 const entry = snapshot.entries.find((candidate) => candidate.id === id)
+
                 if (done !== undefined) {
                   yield* files.write(done.path, prependComment(done.source, comment))
                 } else if (
@@ -452,9 +512,12 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   const withComment: Task = { ...task, comments: [comment, ...task.comments] }
                   const path = entry.item.linked ? entry.item.path : undefined
                   const lines = yield* itemLinesFor(files, snapshot.todo.config, withComment, path)
-                  if (!entry.item.linked)
+
+                  if (!entry.item.linked) {
                     yield* writeTodo(replaceItem(snapshot.todo, entry.item, lines))
+                  }
                 }
+
                 return comment
               }),
             ),
@@ -468,10 +531,13 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             // A linked item already has its file, and a done task lives in its
             // done file: either way there is nothing left to promote (§2.9).
             const entry = snapshot.entries.find((candidate) => candidate.id === id)
+
             if (entry === undefined || entry.item.linked) return task
+
             const path = taskPath(snapshot.todo.config.tasksDir, task.group, task.id, task.title)
             const lines = yield* itemLinesFor(files, snapshot.todo.config, task, path)
             yield* writeTodo(replaceItem(snapshot.todo, entry.item, lines))
+
             return task
           }),
         ),
@@ -489,6 +555,7 @@ export const layer = (
     Effect.gen(function* () {
       const files = yield* makeFiles(options.root)
       const parser = yield* makeParser(options.root, options.cacheDir)
+
       return yield* makeStore(files, parser, options)
     }),
   )
@@ -502,5 +569,6 @@ export const normalize = (
     const files = yield* makeFiles(root)
     const parser = yield* makeParser(root, undefined)
     const withLock = yield* makeLock(root, lock)
+
     return yield* withLock(normalizeList(files, parser))
   })

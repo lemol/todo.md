@@ -81,6 +81,7 @@ export const projectInputFrom = (
               ...(options.readOnly === true ? { read_only: true } : {}),
             }
           : {}
+
   return { name: options.name, source, config }
 }
 
@@ -90,5 +91,6 @@ export const projectInput = (
 ): Effect.Effect<AddInput, never, Path.Path> =>
   Effect.gen(function* () {
     const path = yield* Path.Path
+
     return projectInputFrom(target, options, (cwd, relative) => path.resolve(cwd, relative))
   })

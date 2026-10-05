@@ -25,17 +25,21 @@ export const dashboardAction =
   async (context: WebContext): Promise<Response> => {
     try {
       let query: ReturnType<typeof parseDashboardQuery>
+
       try {
         query = parseDashboardQuery(new URL(context.request.url))
       } catch (error) {
         if (error instanceof InvalidQuery) return badRequest(context, error.message)
+
         throw error
       }
+
       const { projects, overview, kinds } = await options.runtime.runPromise(
         Effect.gen(function* () {
           const hub = yield* Hub
           const kinds = yield* hub.sourceKinds()
           const snapshot = yield* hub.dashboard(query.overview, { startup: options.startup })
+
           return {
             projects: snapshot.projects,
             overview: snapshot.overview,
@@ -43,7 +47,9 @@ export const dashboardAction =
           }
         }),
       )
+
       const flash = takeFlash(context)
+
       return renderPage(
         context,
         <Document
@@ -79,6 +85,7 @@ export const goAction =
     try {
       const name = new URL(context.request.url).searchParams.get("project")?.trim() ?? ""
       const known = await options.runtime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))
+
       if (!known.some((info) => info.name === name)) {
         return renderPage(
           context,
@@ -90,6 +97,7 @@ export const goAction =
           { status: 404 },
         )
       }
+
       return redirect(routes.project.board.href({ project: name }), 303)
     } catch (defect) {
       return respondDefect(context, defect)

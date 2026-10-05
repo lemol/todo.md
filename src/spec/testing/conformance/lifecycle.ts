@@ -5,6 +5,7 @@ import { equal, failsWith, layout } from "./assert.ts"
 import { type ConformanceCase, given } from "./case.ts"
 
 const at = Date.parse("2026-09-12T10:31:00Z")
+
 const millis = (date: DateTime.Utc | undefined) =>
   date === undefined ? undefined : DateTime.toEpochMillis(date)
 
@@ -93,6 +94,7 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
         { title: "A", placement: { group: "Backend" } },
         { title: "B", placement: { group: "Backend" } },
       )
+
       yield* store.complete(a.id)
       equal((yield* store.reopen(a.id)).group, "Backend")
       equal(yield* layout, [
@@ -121,7 +123,9 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       if (store.capabilities.remove) return
+
       const [task] = yield* given({ title: "Task" })
       yield* failsWith(store.remove(task.id), "Unsupported")
     }),

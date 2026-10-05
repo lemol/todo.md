@@ -16,6 +16,7 @@ afterEach(async () => {
 const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
   const app = await makeRouter(options)
   cleanup.push(app.close)
+
   return app
 }
 
@@ -25,7 +26,9 @@ const postApp = (
   fields: Record<string, string>,
 ) => {
   const body = new FormData()
+
   for (const [key, value] of Object.entries(fields)) body.append(key, value)
+
   return router.fetch(
     new Request(`http://localhost${path}`, {
       method: "POST",
@@ -62,9 +65,11 @@ describe("dashboard", () => {
 
   test("shows at most five ready tasks per project", async () => {
     const app = await open()
+
     for (const index of [1, 2, 3, 4, 5, 6]) {
       await seed(app.hubRuntime, "acme", (todo) => todo.add({ title: `Task ${index}` }))
     }
+
     const html = await (await fetchApp(app.router, "/")).text()
     expect(html).toContain("Task 5")
     expect(html).not.toContain("Task 6")
@@ -128,21 +133,29 @@ describe("dashboard", () => {
     const match = html.match(
       /<form method="post" action="\/projects" class="inline">([\s\S]*?)<button[^>]*>Register<\/button><\/form>/,
     )
+
     if (match === null) throw new Error("register form not found")
+
     const body = match[1]
+
     if (body === undefined) throw new Error("register form not found")
+
     const fields: Record<string, string> = {}
+
     for (const [, name, value] of body.matchAll(
       /<input type="hidden" name="([^"]+)" value="([^"]*)"\s*\/?>/g,
     )) {
       if (name === undefined) continue
+
       fields[name] = value ?? ""
     }
+
     expect(fields).toEqual({
       target: expect.any(String),
       name: expect.any(String),
       source: "fs",
     })
+
     return fields
   }
 
@@ -158,6 +171,7 @@ describe("dashboard", () => {
       ...fields,
       name: "work",
     })
+
     expect(response.status).toBe(303)
     const listed = await app.hubRuntime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))
     expect(listed.map((info) => info.name)).toEqual(["work"])
@@ -210,6 +224,7 @@ describe("dashboard", () => {
           Effect.fail(new SourceError({ name: "bad", message: "cannot open" })),
         ),
     }
+
     const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
@@ -217,6 +232,7 @@ describe("dashboard", () => {
       ],
       extraSources: [broken],
     })
+
     const html = await (await fetchApp(app.router, "/")).text()
     expect(html).toContain(">acme<")
     expect(html).toContain("cannot open")
@@ -236,6 +252,7 @@ describe("dashboard", () => {
           Effect.fail(new SourceError({ name: "bad", message: "cannot open" })),
         ),
     }
+
     const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
@@ -243,6 +260,7 @@ describe("dashboard", () => {
       ],
       extraSources: [flaky],
     })
+
     const html = await (await fetchApp(app.router, "/")).text()
     const section = html.slice(html.indexOf('class="project project-error"'))
     const end = section.indexOf("</section>")

@@ -36,6 +36,7 @@ export const createAppRouter = (options: RouterOptions) => {
     path: "/",
     secrets: [options.sessionSecret ?? crypto.randomUUID() + crypto.randomUUID()],
   })
+
   const router = createRouter({
     middleware: [
       localOnly(options.hosts),
@@ -48,6 +49,7 @@ export const createAppRouter = (options: RouterOptions) => {
       provideHub(options.runtime),
     ],
   })
+
   const controllerOptions = { runtime: options.runtime, author: options.author }
   router.map(
     routes.projects,
@@ -57,6 +59,7 @@ export const createAppRouter = (options: RouterOptions) => {
   router.map(routes.project.tasks, createTasksController(controllerOptions))
   router.map(routes.project.groups, createGroupsController(controllerOptions))
   router.map(routes, createTopController({ runtime: options.runtime, startup: options.startup }))
+
   return Object.assign(router, {
     close: async () => {
       await assets.close()

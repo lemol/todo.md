@@ -104,7 +104,9 @@ describe("replaceItem and setItemHead", () => {
     expect(renamed).toBe(example.replace("* [X] 09 - Bump deps", "* [X] 09 - Bump all deps"))
     const linked = parseTodoFile(md("- [ ] [Rate limits](backend/x.md)"))
     const [first] = linked.sections[0]?.items ?? []
+
     if (first === undefined) throw new Error("no item")
+
     expect(setItemHead(linked, first, "7", "Add rate limiting")).toBe(
       md("- [ ] [07 - Add rate limiting](backend/x.md)"),
     )

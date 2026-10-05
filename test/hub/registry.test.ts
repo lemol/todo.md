@@ -8,6 +8,7 @@ import { Disk, diskWith, md } from "./helpers.ts"
 
 const registryOnDisk = Effect.gen(function* () {
   const { root } = yield* Disk
+
   return yield* makeRegistry(`${root}/.todo-md`).pipe(Effect.provide(BunServices.layer))
 })
 
@@ -135,10 +136,12 @@ describe("the registry file", () => {
         registry.update((edit) =>
           Effect.gen(function* () {
             edit.delete("a")
+
             return yield* new RegistryError({ message: "no" })
           }),
         ),
       )
+
       expect(error.message).toBe("no")
       expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(commented)
       expect(yield* (yield* Disk).exists(".todo-md/.todo.lock")).toBe(false)

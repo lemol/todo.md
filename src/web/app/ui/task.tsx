@@ -41,6 +41,7 @@ const metadata = (task: Task, state: string): RemixNode => {
         : [["Completed", formatDate(task.completedAt)]]
       : []),
   ]
+
   return (
     <dl class="metadata">
       {facts.map(([label, value]) => (
@@ -274,6 +275,7 @@ export function TaskPage(handle: Handle<TaskPageProps>) {
         />
       </MoveTask.Dialog>
     ) : null
+
     const moveInline =
       canMove && moveIssues.length > 0 ? (
         <MoveForm
@@ -459,6 +461,7 @@ export interface EditTaskFormProps {
 export function EditTaskForm(handle: Handle<EditTaskFormProps>) {
   return () => {
     const { project, task, values, edit, issues = [], close } = handle.props
+
     return (
       <>
         {issueList(issues)}
@@ -506,6 +509,7 @@ export interface EditTaskPageProps {
 export function EditTaskPage(handle: Handle<EditTaskPageProps>) {
   return () => {
     const { project, task, values, edit, issues = [] } = handle.props
+
     return (
       <>
         <Heading level={1}>Edit task {showId(task.id)}</Heading>

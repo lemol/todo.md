@@ -53,6 +53,7 @@ const row = (info: ProjectInfo, now: DateTime.Utc, renaming: string | undefined)
         Rename
       </a>
     )
+
   const sync = info.syncable ? (
     <form method="post" action={routes.project.sync.href({ project: info.name })} class="inline">
       <input type="hidden" name="back" value={routes.projects.index.href()} />
@@ -119,6 +120,7 @@ const addForm = (options: ProjectsOptions): RemixNode => {
     readOnly: false,
     issues: [],
   }
+
   const issues = options.issues ?? []
   const sources = ["infer", ...options.sources]
 
@@ -215,7 +217,9 @@ const addForm = (options: ProjectsOptions): RemixNode => {
 
 const refusal = (options: ProjectsOptions): RemixNode => {
   if (options.refusal === undefined) return null
+
   const { name, message } = options.refusal
+
   return (
     <section class="project-error">
       <p class="badge error">{message}</p>

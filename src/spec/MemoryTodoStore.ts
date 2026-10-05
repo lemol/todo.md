@@ -51,13 +51,16 @@ const locateOpen = (state: State, id: TaskId): Located | undefined => {
   for (const [sectionIndex, section] of state.sections.entries()) {
     const taskIndex = section.tasks.findIndex((task) => task.id === id)
     const task = section.tasks[taskIndex]
+
     if (task !== undefined) return { sectionIndex, taskIndex, task }
   }
+
   return undefined
 }
 
 const findTask = (state: State, id: TaskId): Effect.Effect<Task, TaskNotFound> => {
   const task = locateOpen(state, id)?.task ?? state.done.find((done) => done.id === id)
+
   return task === undefined ? Effect.fail(new TaskNotFound({ id })) : Effect.succeed(task)
 }
 
@@ -67,7 +70,9 @@ const findOpen = (
   operation: string,
 ): Effect.Effect<Located, TaskNotFound | InvalidTransition> => {
   const located = locateOpen(state, id)
+
   if (located !== undefined) return Effect.succeed(located)
+
   return Effect.fail(
     state.done.some((task) => task.id === id)
       ? new InvalidTransition({ id, status: "done", operation })
@@ -107,6 +112,7 @@ const insert = (state: State, group: string | undefined, index: number, task: Ta
   const sections = state.sections.some((section) => section.name === group)
     ? state.sections
     : [...state.sections, { name: group, description: "", tasks: [] }]
+
   return {
     ...state,
     sections: sections.map((section) =>
@@ -137,19 +143,27 @@ const resolve = (
       new ValidationError({ issues: ["a placement takes before or after, not both"] }),
     )
   }
+
   const anchorId = placement.before ?? placement.after
+
   if (anchorId === undefined) {
     return Effect.succeed({ group: placement.group, index: endOf(state, placement.group) })
   }
+
   const anchor = locateOpen(state, anchorId)
+
   if (anchor === undefined) return Effect.fail(new TaskNotFound({ id: anchorId }))
+
   const group = state.sections[anchor.sectionIndex]?.name
+
   if (placement.group !== undefined && placement.group !== group) {
     return Effect.fail(
       new ValidationError({ issues: [`task ${anchorId} is not in group ${placement.group}`] }),
     )
   }
+
   const index = placement.before !== undefined ? anchor.taskIndex : anchor.taskIndex + 1
+
   return Effect.succeed({ group, index })
 }
 
@@ -187,6 +201,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
         load: () =>
           Effect.map(read, (state): TodoList => {
             const [ungrouped, ...groups] = state.sections
+
             return {
               title: state.title,
               description: state.description,
@@ -221,13 +236,16 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                 group: target.group,
                 extra: valid.extra ?? {},
               }
+
               const next = insert(
                 { ...state, lastId: state.lastId + 1 },
                 target.group,
                 target.index,
                 task,
               )
+
               yield* ensureAcyclic(allTasks(next))
+
               return [task, next] as const
             }),
           ),
@@ -247,8 +265,10 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                 dependsOn: valid.dependsOn === undefined ? task.dependsOn : unique(valid.dependsOn),
                 extra: valid.extra ?? task.extra,
               }
+
               const next = replaceTask(state, updated)
               yield* ensureAcyclic(allTasks(next))
+
               return [updated, next] as const
             }),
           ),
@@ -258,14 +278,17 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
             Effect.gen(function* () {
               const where = yield* validate(Placement, placement)
               const { task } = yield* findOpen(state, id, "move")
+
               if (where.before === id || where.after === id) {
                 return yield* new ValidationError({
                   issues: [`task ${id} cannot be placed next to itself`],
                 })
               }
+
               const rest = withoutTask(state, id)
               const target = yield* resolve(rest, where)
               const moved: Task = { ...task, group: target.group }
+
               return [moved, insert(rest, target.group, target.index, moved)] as const
             }),
           ),
@@ -280,7 +303,9 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                 outcome: "completed",
                 completedAt: yield* DateTime.now,
               }
+
               const rest = withoutTask(state, id)
+
               return [done, { ...rest, done: [done, ...rest.done] }] as const
             }),
           ),
@@ -295,6 +320,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                       issues: [`cancelling task ${id} needs a reason`],
                     })
                   }
+
                   const { task } = yield* findOpen(state, id, "cancel")
                   const cancelled: Task = {
                     ...task,
@@ -303,7 +329,9 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                     cancelledReason: reason,
                     completedAt: yield* DateTime.now,
                   }
+
                   const rest = withoutTask(state, id)
+
                   return [cancelled, { ...rest, done: [cancelled, ...rest.done] }] as const
                 }),
               ),
@@ -312,6 +340,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
           transact((state) =>
             Effect.gen(function* () {
               const task = state.done.find((done) => done.id === id)
+
               if (task === undefined) {
                 return yield* Effect.fail(
                   locateOpen(state, id) === undefined
@@ -319,11 +348,13 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                     : new InvalidTransition({ id, status: "open", operation: "reopen" }),
                 )
               }
+
               const group = state.sections.some(
                 (section) => section.name !== undefined && section.name === task.group,
               )
                 ? task.group
                 : undefined
+
               const reopened: Task = {
                 ...task,
                 status: "open",
@@ -332,7 +363,9 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                 completedAt: undefined,
                 group,
               }
+
               const rest = withoutTask(state, id)
+
               return [reopened, insert(rest, group, endOf(rest, group), reopened)] as const
             }),
           ),
@@ -341,6 +374,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
           transact((state) =>
             Effect.gen(function* () {
               yield* findTask(state, id)
+
               return [undefined, withoutTask(state, id)] as const
             }),
           ),
@@ -351,10 +385,13 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
               if (!state.sections.some((section) => section.name === from)) {
                 return yield* new GroupNotFound({ name: from })
               }
+
               const name = yield* validate(Label, to)
+
               if (name !== from && state.sections.some((section) => section.name === name)) {
                 return yield* new ValidationError({ issues: [`group ${name} already exists`] })
               }
+
               const sections = state.sections.map((section) =>
                 section.name === from
                   ? {
@@ -364,6 +401,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                     }
                   : section,
               )
+
               return [undefined, { ...state, sections }] as const
             }),
           ),
@@ -378,6 +416,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
                 body: valid.body,
                 at: yield* DateTime.now,
               }
+
               return [
                 comment,
                 replaceTask(state, { ...task, comments: [comment, ...task.comments] }),

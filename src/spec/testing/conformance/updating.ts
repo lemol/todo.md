@@ -14,11 +14,13 @@ export const updatingCases: ReadonlyArray<ConformanceCase> = [
         { title: "Dependency" },
         { title: "Old title", tags: ["api"], assignee: "lemol", extra: { estimate: 3 } },
       )
+
       const updated = yield* store.update(task.id, {
         title: "New title",
         description: "Details.",
         dependsOn: [dependency.id],
       })
+
       equal(updated.title, "New title")
       const stored = yield* store.get(task.id)
       equal(stored.title, "New title")
@@ -60,7 +62,9 @@ export const updatingCases: ReadonlyArray<ConformanceCase> = [
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       if (store.capabilities.edit) return
+
       const [dependency, task] = yield* given({ title: "Dependency" }, { title: "Task" })
       const patches = [
         { description: "Details." },
@@ -70,7 +74,9 @@ export const updatingCases: ReadonlyArray<ConformanceCase> = [
         { extra: { estimate: 3 } },
         { title: "New title", description: "Details." },
       ]
+
       for (const patch of patches) yield* failsWith(store.update(task.id, patch), "ValidationError")
+
       const stored = yield* store.get(task.id)
       equal(stored.title, "Task")
       equal(stored.dependsOn, [])

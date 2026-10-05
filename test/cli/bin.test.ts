@@ -21,6 +21,7 @@ const run = (...args: string[]) => {
       NO_COLOR: "1",
     },
   })
+
   return {
     code: result.exitCode,
     stdout: result.stdout.toString(),

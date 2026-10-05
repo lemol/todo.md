@@ -8,33 +8,42 @@ import { formatId } from "./ids.ts"
 /** Resolves `.` and `..` segments. Returns `undefined` if the path leaves the root or is absolute. */
 export const normalizePath = (path: string): string | undefined => {
   if (path.startsWith("/") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) return undefined
+
   const segments: string[] = []
+
   for (const segment of path.split("/")) {
     if (segment === "" || segment === ".") continue
+
     if (segment === "..") {
       if (segments.length === 0) return undefined
+
       segments.pop()
     } else {
       segments.push(segment)
     }
   }
+
   return segments.join("/")
 }
 
 export const joinPath = (...parts: ReadonlyArray<string>): string => {
   const joined = parts.filter((p) => p !== "").join("/")
+
   return normalizePath(joined) ?? joined
 }
 
 /** The root-relative path a link in `TODO.md` points to, or `undefined` if it leaves the root. */
 export const resolveLink = (url: string): string | undefined => {
   let decoded = url
+
   try {
     decoded = decodeURI(url)
   } catch {
     // keep the raw URL when it is not valid percent-encoding
   }
+
   const path = normalizePath(decoded)
+
   return path === undefined || path === "" ? undefined : path
 }
 
@@ -48,6 +57,7 @@ export const basename = (path: string): string => path.slice(path.lastIndexOf("/
 /** The directory part of a path (`""` for a file at the root). */
 export const dirname = (path: string): string => {
   const index = path.lastIndexOf("/")
+
   return index === -1 ? "" : path.slice(0, index)
 }
 
@@ -62,9 +72,12 @@ export const slug = (text: string, fallback: string): string => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
+
   if (base.length <= 60) return base === "" ? fallback : base
+
   const cut = base.slice(0, 60)
   const boundary = base[60] === "-" ? 60 : cut.lastIndexOf("-")
+
   return (boundary > 0 ? cut.slice(0, boundary) : cut).replace(/-+$/, "")
 }
 

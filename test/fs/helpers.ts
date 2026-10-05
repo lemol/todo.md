@@ -1,7 +1,7 @@
 import { BunServices } from "@effect/platform-bun"
 import { Context, Effect, FileSystem, Layer, Path } from "effect"
-import * as FsTodoStore from "../../src/fs/FsTodoStore.ts"
 import { type Files, makeFiles } from "../../src/fs/files.ts"
+import * as FsTodoStore from "../../src/fs/FsTodoStore.ts"
 import { makeParser, type Parser } from "../../src/fs/parsing.ts"
 import type { LockOptions } from "../../src/spec/lock.ts"
 
@@ -30,7 +30,9 @@ export const diskWith = (files: Readonly<Record<string, string>>): Layer.Layer<D
       const fs = yield* FileSystem.FileSystem
       const path = yield* Path.Path
       const root = yield* fs.makeTempDirectoryScoped({ prefix: "todo-md-" }).pipe(Effect.orDie)
+
       const absolute = (relative: string) => path.join(root, relative)
+
       const disk = Disk.of({
         root,
         read: (relative) => fs.readFileString(absolute(relative)).pipe(Effect.orDie),
@@ -54,7 +56,9 @@ export const diskWith = (files: Readonly<Record<string, string>>): Layer.Layer<D
             Effect.orDie,
           ),
       })
+
       for (const [relative, text] of Object.entries(files)) yield* disk.write(relative, text)
+
       return disk
     }),
   ).pipe(Layer.provide(BunServices.layer))
@@ -81,6 +85,7 @@ export const listWith = (
   Layer.unwrap(
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       return FsTodoStore.layer({
         root,
         ...(lock === undefined ? {} : { lock }),

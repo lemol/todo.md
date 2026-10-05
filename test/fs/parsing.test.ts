@@ -27,6 +27,7 @@ const withComment = md(
 const parserWith = (root = "/list") =>
   Effect.gen(function* () {
     const disk = yield* Disk
+
     return yield* makeParser(root, `${disk.root}/cache`).pipe(Effect.provide(BunServices.layer))
   })
 
@@ -39,6 +40,7 @@ const read = (
     yield* parser.begin
     const parsed = Object.entries(files).map(([path, text]) => parser.taskFile(path, text))
     yield* parser.end
+
     return parsed
   })
 

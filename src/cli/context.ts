@@ -116,20 +116,24 @@ export const withTodo = <A, E, R>(
     const dir = yield* Dir
     const flag = yield* Project
     const selected = options?.project ?? (Option.isSome(flag) ? flag.value : undefined)
+
     if (Option.isSome(dir) && selected !== undefined) {
       return yield* new UsageError({ message: "use --project or --dir, not both" })
     }
+
     if (Option.isSome(flag) && options?.project !== undefined && options.project !== flag.value) {
       return yield* new UsageError({
         message: `task project ${options.project} contradicts --project ${flag.value}`,
       })
     }
+
     const hub = yield* Hub
     const info = yield* hub.resolve({
       ...(selected !== undefined ? { project: selected } : {}),
       ...(Option.isSome(dir) ? { dir: dir.value } : {}),
       cwd,
     })
+
     return yield* f(yield* hub.todo(info.name), info)
   })
 
@@ -139,6 +143,7 @@ export const withTodo = <A, E, R>(
  */
 export const refOf = (text: string): TaskRef => {
   const parsed = parseRef(text)
+
   return { ...parsed, id: taskId(parsed.id) }
 }
 
@@ -151,15 +156,19 @@ export const projectOfRefs = (
 ): Effect.Effect<string | undefined, UsageError> =>
   Effect.gen(function* () {
     let project: string | undefined
+
     for (const ref of refs) {
       if (ref.project === undefined) continue
+
       if (project !== undefined && project !== ref.project) {
         return yield* new UsageError({
           message: `tasks from several projects (${project}, ${ref.project}); one command works on one project`,
         })
       }
+
       project = ref.project
     }
+
     return project
   })
 
@@ -171,14 +180,19 @@ export const projectOfRefs = (
 export const warnUnpushed = (info: ProjectInfo) =>
   Effect.gen(function* () {
     if (!info.syncable) return
+
     const hub = yield* Hub
     const status = yield* hub.status(info.name).pipe(Effect.orElseSucceed(() => undefined))
+
     if (status === undefined) return
+
     if (status.diverged === true) {
       return yield* Console.error(`todo: ${info.name} has diverged; resolve it in ${info.location}`)
     }
+
     if (status.ahead !== undefined && status.ahead > 0) {
       const last = status.error === undefined ? "" : `: ${status.error}`
+
       return yield* Console.error(`todo: not pushed (ahead ${status.ahead})${last}`)
     }
   })
@@ -203,8 +217,10 @@ export const output = (
         !Array.isArray(value)
           ? { ...value, project: project.name }
           : value
+
       return yield* Console.log(JSON.stringify(body))
     }
+
     const { color } = yield* CliContext
     yield* Console.log(human(styleFor(color)).join("\n"))
   })

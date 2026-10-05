@@ -16,8 +16,11 @@ const countsOf = (hub: Hub["Service"], name: string) =>
   Effect.gen(function* () {
     const view = yield* hub.overview({ projects: [name] })
     const entry = view.projects.find((candidate) => candidate.project.name === name)
+
     if (entry === undefined || !("listing" in entry)) return { open: 0, ready: 0 }
+
     const open = entry.listing.sections.flatMap((section) => section.tasks)
+
     return { open: open.length, ready: open.filter((item) => item.state === "ready").length }
   })
 
@@ -36,9 +39,11 @@ const listProjects = Effect.gen(function* () {
   const { cwd } = yield* CliContext
   const dir = yield* Dir
   const flag = yield* Project
+
   if (Option.isSome(dir) && Option.isSome(flag)) {
     return yield* new UsageError({ message: "use --project or --dir, not both" })
   }
+
   const hub = yield* Hub
   const infos = yield* hub.projects()
   const here = yield* hub
@@ -51,6 +56,7 @@ const listProjects = Effect.gen(function* () {
       Effect.map((info) => Option.some(info)),
       Effect.catchTag("NoListFound", () => Effect.succeed(Option.none())),
     )
+
   const current = Option.getOrUndefined(here)
   const shown =
     current !== undefined &&
@@ -58,14 +64,17 @@ const listProjects = Effect.gen(function* () {
     !infos.some((info) => info.name === current.name)
       ? [...infos, current]
       : infos
+
   const now = yield* DateTime.now
   const lines = yield* Effect.forEach(shown, (info) =>
     Effect.gen(function* () {
       const counts = yield* countsOf(hub, info.name)
       const status = yield* hub.status(info.name)
+
       return projectLine({ info, ...counts, status: statusText(status, now) })
     }),
   )
+
   yield* output(undefined, shown, () =>
     lines.length === 0
       ? ["No projects registered. Add one with `todo projects add <dir>`."]
@@ -156,6 +165,7 @@ export const projectsAdd = Command.make(
       ...(Option.isSome(jql) ? { jql: jql.value } : {}),
       ...(readOnly ? { readOnly } : {}),
     })
+
     const wrongFor = (
       kind: string,
       given: ReadonlyArray<readonly [string, Option.Option<string>]>,
@@ -163,6 +173,7 @@ export const projectsAdd = Command.make(
       input.source === kind
         ? []
         : given.filter(([, value]) => Option.isSome(value)).map(([flag]) => flag)
+
     const misplaced = [
       ...wrongFor("git", [
         ["--branch", branch],
@@ -176,11 +187,13 @@ export const projectsAdd = Command.make(
         ["--read-only", readOnly ? Option.some("") : Option.none()],
       ]),
     ]
+
     if (misplaced.length > 0) {
       return yield* new UsageError({
         message: `${misplaced.join(" and ")} ${misplaced.length === 1 ? "is" : "are"} not for ${input.source} projects; ${target} is a ${input.source} project`,
       })
     }
+
     yield* printProject(hub, yield* hub.add(input))
   }),
 ).pipe(
@@ -273,6 +286,7 @@ export const sync = Command.make(
     if (all && names.length > 0) {
       return yield* new UsageError({ message: "pass project names or --all, not both" })
     }
+
     const hub = yield* Hub
     const outcomes: ReadonlyArray<SyncResult | SyncFailure> = all
       ? yield* hub.syncAll()
@@ -280,9 +294,11 @@ export const sync = Command.make(
           const { cwd } = yield* CliContext
           const dir = yield* Dir
           const flag = yield* Project
+
           if (Option.isSome(dir) && Option.isSome(flag)) {
             return yield* new UsageError({ message: "use --project or --dir, not both" })
           }
+
           const targets =
             names.length > 0
               ? [...names]
@@ -293,6 +309,7 @@ export const sync = Command.make(
                     cwd,
                   })).name,
                 ]
+
           return yield* Effect.forEach(targets, (name) =>
             hub
               .sync(name)
@@ -303,8 +320,10 @@ export const sync = Command.make(
               ),
           )
         })
+
     const failed = outcomes.filter((outcome) => "error" in outcome).length
     yield* output(undefined, outcomes, () => outcomes.map(syncLine))
+
     if (failed > 0) return yield* new SyncFailed({ errors: failed })
   }),
 ).pipe(

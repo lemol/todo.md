@@ -13,6 +13,7 @@ describe("normalize", () => {
         "- [x] [Rate limits](./notes/limits.md)",
       ),
     )
+
     const result = normalize(todo, { usedIds: ["12"], titles: new Map() })
     expect(result.assigned).toEqual(["13", "14"])
     expect(result.text).toBe(
@@ -59,7 +60,9 @@ describe("staleLinkText", () => {
   test("reports link text that differs from the title", () => {
     const todo = parseTodoFile(md("# T", "", "- [ ] [07 - Old](./07-x.md)"))
     const item = findItem(todo, "7")
+
     if (item === undefined) throw new Error("no item")
+
     expect(staleLinkText(item, "New")).toMatchObject({
       code: "stale-link-text",
       taskId: "7",
@@ -71,11 +74,15 @@ describe("staleLinkText", () => {
   test("returns undefined for inline items or items without ID", () => {
     const todo = parseTodoFile(md("- [ ] 01 - Inline", "- [ ] [No ID](./x.md)"))
     const inline = findItem(todo, "1")
+
     if (inline === undefined) throw new Error("no item")
+
     expect(staleLinkText(inline, "Different")).toBeUndefined()
 
     const noId = todo.sections[0]?.items[1]
+
     if (noId === undefined) throw new Error("no item")
+
     expect(staleLinkText(noId, "Different")).toBeUndefined()
   })
 })

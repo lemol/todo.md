@@ -49,6 +49,7 @@ export const formatInstant = (at: DateTime.Utc): string =>
 export const formatTimestamp = (at: DateTime.Utc): string => {
   const iso = DateTime.formatIso(at)
   const seconds = iso.slice(17, 19)
+
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)}${seconds === "00" ? "" : `:${seconds}`} +00:00`
 }
 
@@ -60,9 +61,12 @@ export const parseCommentHeading = (
   text: string,
 ): { readonly author: string; readonly at: DateTime.Utc } | undefined => {
   const [, author, date, time, offset] = commentHeading.exec(text) ?? []
+
   if (author === undefined || date === undefined || time === undefined) return undefined
+
   const seconds = time.length === 5 ? ":00" : ""
   const at = DateTime.make(`${date}T${time}${seconds}${offset ?? "Z"}`)
+
   return Option.isSome(at) ? { author, at: DateTime.toUtc(at.value) } : undefined
 }
 
@@ -75,10 +79,12 @@ const layout = (source: string) => {
   const lastSection = tree.children
     .filter((node) => node.type === "heading" && node.depth === 2)
     .at(-1)
+
   const comments =
     lastSection?.type === "heading" && headingText(source, lastSection).text === "Comments"
       ? lineSpan(lastSection).start
       : undefined
+
   return { text, tree, yaml, bodyStart, comments }
 }
 
@@ -92,32 +98,47 @@ export const taskFileParserVersion = 1
 export const parseTaskFile = (source: string, file: string): TaskFile => {
   const { text, tree, yaml, bodyStart, comments: commentsLine } = layout(source)
   const diagnostics: Diagnostic[] = []
+
   const report = (code: string, message: string, line: number) =>
     diagnostics.push({ severity: "error", code, message, file, line })
 
   const { data, error } = readFrontmatter(yaml?.value ?? "")
+
   if (error !== undefined) report("invalid-frontmatter", error, 1)
+
   const invalid = (key: string, expected: string) =>
     report("invalid-frontmatter", `${key} must be ${expected}`, 1)
 
   const stringField = (key: string): string | undefined => {
     const value = data[key]
+
     if (value === undefined || value === null) return undefined
+
     if (typeof value === "string" && value.trim() !== "") return value
+
     invalid(key, "a non-empty string")
+
     return undefined
   }
+
   const list = <A>(key: string, expected: string, read: (value: unknown) => A | undefined): A[] => {
     const value = data[key]
+
     if (value === undefined || value === null) return []
+
     const values = (Array.isArray(value) ? value : [value]).map(read)
+
     if (values.every((item) => item !== undefined)) return unique(values) as A[]
+
     invalid(key, expected)
+
     return []
   }
+
   const tags = list("tags", "a list of strings", (value) =>
     typeof value === "string" && value.trim() !== "" ? value : undefined,
   )
+
   const dependsOn = list("depends_on", "a list of task IDs", (value) =>
     typeof value === "number" && Number.isSafeInteger(value) && value >= 0
       ? String(value)
@@ -125,43 +146,57 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
         ? parseDependencyId(value)
         : undefined,
   )
+
   const completedText = stringField("completed_at")
   const completedAt =
     completedText === undefined ? undefined : Option.getOrUndefined(DateTime.make(completedText))
-  if (completedText !== undefined && completedAt === undefined)
+
+  if (completedText !== undefined && completedAt === undefined) {
     invalid("completed_at", "an ISO 8601 timestamp")
+  }
 
   const outcomeText = stringField("outcome")
   const outcome =
     outcomeText === "completed" || outcomeText === "cancelled" ? outcomeText : undefined
-  if (outcomeText !== undefined && outcome === undefined)
+
+  if (outcomeText !== undefined && outcome === undefined) {
     invalid("outcome", "`completed` or `cancelled`")
+  }
 
   const cancelledReasonText = stringField("cancelled_reason")
-  if (cancelledReasonText !== undefined && outcome !== "cancelled")
+
+  if (cancelledReasonText !== undefined && outcome !== "cancelled") {
     invalid("cancelled_reason", "absent unless outcome is `cancelled`")
+  }
 
   const comments: Comment[] = []
+
   if (commentsLine !== undefined) {
     const headings = tree.children.filter(
       (node) => node.type === "heading" && node.depth === 3 && lineSpan(node).start > commentsLine,
     )
+
     headings.forEach((heading, index) => {
       if (heading.type !== "heading") return
+
       const { start, end } = lineSpan(heading)
       const next = headings[index + 1]
       const parsed = parseCommentHeading(headingText(source, heading).text)
+
       if (parsed === undefined) {
         report(
           "invalid-comment",
           "a comment heading must read `@<author> at <YYYY-MM-DD HH:mm>`",
           start + 1,
         )
+
         return
       }
+
       const body = trimBlock(
         text.lines.slice(end, next === undefined ? text.lines.length : lineSpan(next).start),
       )
+
       comments.push({ author: parsed.author, at: DateTime.toUtc(parsed.at), body })
     })
   }
@@ -220,7 +255,9 @@ export const formatTaskFile = (content: TaskFileContent): string => {
           ["## Comments", ...content.comments.flatMap((comment) => ["", ...commentLines(comment)])],
         ]),
   ]
+
   const body = blocks.flatMap((block, index) => (index === 0 ? block : ["", ...block]))
+
   return `${["---", ...formatFrontmatter(entries(content)), "---", ...body].join("\n")}\n`
 }
 
@@ -255,25 +292,36 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
   }
 
   const fields: Record<string, unknown> = {}
+
   if (changes.title !== undefined) fields.title = changes.title
-  if (changes.tags !== undefined)
+
+  if (changes.tags !== undefined) {
     fields.tags = changes.tags.length === 0 ? undefined : [...changes.tags]
+  }
+
   if (changes.assignee !== undefined) fields.assignee = changes.assignee ?? undefined
+
   if (changes.dependsOn !== undefined) {
     fields.depends_on = changes.dependsOn.length === 0 ? undefined : changes.dependsOn.map(toYamlId)
   }
+
   if (changes.extra !== undefined) {
     for (const key of Object.keys(current.extra)) fields[key] = undefined
+
     Object.assign(fields, changes.extra)
   }
+
   if (changes.group !== undefined) fields.group = changes.group ?? undefined
+
   if (changes.completedAt !== undefined) {
     fields.completed_at =
       changes.completedAt === null ? undefined : formatInstant(changes.completedAt)
   }
+
   if (changes.outcome !== undefined) {
     fields.outcome = changes.outcome === null ? undefined : changes.outcome
   }
+
   if (changes.cancelledReason !== undefined) {
     fields.cancelled_reason = changes.cancelledReason === null ? undefined : changes.cancelledReason
   }
@@ -283,10 +331,13 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
       text = spliceLines(text, 1, lineSpan(yaml).end - 2, setFrontmatterFields(yaml.value, fields))
     } else {
       const added = Object.entries(fields).filter(([, value]) => value !== undefined)
-      if (added.length > 0)
+
+      if (added.length > 0) {
         text = spliceLines(text, 0, 0, ["---", ...formatFrontmatter(added), "---"])
+      }
     }
   }
+
   return joinLines(text)
 }
 
@@ -294,13 +345,19 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
 export const prependComment = (source: string, comment: Comment): string => {
   const { text, comments } = layout(source)
   const entry = commentLines(comment)
+
   if (comments !== undefined) {
     const next = text.lines[comments + 1]
     const after = next !== undefined && !isBlank(next) ? [""] : []
+
     return joinLines(spliceLines(text, comments + 1, 0, ["", ...entry, ...after]))
   }
+
   let last = text.lines.length - 1
+
   while (last >= 0 && isBlank(text.lines[last])) last--
+
   const insert = [...(last >= 0 ? [""] : []), "## Comments", "", ...entry]
+
   return joinLines(spliceLines(text, last + 1, text.lines.length - last - 1, insert))
 }

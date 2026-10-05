@@ -15,22 +15,30 @@ export const findCycle = (
 
   const visit = (id: TaskId): ReadonlyArray<TaskId> | undefined => {
     if (onPath.has(id)) return [...path.slice(path.indexOf(id)), id]
+
     if (finished.has(id) || !edges.has(id)) return undefined
+
     path.push(id)
     onPath.add(id)
+
     for (const next of edges.get(id) ?? []) {
       const cycle = visit(next)
+
       if (cycle !== undefined) return cycle
     }
+
     path.pop()
     onPath.delete(id)
     finished.add(id)
+
     return undefined
   }
 
   for (const id of edges.keys()) {
     const cycle = visit(id)
+
     if (cycle !== undefined) return cycle
   }
+
   return undefined
 }

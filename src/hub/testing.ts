@@ -31,23 +31,31 @@ export type MemoryHooks = Partial<
  */
 export const memorySource = (hooks: MemoryHooks = {}): Source<MemoryConfig> => {
   const stores = new Map<string, TodoStore["Service"]>()
+
   const storeFor = (name: string, config: MemoryConfig) =>
     Effect.gen(function* () {
       const existing = stores.get(name)
+
       if (existing !== undefined) return existing
+
       const store = yield* TodoStore.pipe(
         Effect.provide(
           MemoryTodoStore.layer(config.title === undefined ? {} : { title: config.title }),
         ),
       )
+
       const seedError = (error: { readonly _tag: string }) =>
         new SourceError({ name, message: `could not seed ${name}: ${error._tag}`, cause: error })
+
       for (const task of config.tasks ?? []) {
         yield* Effect.mapError(store.add(task), seedError)
       }
+
       stores.set(name, store)
+
       return store
     })
+
   return {
     kind: "memory",
     config: MemoryConfig,

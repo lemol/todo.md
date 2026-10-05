@@ -30,11 +30,15 @@ export const nothingToSync = "nothing to sync"
  */
 export const makeSyncer = (publish: (change: HubChange) => Effect.Effect<void>) => {
   const locks = new Map<string, Semaphore.Semaphore>()
+
   const lockOf = (name: string) => {
     const existing = locks.get(name)
+
     if (existing !== undefined) return existing
+
     const lock = Semaphore.makeUnsafe(1)
     locks.set(name, lock)
+
     return lock
   }
 
@@ -44,14 +48,18 @@ export const makeSyncer = (publish: (change: HubChange) => Effect.Effect<void>) 
     config: unknown,
   ): Effect.Effect<SyncResult, SyncError, SourceEnv> => {
     const { name } = project
+
     if (source.sync === undefined) {
       return Effect.map(DateTime.now, (at) => ({ project: name, summary: nothingToSync, at }))
     }
+
     const sync = source.sync(sourceProjectOf(project, config))
+
     return lockOf(name).withPermit(
       Effect.gen(function* () {
         const outcome = yield* Effect.result(sync)
         const at = yield* DateTime.now
+
         if (project.dir !== undefined) {
           const state = Result.isSuccess(outcome)
             ? { lastSync: at, result: "ok" as const, diverged: false }
@@ -61,14 +69,18 @@ export const makeSyncer = (publish: (change: HubChange) => Effect.Effect<void>) 
                 error: outcome.failure.message,
                 diverged: outcome.failure.reason === "diverged",
               }
+
           yield* writeState(project.dir, state).pipe(
             Effect.catch((error) =>
               Effect.logWarning(`could not record the sync of ${name}: ${error.message}`),
             ),
           )
         }
+
         yield* publish({ kind: "synced", project: name })
+
         if (Result.isFailure(outcome)) return yield* outcome.failure
+
         return { project: name, at, ...outcome.success }
       }),
     )

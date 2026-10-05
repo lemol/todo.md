@@ -16,9 +16,11 @@ export interface AddValues {
 const queryHref = (project: string, back: string, name: string, value: string): string => {
   const current = new URL(back, "http://todo-md.local")
   const query = current.searchParams
+
   if (name === "tag") {
     if (!query.getAll(name).includes(value)) query.append(name, value)
   } else query.set(name, value)
+
   return `${routes.project.board.href({ project })}?${query}`
 }
 
@@ -47,6 +49,7 @@ const moveButton = (
   target: string | undefined,
 ): RemixNode => {
   const [label, arrow] = anchor === "before" ? ["up", "↑"] : ["down", "↓"]
+
   if (target === undefined) {
     return (
       <button class="move" type="button" disabled tabindex={-1}>
@@ -54,6 +57,7 @@ const moveButton = (
       </button>
     )
   }
+
   return (
     <form method="post" action={routes.project.tasks.move.href({ project, id: task.id })}>
       <input type="hidden" name="back" value={back} />
@@ -88,6 +92,7 @@ export function TaskRow(handle: Handle<TaskRowProps>) {
         #{tag}
       </a>,
     ])
+
     const assignee =
       task.assignee === undefined ? null : (
         <>
@@ -97,6 +102,7 @@ export function TaskRow(handle: Handle<TaskRowProps>) {
           </a>
         </>
       )
+
     const blockedBy =
       view.blockedBy.length === 0 ? null : (
         <div class="blocked-by">
@@ -109,6 +115,7 @@ export function TaskRow(handle: Handle<TaskRowProps>) {
           ])}
         </div>
       )
+
     const moveButtons =
       moves === undefined ? null : (
         <span class="moves">
@@ -163,6 +170,7 @@ export function AddTaskForm(handle: Handle<AddTaskFormProps>) {
       heading = true,
       close,
     } = handle.props
+
     const groupFields = capabilities.groups ? (
       <>
         <Field control="select" label="Group" name="group">

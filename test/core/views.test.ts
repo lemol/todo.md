@@ -53,6 +53,7 @@ describe("boards", () => {
       { title: "T", description: "", ungrouped: [task({ id: "6", dependsOn: ["5"] })], groups: [] },
       [task({ id: "5", status: "done", outcome: "cancelled", cancelledReason: "Dropped." })],
     )
+
     expect(board.satisfiedIds).toEqual(new Set())
     expect(view(board)(task({ id: "6", dependsOn: ["5"] }))).toMatchObject({
       state: "blocked",
@@ -65,6 +66,7 @@ describe("boards", () => {
       task({ id: "7", status: "done", outcome: "completed" }),
       task({ id: "8", status: "done" }),
     ])
+
     expect(board.satisfiedIds).toEqual(new Set(["7", "8"]))
   })
 })

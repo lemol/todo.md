@@ -37,6 +37,7 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
 // assertions; nothing else may import them.
 const testingEntries = [join("spec", "testing"), join("hub", "testing")]
 const testingPackages = ["bun:test", "node:assert"]
+
 const isTestingFile = (path: string) =>
   testingEntries.some(
     (entry) => path === entry || path === `${entry}.ts` || path.startsWith(entry + sep),
@@ -60,21 +61,29 @@ const allows = (entry: string, specifier: string) =>
 export const violations = (file: string, source: string): string[] => {
   const module = file.split(sep)[0] ?? ""
   const rule = rules[module]
+
   if (rule === undefined || !file.includes(sep)) return [`${file}: not inside a known module`]
 
   return specifiersOf(source).flatMap((specifier) => {
     if (specifier.startsWith(".")) {
       const target = relative(srcRoot, resolve(srcRoot, dirname(file), specifier))
       const targetModule = target.split(sep)[0] ?? ""
+
       if (target.startsWith("..")) return [`${file}: imports ${specifier}, outside src`]
+
       if (isTestingFile(target) && !isTestingFile(file)) {
         return [`${file}: runtime code imports test helpers (${specifier})`]
       }
+
       if (targetModule === module || rule.modules.includes(targetModule)) return []
+
       return [`${file}: module ${module} must not import module ${targetModule}`]
     }
+
     if (isTestingFile(file) && testingPackages.some((entry) => allows(entry, specifier))) return []
+
     if (rule.packages.some((entry) => allows(entry, specifier))) return []
+
     return [`${file}: module ${module} must not import package ${specifier}`]
   })
 }
@@ -89,6 +98,7 @@ const webPackages = [
   "mdast-util-to-hast",
   "hast-util-to-html",
 ]
+
 const webTodoPackages = [
   "@lemol/todo-md/spec",
   "@lemol/todo-md/core",
@@ -97,37 +107,49 @@ const webTodoPackages = [
   "@lemol/todo-md/spec/testing",
   "@lemol/todo-md/hub/testing",
 ]
+
 const webModules = ["spec", "core", "hub", "git", "jira"]
 
 export const webViolations = (file: string, source: string): string[] => {
   const isTest = file.startsWith("test/") || file.includes(".test.")
   const serverOnly = file === "server.ts" || file === "app/assets.ts"
+
   return specifiersOf(source).flatMap((specifier) => {
     if (specifier.startsWith(".")) {
       const target = resolve(webRoot, file.includes("/") ? dirname(file) : ".", specifier)
+
       if (!target.startsWith(webRoot)) {
         const srcRelative = relative(srcRoot, target)
         const targetModule = srcRelative.split(sep)[0] ?? ""
+
         if (!srcRelative.startsWith("..") && webModules.includes(targetModule)) {
           if (isTestingFile(target) && !isTest) {
             return [`${file}: runtime code imports test helpers (${specifier})`]
           }
+
           return []
         }
+
         return [`${file}: imports ${specifier}, outside src/web`]
       }
+
       return []
     }
+
     if (specifier === "bun" || specifier.startsWith("node:")) {
       return serverOnly || isTest ? [] : [`${file}: web runtime must not import ${specifier}`]
     }
+
     if (isTest && (specifier === "bun:test" || specifier === "@lemol/todo-md/spec/testing")) {
       return []
     }
+
     if (webTodoPackages.includes(specifier)) {
       return [`${file}: web must not import ${specifier}`]
     }
+
     if (webPackages.some((entry) => allows(entry, specifier))) return []
+
     return [`${file}: web must not import ${specifier}`]
   })
 }
@@ -138,9 +160,11 @@ describe("module boundaries", () => {
     const files = [...new Glob("**/*.ts").scanSync({ cwd: srcRoot, onlyFiles: true })].filter(
       (file) => file !== "web" && !file.startsWith(`web${sep}`),
     )
+
     const found = files.flatMap((file) =>
       violations(file, readFileSync(join(srcRoot, file), "utf8")),
     )
+
     expect(found).toEqual([])
   })
 
@@ -149,9 +173,11 @@ describe("module boundaries", () => {
       ...new Glob("**/*.ts").scanSync({ cwd: webRoot, onlyFiles: true }),
       ...new Glob("**/*.tsx").scanSync({ cwd: webRoot, onlyFiles: true }),
     ]
+
     const found = files.flatMap((file) =>
       webViolations(file, readFileSync(join(webRoot, file), "utf8")),
     )
+
     expect(found).toEqual([])
   })
 
@@ -166,6 +192,7 @@ describe("module boundaries", () => {
         'import { Effect } from "effect"',
         'import * as Schema from "effect/Schema"',
       ].join("\n")
+
       expect(violations(at("markdown", "index.ts"), source)).toEqual([])
     })
 
@@ -176,6 +203,7 @@ describe("module boundaries", () => {
         'import {\n  a,\n  b\n} from "@lemol/todo-md/spec"',
         'const lazy = import("../../package.json")',
       ].join("\n")
+
       expect(violations(at("core", "service.ts"), source)).toEqual([
         `${at("core", "service.ts")}: module core must not import module fs`,
         `${at("core", "service.ts")}: module core must not import package node:fs`,
@@ -203,6 +231,7 @@ describe("module boundaries", () => {
         'import { FsTodoStore } from "../fs/index.ts"',
         'import { parseDocument } from "yaml"',
       ].join("\n")
+
       expect(violations(at("hub", "Hub.ts"), source)).toEqual([])
       expect(violations(at("hub", "Hub.ts"), 'import { x } from "../cli/errors.ts"')).toEqual([
         `${at("hub", "Hub.ts")}: module hub must not import module cli`,
@@ -222,6 +251,7 @@ describe("module boundaries", () => {
         'import { TodoStore } from "../spec/index.ts"',
         'import { ChildProcess } from "effect/process"',
       ].join("\n")
+
       expect(violations(at("git", "GitSource.ts"), source)).toEqual([])
       expect(
         violations(at("git", "GitSource.ts"), 'import { TodoService } from "../core/index.ts"'),
@@ -244,6 +274,7 @@ describe("module boundaries", () => {
         'import { HttpClient } from "effect/http"',
         'import { ChildProcessSpawner } from "effect/process"',
       ].join("\n")
+
       expect(violations(at("jira", "JiraSource.ts"), source)).toEqual([])
       expect(
         violations(at("jira", "store.ts"), 'import { makeLock } from "../fs/index.ts"'),

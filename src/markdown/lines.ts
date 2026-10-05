@@ -12,6 +12,7 @@ export const splitLines = (text: string): Lines => {
   const eol = text.includes("\r\n") ? "\r\n" : "\n"
   const finalNewline = text.endsWith("\n")
   const body = finalNewline ? text.slice(0, text.endsWith("\r\n") ? -2 : -1) : text
+
   return { lines: text === "" ? [] : body.split(/\r?\n/), eol, finalNewline }
 }
 
@@ -31,6 +32,7 @@ export const spliceLines = (
   const lines = [...text.lines]
   lines.splice(start, deleteCount, ...insert)
   const appended = insert.length > 0 && start + deleteCount >= text.lines.length
+
   return { ...text, lines, finalNewline: text.finalNewline || appended }
 }
 
@@ -41,7 +43,10 @@ export const isBlank = (line: string | undefined): boolean =>
 export const trimBlock = (lines: ReadonlyArray<string>): string => {
   let start = 0
   let end = lines.length
+
   while (start < end && isBlank(lines[start])) start++
+
   while (end > start && isBlank(lines[end - 1])) end--
+
   return lines.slice(start, end).join("\n")
 }

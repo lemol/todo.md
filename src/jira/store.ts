@@ -64,8 +64,11 @@ export const taskFor = (
     const page = issue.fields?.comment
     const embedded = page?.comments ?? []
     const task = taskFromIssue(issue, { site })
+
     if ((page?.total ?? embedded.length) <= embedded.length) return task
+
     const comments: ReadonlyArray<Comment> = commentsOf(yield* client.comments(issue.key))
+
     return { ...task, comments } satisfies Task
   })
 
@@ -105,10 +108,13 @@ export const pickTransition = (
     name === undefined
       ? transitions.find((one) => one.to?.statusCategory?.key?.toLowerCase() === category)
       : transitions.find((one) => one.name?.trim().toLowerCase() === name.trim().toLowerCase())
+
   if (found !== undefined) return found
+
   const available = transitions.map((one) => one.name ?? one.id)
   const offered =
     available.length === 0 ? "none are available" : `available: ${available.join(", ")}`
+
   return name === undefined
     ? `no transition leads to a ${category} status (${offered}); set ${setting}`
     : `no transition is named ${name} (${offered}); check ${setting}`
@@ -162,6 +168,7 @@ export const make = (
     const find = (id: TaskId) =>
       Effect.flatMap(mirror, (current) => {
         const known = [...current.open, ...current.done].find((task) => task.id === id)
+
         return known === undefined ? fetch(id) : Effect.succeed(known)
       })
 
@@ -177,9 +184,11 @@ export const make = (
       Effect.gen(function* () {
         const transitions = yield* client.transitions(id)
         const chosen = pick(transitions)
+
         if (typeof chosen === "string") {
           return yield* new StoreError({ message: `${id}: ${chosen}` })
         }
+
         yield* client.transition(id, chosen.id)
       }).pipe(
         Effect.mapError((error) => (error._tag === "JiraError" ? asStoreError(error) : error)),
@@ -190,15 +199,12 @@ export const make = (
       capabilities,
 
       load: () =>
-        Effect.map(
-          mirror,
-          (current): TodoList => ({
-            title: name,
-            description: "",
-            ungrouped: current.open,
-            groups: [],
-          }),
-        ),
+        Effect.map(mirror, (current): TodoList => ({
+          title: name,
+          description: "",
+          ungrouped: current.open,
+          groups: [],
+        })),
 
       listDone: () => Effect.map(mirror, (current) => current.done),
 
@@ -219,9 +225,11 @@ export const make = (
         Effect.gen(function* () {
           yield* refused(id)
           const task = yield* find(id)
+
           if (task.status === "done") {
             return yield* new InvalidTransition({ id, status: "done", operation: "complete" })
           }
+
           return yield* transitioned(id, (transitions) =>
             pickTransition(transitions, {
               name: options.doneTransition,
@@ -235,9 +243,11 @@ export const make = (
         Effect.gen(function* () {
           yield* refused(id)
           const task = yield* find(id)
+
           if (task.status === "open") {
             return yield* new InvalidTransition({ id, status: "open", operation: "reopen" })
           }
+
           return yield* transitioned(id, (transitions) =>
             pickTransition(transitions, {
               name: options.reopenTransition,
@@ -255,17 +265,22 @@ export const make = (
           yield* refused(id)
           const valid = yield* validate(TaskPatch, patch)
           const kept = keptByJira.filter((field) => valid[field] !== undefined)
+
           if (kept.length > 0) {
             return yield* new ValidationError({
               issues: kept.map((field) => `${field} is read-only for Jira projects`),
             })
           }
+
           const fields = {
             ...(valid.title === undefined ? {} : { summary: valid.title }),
             ...(valid.tags === undefined ? {} : { labels: unique(valid.tags) }),
           }
+
           if (Object.keys(fields).length === 0) return yield* find(id)
+
           yield* client.edit(id, fields).pipe(Effect.mapError(asStoreError))
+
           return yield* refreshed(id)
         }),
 
@@ -274,15 +289,19 @@ export const make = (
       comment: (id, input) =>
         Effect.gen(function* () {
           if (readOnly) return yield* new Unsupported({ operation: "comment" })
+
           const valid = yield* validate(CommentInput, input)
           const created = yield* client
             .addComment(id, valid.body)
             .pipe(Effect.mapError(asStoreError))
+
           yield* refreshed(id)
           const [comment] = commentsOf([created])
+
           if (comment === undefined) {
             return yield* new StoreError({ message: `${id}: Jira returned an unreadable comment` })
           }
+
           return comment
         }),
     })

@@ -16,6 +16,7 @@ export const findListRoot = (
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     let dir = path.resolve(cwd)
+
     while (true) {
       for (const candidate of [path.join(dir, "todo"), dir]) {
         const found = yield* fs.exists(path.join(candidate, todoPath)).pipe(
@@ -27,10 +28,14 @@ export const findListRoot = (
               }),
           ),
         )
+
         if (found) return Option.some(candidate)
       }
+
       const parent = path.dirname(dir)
+
       if (parent === dir) return Option.none()
+
       dir = parent
     }
   })
@@ -47,8 +52,10 @@ export const initList = (
 ): Effect.Effect<void, StoreError, FileSystem.FileSystem | Path.Path> =>
   Effect.gen(function* () {
     const files = yield* makeFiles(dir)
+
     if (yield* files.exists(todoPath)) {
       return yield* new StoreError({ message: `${dir} already has a ${todoPath}` })
     }
+
     yield* files.write(todoPath, formatTodoFile(options))
   })

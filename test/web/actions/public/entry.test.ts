@@ -7,6 +7,7 @@ test("entry.ts only reacts to changed/synced events for its own project", () => 
     resolve(import.meta.dir, "../../../../src/web/app/actions/public/entry.ts"),
     "utf8",
   )
+
   expect(source).toContain("data-project")
   expect(source).toContain("data-live-events")
   expect(source).toContain("shouldRefresh")
@@ -21,6 +22,7 @@ test("entry.ts wires case-insensitive Cmd/Ctrl+K shortcut and focuses input", ()
     resolve(import.meta.dir, "../../../../src/web/app/actions/public/entry.ts"),
     "utf8",
   )
+
   expect(source).toContain('key.toLowerCase() === "k"')
   expect(source).toContain('palette.querySelector("input")?.focus()')
 })

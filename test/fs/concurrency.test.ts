@@ -15,6 +15,7 @@ test("concurrent changes from separate stores do not lose writes", () =>
         Effect.provide(FsTodoStore.layer({ root })),
         Effect.provide(BunServices.layer),
       )
+
       yield* Effect.all(
         Array.from({ length: 10 }, (_, i) =>
           (i % 2 === 0 ? store : other).add({ title: `Task ${i}` }),

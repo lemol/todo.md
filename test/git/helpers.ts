@@ -38,9 +38,11 @@ Object.assign(process.env, {
 /** Runs git in `cwd`, throwing with its output so a broken fixture says why. */
 export const git = (cwd: string, ...args: string[]): string => {
   const result = Bun.spawnSync(["git", ...args], { cwd, env: process.env })
+
   if (result.exitCode !== 0) {
     throw new Error(`git ${args.join(" ")} in ${cwd} failed: ${result.stderr.toString()}`)
   }
+
   return result.stdout.toString()
 }
 
@@ -107,12 +109,15 @@ let templateHome: string | undefined
 const templateFor = (files: Readonly<Record<string, string>>): string => {
   const key = JSON.stringify(files)
   const found = templates.get(key)
+
   if (found !== undefined) return found
+
   if (templateHome === undefined) {
     templateHome = mkdtempSync(join(tmpdir(), "todo-md-git-templates-"))
     const home = templateHome
     process.on("exit", () => rmSync(home, { recursive: true, force: true }))
   }
+
   const remote = join(templateHome, `remote-${templates.size}.git`)
   git(templateHome, "init", "--bare", `--initial-branch=${defaultBranch}`, remote)
   const seed = join(templateHome, `seed-${templates.size}`)
@@ -124,6 +129,7 @@ const templateFor = (files: Readonly<Record<string, string>>): string => {
   commitAndPush(seed, "release notes")
   rmSync(seed, { recursive: true, force: true })
   templates.set(key, remote)
+
   return remote
 }
 
@@ -135,6 +141,7 @@ export const remoteIn = (
 ): string => {
   const remote = join(root, name)
   cpSync(templateFor(files), remote, { recursive: true })
+
   return remote
 }
 
@@ -153,6 +160,7 @@ export const fixture = (options: FixtureOptions = {}): Layer.Layer<GitFixture, n
         Effect.sync(() => mkdtempSync(join(tmpdir(), "todo-md-git-"))),
         (dir) => Effect.sync(() => rmSync(dir, { recursive: true, force: true })),
       )
+
       const remote = seededRemote(root, options.files ?? { "TODO.md": md("# Conformance") })
       const name = options.name ?? "repo"
       const dir = join(root, "home", "projects", name)
@@ -163,9 +171,13 @@ export const fixture = (options: FixtureOptions = {}): Layer.Layer<GitFixture, n
         ...(options.branch === undefined ? {} : { branch: options.branch }),
         ...(options.list === undefined ? {} : { list: options.list }),
       }
+
       const project: SourceProject<GitConfig> = { name, config, dir }
+
       if (options.prepared !== false) yield* Effect.orDie(source.prepare?.(project) ?? Effect.void)
+
       const clone = join(dir, "clone")
+
       return GitFixture.of({
         root,
         remote,
@@ -176,6 +188,7 @@ export const fixture = (options: FixtureOptions = {}): Layer.Layer<GitFixture, n
         other: (label = "other") => {
           const path = join(root, label)
           git(root, "clone", remote, path)
+
           return path
         },
       })

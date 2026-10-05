@@ -13,6 +13,7 @@ effectTest(
       { title: "Review auth", tags: ["needs review"] },
       { group: "Backend" },
     )
+
     expect(yield* disk.exists("tasks/backend/01-review-auth.md")).toBe(true)
     yield* store.complete(task.id)
     expect(yield* disk.tree()).toEqual(["TODO.md", "archive/backend/01-review-auth.md"])

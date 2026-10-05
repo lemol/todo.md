@@ -287,6 +287,7 @@ describe("itemLinesFor", () => {
         tags: ["multi word"],
         group: "Backend",
       })
+
       expect(lines).toEqual([
         "- [ ] [02 - Task with space in tag](./backend/02-task-with-space-in-tag.md)",
       ])
@@ -314,6 +315,7 @@ describe("itemLinesFor", () => {
         },
         "custom/03-custom.md",
       )
+
       expect(lines).toEqual(["- [ ] [03 - Explicit path task](./custom/03-custom.md)"])
       expect(yield* disk.tree()).toEqual(["custom/03-custom.md"])
     }),

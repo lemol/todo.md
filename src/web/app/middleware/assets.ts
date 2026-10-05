@@ -8,6 +8,7 @@ export const loadAssetEntry =
   (assets: AppAssets): Middleware =>
   async (context, next) => {
     context.set(assetEntryContext, await assets.getScriptEntry("app/actions/public/entry.ts"))
+
     return next()
   }
 

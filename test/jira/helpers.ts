@@ -45,12 +45,14 @@ export const withJira = <A, E>(
     const source = yield* JiraSource.make({ env: options.env ?? { JIRA_TOKEN: token } }).pipe(
       Effect.provide(layer),
     )
+
     const config: JiraConfig = {
       site: jira.site,
       email: "tester@acme.test",
       token_env: "JIRA_TOKEN",
       ...options.config,
     }
+
     return yield* use({
       jira,
       source,

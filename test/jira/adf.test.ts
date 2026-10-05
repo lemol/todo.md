@@ -8,6 +8,7 @@ const text = (value: string, marks?: ReadonlyArray<unknown>) => ({
   text: value,
   ...(marks === undefined ? {} : { marks }),
 })
+
 const paragraph = (...content: ReadonlyArray<unknown>) => ({ type: "paragraph", content })
 
 describe("adfToMarkdown: text and paragraphs", () => {

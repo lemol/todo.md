@@ -25,7 +25,9 @@ const without = (capability: "add" | "remove"): Layer.Layer<TodoStore> =>
         capabilities: { ...store.capabilities, [capability]: false },
         [capability]: () => Effect.fail(new Unsupported({ operation: capability })),
       })
+
       underneath.set(wrapped, store)
+
       return wrapped
     }),
   ).pipe(Layer.provide(MemoryTodoStore.layer()))
@@ -34,13 +36,17 @@ const seed = (tasks: ReadonlyArray<SeedTask>) =>
   Effect.gen(function* () {
     const store = yield* TodoStore
     const base = underneath.get(store)
+
     if (base === undefined) return yield* Effect.die(new Error("the store has nothing underneath"))
+
     const created: Array<Task> = []
+
     for (const task of tasks) {
       const { placement, done, ...input } = task
       const added = yield* base.add(input, placement)
       created.push(done === true ? yield* base.complete(added.id) : added)
     }
+
     return created
   })
 

@@ -24,6 +24,7 @@ describe("todo / todo list", () => {
         "",
         "4 open · 3 ready · 1 blocked",
       )
+
       expect(yield* todo()).toEqual({ code: 0, stdout: expected, stderr: "" })
       expect((yield* todo("list")).stdout).toBe(expected)
       expect((yield* todo("ls")).stdout).toBe(expected)

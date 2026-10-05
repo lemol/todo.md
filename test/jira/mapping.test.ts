@@ -99,6 +99,7 @@ describe("taskFromIssue: the task itself", () => {
     const task = map(
       issue({ status: statuses.done, resolutiondate: "2026-01-17T12:34:00.000+0000" }),
     )
+
     expect(task.completedAt === undefined ? undefined : DateTime.formatIso(task.completedAt)).toBe(
       "2026-01-17T12:34:00.000Z",
     )
@@ -157,6 +158,7 @@ describe("taskFromIssue: comments", () => {
         },
       }),
     )
+
     expect(task.comments.map((entry) => [entry.author, entry.body])).toEqual([
       ["bo-chen", "Second"],
       ["ana-silva", "First"],
@@ -194,6 +196,7 @@ describe("taskFromIssue: comments", () => {
         },
       }),
     )
+
     expect(task.comments[0]?.body).toBe("#### Why")
   })
 
@@ -211,6 +214,7 @@ describe("taskFromIssue: extra", () => {
         project: { key: "PROJ", name: "Project" },
       }),
     )
+
     expect(task.extra).toEqual({
       status: "In Progress",
       priority: "High",

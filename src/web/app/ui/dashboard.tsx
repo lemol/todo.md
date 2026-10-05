@@ -53,6 +53,7 @@ const badgeToneForState = (state: string): BadgeTone => {
 const counts = (tasks: ReadonlyArray<TaskView>): RemixNode => {
   const ready = tasks.filter((view) => view.state === "ready").length
   const blocked = tasks.length - ready
+
   return (
     <span class="counts">
       {tasks.length} open · {ready} ready · {blocked} blocked
@@ -83,6 +84,7 @@ const syncForm = (name: string, back: string): RemixNode => (
 const projectHeading = (entry: OverviewEntry, now: DateTime.Utc, back: string): RemixNode => {
   const info = entry.project
   const title = "listing" in entry ? entry.listing.title : info.name
+
   return (
     <div class="project-heading">
       <Heading level={2}>
@@ -112,8 +114,10 @@ const nextRow = (project: string, view: TaskView): RemixNode => (
 
 const projectSection = (entry: OverviewEntry, now: DateTime.Utc, back: string): RemixNode => {
   const heading = projectHeading(entry, now, back)
+
   if (!("listing" in entry)) {
     const retry = entry.project.syncable ? null : syncForm(entry.project.name, back)
+
     return (
       <section class="project project-error" key={entry.project.name}>
         {heading}
@@ -122,6 +126,7 @@ const projectSection = (entry: OverviewEntry, now: DateTime.Utc, back: string): 
       </section>
     )
   }
+
   const tasks = openTasks(entry)
   const ready = tasks.filter((view) => view.state === "ready")
   const shown = ready.slice(0, MAX_NEXT)
@@ -139,6 +144,7 @@ const projectSection = (entry: OverviewEntry, now: DateTime.Utc, back: string): 
         )}
       </>
     )
+
   return (
     <section class="project" key={entry.project.name}>
       {heading}
@@ -171,6 +177,7 @@ const flatRow = (task: OverviewTask): RemixNode => (
 const filterBar = (options: DashboardOptions): RemixNode => {
   const { query, projects, sources } = options
   const submitAttr = liveSubmit("dashboard-filters")
+
   return (
     <LiveForm
       mix={attrs({ class: "filters" })}
@@ -235,6 +242,7 @@ export function DashboardPage(handle: Handle<DashboardOptions>) {
   return () => {
     const options = handle.props
     const back = dashboardHref(options.query)
+
     if (options.projects.length === 0) {
       return (
         <Stack gap={4}>
@@ -246,6 +254,7 @@ export function DashboardPage(handle: Handle<DashboardOptions>) {
         </Stack>
       )
     }
+
     const syncAll = options.syncable ? (
       <form method="post" action={routes.sync.href()} class="inline">
         <input type="hidden" name="back" value={back} />

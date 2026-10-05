@@ -37,6 +37,7 @@ describe("classifyPush", () => {
     ["offline", "fatal: Could not read from remote repository."],
     ["remote", "remote: pre-receive hook declined"],
   ]
+
   for (const [expected, stderr] of cases) {
     test(`reads "${stderr.slice(0, 40)}…" as ${expected}`, () => {
       expect(classifyPush(stderr)).toBe(expected)
@@ -106,6 +107,7 @@ describe("pushing", () => {
       const status = yield* inBun(
         fixture.source.status?.(fixture.project) ?? Effect.succeed<Partial<ProjectStatus>>({}),
       )
+
       expect(status.ahead).toBe(1)
       expect(status.error).toBe(state.lastPushError)
     }),
@@ -125,6 +127,7 @@ describe("pushing", () => {
       const outcome = yield* inBun(
         Effect.orDie(fixture.source.sync?.(fixture.project) ?? Effect.succeed({ summary: "" })),
       )
+
       expect(outcome.summary).toBe("pushed 1")
       expect(counts(clone)).toEqual(["0", "0"])
       expect(yield* inBun(readGitState(dir))).toEqual({})

@@ -74,6 +74,7 @@ describe("parseTaskFile", () => {
       md("---", "title: Fix", "group: Backend", "completed_at: 2026-09-12T10:31:00Z", "---"),
       "f.md",
     )
+
     expect(done.group).toBe("Backend")
     expect(done.completedAt === undefined ? undefined : DateTime.formatIso(done.completedAt)).toBe(
       "2026-09-12T10:31:00.000Z",
@@ -102,6 +103,7 @@ describe("parseTaskFile", () => {
       ),
       "f.md",
     )
+
     expect(broken.diagnostics.map((d) => [d.code, d.line])).toEqual([
       ["invalid-frontmatter", 1],
       ["invalid-frontmatter", 1],
@@ -130,6 +132,7 @@ describe("parseTaskFile", () => {
       ),
       "f.md",
     )
+
     expect(cancelled.outcome).toBe("cancelled")
     expect(cancelled.cancelledReason).toBe("Superseded by d47fcd2.")
     expect(cancelled.extra).toEqual({})
@@ -141,6 +144,7 @@ describe("parseTaskFile", () => {
       md("---", "title: T", "completed_at: 2026-09-18T19:13:18Z", "outcome: wontfix", "---"),
       "f.md",
     )
+
     expect(invalid.outcome).toBeUndefined()
     expect(invalid.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
   })
@@ -156,6 +160,7 @@ describe("parseTaskFile", () => {
       ),
       "f.md",
     )
+
     expect(invalid.cancelledReason).toBeUndefined()
     expect(invalid.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
   })
@@ -226,6 +231,7 @@ describe("formatTaskFile", () => {
       group: undefined,
       completedAt: undefined,
     }
+
     expect(formatTaskFile(minimal)).toBe(md("---", "title: Fix login redirect", "---"))
   })
 
@@ -249,6 +255,7 @@ describe("formatTaskFile", () => {
       outcome: "cancelled",
       cancelledReason: "Superseded by d47fcd2.",
     })
+
     expect(source).toContain("completed_at: 2026-09-18T19:13:18Z")
     expect(source).toContain("outcome: cancelled")
     expect(source).toContain("cancelled_reason: Superseded by d47fcd2.")
@@ -260,12 +267,14 @@ describe("formatTaskFile", () => {
       extra: { estimate: 3, outcome: "cancelled" },
       outcome: "completed",
     })
+
     expect(source.match(/^outcome:.*$/gm)).toEqual(["outcome: completed"])
   })
 
   test("round-trips qualified foreign dependencies without NaN", () => {
     const file =
       "---\ntitle: Task with foreign dependency\ndepends_on: [1, slash-usage:2]\n---\nBody\n"
+
     const parsed = parseTaskFile(file, "test.md")
     expect(parsed.dependsOn).toEqual(["1", "slash-usage:2"])
     expect(parsed.diagnostics).toEqual([])
@@ -277,6 +286,7 @@ describe("formatTaskFile", () => {
   test("normalizes padded numeric IDs in qualified frontmatter depends_on", () => {
     const file =
       "---\ntitle: Task with padded foreign dependency\ndepends_on: [upstream:01]\n---\nBody\n"
+
     const parsed = parseTaskFile(file, "test.md")
     expect(parsed.dependsOn).toEqual(["upstream:1"])
     expect(parsed.diagnostics).toEqual([])
@@ -317,6 +327,7 @@ describe("updateTaskFile", () => {
       group: "Backend",
       completedAt: utc("2026-09-12T10:31:00Z"),
     })
+
     expect(done).toBe(
       example.replace(
         "estimate: 3\n",

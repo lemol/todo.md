@@ -58,6 +58,7 @@ export const makeChanges = (
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const pubsub = yield* Effect.acquireRelease(PubSub.unbounded<HubChange>(), PubSub.shutdown)
+
     const publish = (change: HubChange) => Effect.asVoid(PubSub.publish(pubsub, change))
     let running: Effect.Effect<void> | undefined
 
@@ -73,6 +74,7 @@ export const makeChanges = (
       const fibers = yield* FiberMap.make<string>()
       const keys = new Map<string, string>()
       const lock = yield* Semaphore.make(1)
+
       const watch = (project: Watched, ready: Deferred.Deferred<void>) =>
         Effect.scoped(
           Effect.gen(function* () {
@@ -93,17 +95,22 @@ export const makeChanges = (
           ),
           Effect.provideContext(env),
         )
+
       const reconcile = lock.withPermit(
         Effect.gen(function* () {
           const wanted = yield* options.watched
           const names = new Set(wanted.map((project) => project.name))
-          for (const name of [...keys.keys()]) {
+
+          for (const name of keys.keys()) {
             if (names.has(name)) continue
+
             keys.delete(name)
             yield* FiberMap.remove(fibers, name)
           }
+
           for (const project of wanted) {
             if (keys.get(project.name) === project.key) continue
+
             keys.set(project.name, project.key)
             const ready = yield* Deferred.make<void>()
             yield* FiberMap.run(fibers, project.name, { startImmediately: true })(
@@ -118,6 +125,7 @@ export const makeChanges = (
           ),
         ),
       )
+
       // Set before the first reconcile, so a concurrent registry edit waits for it and then applies.
       running = reconcile
       yield* Effect.addFinalizer(() =>
@@ -139,12 +147,14 @@ export const makeChanges = (
         Effect.forkScoped,
       )
     })
+
     const watchers = yield* RcRef.make({ acquire: start })
 
     const subscribe = Effect.gen(function* () {
       // Subscribe before starting watchers, so their first events are not missed.
       const subscription = yield* PubSub.subscribe(pubsub)
       yield* RcRef.get(watchers)
+
       return Stream.fromSubscription(subscription)
     })
 
@@ -162,6 +172,7 @@ export const notifying = (
   notify: Effect.Effect<void>,
 ): TodoStore["Service"] => {
   const after = <A, E>(effect: Effect.Effect<A, E>) => Effect.tap(effect, () => notify)
+
   return TodoStore.of({
     ...store,
     add: (input, placement) => after(store.add(input, placement)),

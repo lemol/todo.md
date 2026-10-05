@@ -47,7 +47,9 @@ export const readMirror = (
             ),
       ),
     )
+
     if (Option.isNone(text)) return Option.none<Mirror>()
+
     return yield* Schema.decodeUnknownEffect(MirrorJson)(text.value).pipe(
       Effect.map(Option.some),
       Effect.mapError(
@@ -74,6 +76,7 @@ const write = (dir: string, mirror: Mirror): Effect.Effect<void, StoreError, Sou
           }),
       ),
     )
+
     const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
     const temporary = `${file}.${token.toString(36)}.tmp`
     yield* fs.makeDirectory(dir, { recursive: true }).pipe(
@@ -90,16 +93,22 @@ const write = (dir: string, mirror: Mirror): Effect.Effect<void, StoreError, Sou
 /** `task` on the side its status says: in place when it stays open, by `completedAt` when done. */
 export const placed = (mirror: Mirror, task: Task): Mirror => {
   const others = (tasks: ReadonlyArray<Task>) => tasks.filter((one) => one.id !== task.id)
+
   if (task.status === "open") {
     const at = mirror.open.findIndex((one) => one.id === task.id)
     const open =
       at === -1 ? [...mirror.open, task] : mirror.open.map((one, i) => (i === at ? task : one))
+
     return { ...mirror, open, done: others(mirror.done) }
   }
+
   const done = others(mirror.done)
+
   const completed = (one: Task) =>
     one.completedAt === undefined ? 0 : DateTime.toEpochMillis(one.completedAt)
+
   const at = done.findIndex((one) => completed(one) < completed(task))
+
   return {
     ...mirror,
     open: others(mirror.open),
@@ -118,6 +127,7 @@ const locked = <A, E>(dir: string, effect: Effect.Effect<A, E, SourceEnv>) =>
       ),
     )
     const lock = yield* makeLock(dir)
+
     return yield* lock(effect)
   })
 
@@ -131,7 +141,9 @@ export const patchMirror = (dir: string, task: Task): Effect.Effect<void, StoreE
     dir,
     Effect.gen(function* () {
       const current = yield* readMirror(dir)
+
       if (Option.isNone(current)) return
+
       const now = yield* DateTime.now
       const next = placed(current.value, task)
       yield* write(dir, { ...next, patched: { ...current.value.patched, [task.id]: now } })
@@ -155,16 +167,21 @@ export const writeMirror = (
       const current = Option.getOrUndefined(
         yield* readMirror(dir).pipe(Effect.orElseSucceed(() => Option.none<Mirror>())),
       )
+
       const newer = Object.entries(current?.patched ?? {}).filter(([, at]) =>
         DateTime.isGreaterThanOrEqualTo(at, startedAt),
       )
+
       const known = new Map(
         [...(current?.open ?? []), ...(current?.done ?? [])].map((task) => [task.id, task]),
       )
+
       const merged = newer.reduce((next, [id]) => {
         const task = known.get(id)
+
         return task === undefined ? next : placed(next, task)
       }, mirror)
+
       const { patched: _, ...rest } = merged
       yield* write(dir, newer.length === 0 ? rest : { ...rest, patched: Object.fromEntries(newer) })
     }),

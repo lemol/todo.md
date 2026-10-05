@@ -56,7 +56,9 @@ export const runTodo = (args: ReadonlyArray<string>, options: RunOptions = {}) =
           : Effect.void,
       ),
     )
+
     const code = yield* run
+
     return {
       code,
       stdout: text((yield* TestConsole.logLines).slice(out)),

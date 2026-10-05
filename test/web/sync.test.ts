@@ -12,6 +12,7 @@ afterEach(async () => {
 const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
   const app = await makeRouter(options)
   cleanup.push(app.close)
+
   return app
 }
 
@@ -21,7 +22,9 @@ const postApp = (
   fields: Record<string, string>,
 ) => {
   const body = new FormData()
+
   for (const [key, value] of Object.entries(fields)) body.append(key, value)
+
   return router.fetch(
     new Request(`http://localhost${path}`, {
       method: "POST",
@@ -33,6 +36,7 @@ const postApp = (
 
 const required = (value: string | null | undefined): string => {
   if (value === null || value === undefined) throw new Error("expected a value")
+
   return value
 }
 
@@ -57,6 +61,7 @@ describe("sync", () => {
       ],
       extraSources: [syncing("pulled 3 commits"), failing],
     })
+
     const response = await postApp(app.router, "/sync", { back: "/" })
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/")
@@ -67,6 +72,7 @@ describe("sync", () => {
         }),
       )
     ).text()
+
     expect(html).toContain("1 synced, 1 failed: bad (auth)")
   })
 
@@ -75,6 +81,7 @@ describe("sync", () => {
       projects: [{ name: "ok", source: "syncs" }],
       extraSources: [syncing("pulled 3 commits")],
     })
+
     const response = await postApp(app.router, "/p/ok/sync", { back: "/projects" })
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/projects")
@@ -85,6 +92,7 @@ describe("sync", () => {
         }),
       )
     ).text()
+
     expect(html).toContain("ok: pulled 3 commits")
   })
 
@@ -93,6 +101,7 @@ describe("sync", () => {
       projects: [{ name: "bad", source: "fails" }],
       extraSources: [failing],
     })
+
     const response = await postApp(app.router, "/p/bad/sync", {})
     const html = await (
       await app.router.fetch(
@@ -101,6 +110,7 @@ describe("sync", () => {
         }),
       )
     ).text()
+
     expect(html).toContain("auth failed")
     expect(html).toContain('id="flash-toast"')
     expect(response.status).toBe(303)
@@ -111,6 +121,7 @@ describe("sync", () => {
       projects: [{ name: "ok", source: "syncs" }],
       extraSources: [syncing("ok")],
     })
+
     const response = await postApp(app.router, "/sync", { back: "//evil.example" })
     expect(response.headers.get("Location")).toBe("/")
   })

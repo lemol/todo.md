@@ -12,12 +12,14 @@ afterEach(async () => {
 const open = async () => {
   const app = await makeRouter()
   cleanup.push(app.close)
+
   return app
 }
 
 const openWith = async (capabilities: Partial<Capabilities>) => {
   const app = await makeRouter({ capabilities })
   cleanup.push(app.close)
+
   return app
 }
 
@@ -35,6 +37,7 @@ const fetchApp = (
 
 const required = (value: string | null | undefined): string => {
   if (value === null || value === undefined) throw new Error("expected a value")
+
   return value
 }
 
@@ -53,6 +56,7 @@ describe("board contract", () => {
     const blocker = await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Build API" }, { group: "Backend" }),
     )
+
     await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Ship UI", dependsOn: [blocker.id] }, { group: "Frontend" }),
     )
@@ -75,6 +79,7 @@ describe("board contract", () => {
         `${routes.project.board.href({ project: filter.project })}?state=ready`,
       )
     ).text()
+
     expect(filtered).toContain(
       `${routes.project.board.href({ project: filter.project })}?state=ready&amp;tag=docs`,
     )
@@ -92,12 +97,14 @@ describe("board contract", () => {
       comments: false,
       cancel: false,
     })
+
     const task = await seedDocs(hubRuntime, project)
 
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+
     expect(board).not.toContain('name="group"')
     expect(detail).not.toContain(
       `action="${routes.project.tasks.comments.href({ project, id: task.id })}"`,
@@ -113,10 +120,12 @@ describe("board contract", () => {
       capabilities: { add: false },
       projects: [{ name: "acme", fields: { title: "Acme", tasks: [{ title: "Mirrored" }] } }],
     })
+
     cleanup.push(app.close)
     const board = await (
       await fetchApp(app.router, routes.project.board.href({ project: app.project }))
     ).text()
+
     expect(board).toContain("Mirrored")
     expect(board).not.toContain(
       `action="${routes.project.tasks.add.href({ project: app.project })}"`,
@@ -131,6 +140,7 @@ describe("board contract", () => {
       routes.project.tasks.add.href({ project: app.project }),
       { method: "POST", body: form },
     )
+
     expect(posted.status).toBe(400)
     expect(await posted.text()).toContain("does not support add")
   })
@@ -142,6 +152,7 @@ describe("board contract", () => {
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+
     expect(detail).not.toContain('commandfor="remove-task"')
     expect(detail).not.toContain('id="remove-task"')
     expect(detail).not.toContain(
@@ -153,6 +164,7 @@ describe("board contract", () => {
       router,
       routes.project.tasks.confirmRemove.href({ project, id: task.id }),
     )
+
     expect(confirm.status).toBe(400)
     expect(await confirm.text()).toContain("does not support remove")
   })
@@ -167,6 +179,7 @@ describe("board contract", () => {
       method: "POST",
       body: form,
     })
+
     expect(added.status).toBe(303)
     const location = added.headers.get("location")
     expect(location).toBe(routes.project.tasks.show.href({ project, id: "1" }))
@@ -194,6 +207,7 @@ describe("board contract", () => {
       method: "POST",
       body: form,
     })
+
     expect(response.status).toBe(422)
     const html = await response.text()
     expect(html).toContain("Title is required")
@@ -214,6 +228,7 @@ describe("task forms and detail", () => {
         dependsOn: [dependency.id],
       }),
     )
+
     await seed(hubRuntime, project, (todo) =>
       todo.comment(task.id, { author: "one", body: "First" }),
     )
@@ -223,6 +238,7 @@ describe("task forms and detail", () => {
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+
     const edit = await (
       await fetchApp(router, routes.project.tasks.edit.href({ project, id: task.id }))
     ).text()
@@ -267,10 +283,12 @@ describe("task forms and detail", () => {
         body: update,
       },
     )
+
     expect(updated.status).toBe(303)
     const updatedHtml = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+
     expect(updatedHtml).toContain("Ship polished UI")
     expect(updatedHtml).toContain("#release")
     expect(updatedHtml).toContain("@agent")
@@ -304,6 +322,7 @@ describe("task forms and detail", () => {
     const cancelledDetail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: cancelled.id }))
     ).text()
+
     expect(cancelledDetail).toContain("Cancelled")
     expect(cancelledDetail).toContain("Superseded by d47fcd2.")
     expect(cancelledDetail).not.toContain("Completed")
@@ -314,6 +333,7 @@ describe("task forms and detail", () => {
     const completedDetail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: completed.id }))
     ).text()
+
     expect(completedDetail).toContain("Completed")
     expect(completedDetail).not.toContain("Cancelled")
   })
@@ -324,6 +344,7 @@ describe("task forms and detail", () => {
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+
     expect(detail).toContain(
       `action="${routes.project.tasks.cancel.href({ project, id: task.id })}"`,
     )
@@ -336,10 +357,12 @@ describe("task forms and detail", () => {
         back: routes.project.tasks.show.href({ project, id: task.id }),
       },
     )
+
     expect(cancelled.status).toBe(303)
     const after = await fetchApp(router, required(cancelled.headers.get("location")), {
       headers: { Cookie: cookieOf(cancelled) },
     })
+
     const afterHtml = await after.text()
     expect(afterHtml).toContain(`Cancelled ${showId(task.id)}.`)
     expect(afterHtml).not.toContain("Now ready")
@@ -350,6 +373,7 @@ describe("task forms and detail", () => {
       routes.project.tasks.cancel.href({ project, id: (await seedDocs(hubRuntime, project)).id }),
       {},
     )
+
     expect(missingReason.status).toBe(400)
     expect(await missingReason.text()).toContain("needs a reason")
   })
@@ -367,6 +391,7 @@ describe("task forms and detail", () => {
       method: "POST",
       body: blank,
     })
+
     const addHtml = await addResponse.text()
     expect(addResponse.status).toBe(422)
     expect(addHtml).toContain("Title is required")
@@ -387,6 +412,7 @@ describe("task forms and detail", () => {
         body: cycle,
       },
     )
+
     const editHtml = await editResponse.text()
     expect(editResponse.status).toBe(422)
     expect(editHtml).toContain("dependency cycle")
@@ -402,6 +428,7 @@ describe("lifecycle, flash, and secondary pages", () => {
     const unblocked = await seed(hubRuntime, project, (todo) =>
       todo.add({ title: "Release", dependsOn: [blocker.id] }),
     )
+
     const boardReady = `${routes.project.board.href({ project })}?state=ready`
     const form = new FormData()
     form.set("back", boardReady)
@@ -413,6 +440,7 @@ describe("lifecycle, flash, and secondary pages", () => {
         body: form,
       },
     )
+
     const cookie = completed.headers.get("set-cookie")?.split(";", 1)[0]
     expect(completed.status).toBe(303)
     expect(completed.headers.get("location")).toBe(boardReady)
@@ -421,6 +449,7 @@ describe("lifecycle, flash, and secondary pages", () => {
     const board = await fetchApp(router, boardReady, {
       headers: { Cookie: required(cookie) },
     })
+
     expect(await board.text()).toContain(`Completed 01. Now ready: 02`)
 
     const stale = await fetchApp(
@@ -432,11 +461,13 @@ describe("lifecycle, flash, and secondary pages", () => {
         headers: { Cookie: required(cookie) },
       },
     )
+
     expect(stale.status).toBe(303)
     const staleCookie = stale.headers.get("set-cookie")?.split(";", 1)[0]
     const afterStale = await fetchApp(router, routes.project.board.href({ project }), {
       headers: { Cookie: required(staleCookie) },
     })
+
     expect(await afterStale.text()).toContain("cannot be completed")
 
     const done = await (await fetchApp(router, routes.project.done.href({ project }))).text()
@@ -465,6 +496,7 @@ describe("lifecycle, flash, and secondary pages", () => {
         body: new FormData(),
       },
     )
+
     expect(missingComplete.status).toBe(404)
 
     const check = await (await fetchApp(router, routes.project.check.href({ project }))).text()
@@ -480,7 +512,9 @@ const post = (
   fields: object,
 ) => {
   const body = new FormData()
+
   for (const [name, value] of Object.entries(fields)) body.set(name, String(value))
+
   return fetchApp(router, path, { method: "POST", body })
 }
 
@@ -503,6 +537,7 @@ describe("move, remove, and group management", () => {
   ) => {
     const add = (title: string, group?: string) =>
       seed(hubRuntime, project, (todo) => todo.add({ title }, group === undefined ? {} : { group }))
+
     return [await add("One"), await add("Two"), await add("Three", "Backend")]
   }
 
@@ -510,6 +545,7 @@ describe("move, remove, and group management", () => {
     const { router, hubRuntime, project } = await open()
     const [one, two] = await seedThree(hubRuntime, project)
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
+
     const move = (id: string) => `action="${routes.project.tasks.move.href({ project, id })}"`
     expect(board).toContain(move(required(two?.id)))
     expect(board).toContain(`name="before" value="${one?.id}"`)
@@ -524,6 +560,7 @@ describe("move, remove, and group management", () => {
         back: `${routes.project.board.href({ project })}?tag=x`,
       },
     )
+
     expect(moved.status).toBe(303)
     expect(moved.headers.get("location")).toBe(`${routes.project.board.href({ project })}?tag=x`)
     expect(await titlesOf(hubRuntime, project)).toEqual([
@@ -538,6 +575,7 @@ describe("move, remove, and group management", () => {
     const page = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: required(one?.id) }))
     ).text()
+
     expect(page).toContain(
       `action="${routes.project.tasks.move.href({ project, id: required(one?.id) })}"`,
     )
@@ -558,10 +596,12 @@ describe("move, remove, and group management", () => {
         back: routes.project.tasks.show.href({ project, id: required(one?.id) }),
       },
     )
+
     expect(moved.status).toBe(303)
     const after = await fetchApp(router, required(moved.headers.get("location")), {
       headers: { Cookie: cookieOf(moved) },
     })
+
     expect(await after.text()).toContain("Moved 01 to Backend.")
 
     await post(router, routes.project.tasks.move.href({ project, id: required(two?.id) }), {
@@ -587,6 +627,7 @@ describe("move, remove, and group management", () => {
         newGroup: "",
       },
     )
+
     expect(blank.status).toBe(422)
     expect(await blank.text()).toContain("New group is required")
   })
@@ -598,14 +639,17 @@ describe("move, remove, and group management", () => {
     const moved = await post(router, routes.project.tasks.move.href({ project, id: task.id }), {
       position: "top",
     })
+
     expect(moved.status).toBe(303)
     const board = await fetchApp(router, routes.project.board.href({ project }), {
       headers: { Cookie: cookieOf(moved) },
     })
+
     expect(await board.text()).toContain("cannot be moved")
     const page = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: task.id }))
     ).text()
+
     expect(page).not.toContain(
       `action="${routes.project.tasks.move.href({ project, id: task.id })}"`,
     )
@@ -620,12 +664,14 @@ describe("move, remove, and group management", () => {
     const detail = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: blocker.id }))
     ).text()
+
     expect(detail).toContain('commandfor="remove-task"')
     expect(detail).toContain('id="remove-task"')
 
     const confirm = await (
       await fetchApp(router, routes.project.tasks.confirmRemove.href({ project, id: blocker.id }))
     ).text()
+
     expect(confirm).toContain("Release")
     expect(confirm).toContain('name="force" value="1"')
     expect(confirm).toContain("Remove anyway")
@@ -635,6 +681,7 @@ describe("move, remove, and group management", () => {
       routes.project.tasks.remove.href({ project, id: blocker.id }),
       {},
     )
+
     expect(refused.status).toBe(422)
     expect(await refused.text()).toContain("still has open tasks depending on it: 2")
 
@@ -645,11 +692,13 @@ describe("move, remove, and group management", () => {
         force: "1",
       },
     )
+
     expect(removed.status).toBe(303)
     expect(removed.headers.get("location")).toBe(routes.project.board.href({ project }))
     const board = await fetchApp(router, routes.project.board.href({ project }), {
       headers: { Cookie: cookieOf(removed) },
     })
+
     expect(await board.text()).toContain("Removed 01 Write docs.")
     expect(
       (await fetchApp(router, routes.project.tasks.show.href({ project, id: blocker.id }))).status,
@@ -663,12 +712,14 @@ describe("move, remove, and group management", () => {
     const confirm = await (
       await fetchApp(router, routes.project.tasks.confirmRemove.href({ project, id: task.id }))
     ).text()
+
     expect(confirm).not.toContain('name="force"')
     const removed = await post(
       router,
       routes.project.tasks.remove.href({ project, id: task.id }),
       {},
     )
+
     expect(removed.headers.get("location")).toBe(routes.project.done.href({ project }))
   })
 
@@ -680,6 +731,7 @@ describe("move, remove, and group management", () => {
       { project },
       { searchParams: { name: "Backend" } },
     )
+
     const board = await (await fetchApp(router, routes.project.board.href({ project }))).text()
     expect(board).toContain(`href="${editHref}"`)
 
@@ -690,6 +742,7 @@ describe("move, remove, and group management", () => {
       from: "Backend",
       to: "Ops",
     })
+
     expect(taken.status).toBe(422)
     expect(await taken.text()).toContain('value="Ops"')
 
@@ -697,16 +750,19 @@ describe("move, remove, and group management", () => {
       from: "Backend",
       to: " ",
     })
+
     expect(blank.status).toBe(422)
 
     const renamed = await post(router, routes.project.groups.rename.href({ project }), {
       from: "Backend",
       to: "Server",
     })
+
     expect(renamed.status).toBe(303)
     const after = await fetchApp(router, routes.project.board.href({ project }), {
       headers: { Cookie: cookieOf(renamed) },
     })
+
     expect(await after.text()).toContain("Renamed group Backend to Server.")
     expect((await titlesOf(hubRuntime, project)).map((section) => section.name)).toEqual([
       undefined,
@@ -718,6 +774,7 @@ describe("move, remove, and group management", () => {
       router,
       routes.project.groups.edit.href({ project }, { searchParams: { name: "Nope" } }),
     )
+
     expect(missing.status).toBe(400)
   })
 
@@ -728,6 +785,7 @@ describe("move, remove, and group management", () => {
     const page = await (
       await fetchApp(router, routes.project.tasks.show.href({ project, id: required(one?.id) }))
     ).text()
+
     expect(board).not.toContain('class="moves"')
     expect(board).not.toContain(routes.project.groups.edit.href({ project }))
     expect(page).not.toContain(
@@ -739,6 +797,7 @@ describe("move, remove, and group management", () => {
       router,
       routes.project.groups.edit.href({ project }, { searchParams: { name: "Backend" } }),
     )
+
     expect(edit.status).toBe(400)
   })
 
@@ -753,6 +812,7 @@ describe("move, remove, and group management", () => {
         newGroup: "",
       },
     )
+
     expect(response.status).toBe(422)
     const html = await response.text()
     expect(html).toContain("New group is required")

@@ -28,29 +28,38 @@ export interface Normalized {
 export const normalize = (todo: TodoFile, context: NormalizeContext): Normalized => {
   const items = allItems(todo)
   let currentId = 0n
+
   for (const id of context.usedIds) {
     if (isId(id) && BigInt(id) > currentId) currentId = BigInt(id)
   }
+
   for (const item of items) {
     if (item.id !== undefined && isId(item.id) && BigInt(item.id) > currentId) {
       currentId = BigInt(item.id)
     }
   }
+
   const assigned: TaskId[] = []
   const checked: TaskId[] = []
   let text = todo.text
+
   for (const item of items) {
     let id = item.id
+
     if (id === undefined) {
       currentId += 1n
       id = String(currentId)
       assigned.push(id)
     }
+
     const title =
       (item.path === undefined ? undefined : context.titles.get(item.path)) ?? item.title
+
     if (id !== item.id || title !== item.title) text = withHead(text, item, id, title)
+
     if (item.checked) checked.push(id)
   }
+
   return { text: joinLines(text), assigned, checked }
 }
 

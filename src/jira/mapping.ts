@@ -109,10 +109,12 @@ export const issueFields: ReadonlyArray<string> = [
  */
 export const slugOf = (name: string | null | undefined): string | undefined => {
   if (name === null || name === undefined) return undefined
+
   const slug = name
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
+
   return slug === "" ? undefined : slug
 }
 
@@ -123,6 +125,7 @@ const instantOf = (value: string | null | undefined): DateTime.Utc | undefined =
 /** A summary as a title: one line, trimmed, and never empty. */
 const titleOf = (summary: string | null | undefined, key: string): string => {
   const line = (summary ?? "").replace(/\s+/g, " ").trim()
+
   return line === "" ? key : line
 }
 
@@ -151,9 +154,12 @@ export const commentsOf = (comments: ReadonlyArray<JiraComment>): ReadonlyArray<
       // Comment bodies are quoted inside the task's document, so their
       // headings start below its own (spec §2.6).
       const body = adfToMarkdown(comment.body, { headingShift: 3 }).trim()
+
       if (at === undefined || body === "") return []
+
       const author =
         slugOf(comment.author?.displayName) ?? slugOf(comment.author?.accountId) ?? "unknown"
+
       return [{ author, at, body } satisfies Comment]
     })
     .sort((left, right) => DateTime.toEpochMillis(right.at) - DateTime.toEpochMillis(left.at))
@@ -168,6 +174,7 @@ const extraOf = (issue: Issue, site: string): Extra => {
     ["assignee_name", fields?.assignee?.displayName ?? undefined],
     ["assignee_account", fields?.assignee?.accountId ?? undefined],
   ]
+
   return Object.fromEntries(entries.filter(([, value]) => value !== undefined))
 }
 
@@ -182,6 +189,7 @@ export const taskFromIssue = (issue: Issue, options: MappingOptions): Task => {
   const done = isDone(issue)
   const assignee = slugOf(fields?.assignee?.displayName)
   const completedAt = done ? instantOf(fields?.resolutiondate) : undefined
+
   return {
     id: issue.key,
     title: titleOf(fields?.summary, issue.key),

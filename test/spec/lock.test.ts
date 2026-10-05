@@ -11,6 +11,7 @@ const run = <A, E>(effect: Effect.Effect<A, E, Disk>) =>
 const lockFor = (options?: Partial<LockOptions>) =>
   Effect.gen(function* () {
     const { root } = yield* Disk
+
     return yield* makeLock(root, {
       timeout: "10 seconds",
       staleAfter: "30 seconds",
@@ -30,6 +31,7 @@ describe("the list lock", () => {
           yield* Effect.sleep("2 millis")
           yield* files.write("counter.txt", String(value + 1))
         })
+
         yield* Effect.all(
           Array.from({ length: 10 }, () => lock(increment)),
           { concurrency: "unbounded" },

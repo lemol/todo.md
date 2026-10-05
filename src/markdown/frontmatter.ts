@@ -10,12 +10,17 @@ export interface FrontmatterData {
 export const readFrontmatter = (yaml: string): FrontmatterData => {
   const doc = parseDocument(yaml)
   const [first] = doc.errors
+
   if (first !== undefined) return { data: {}, error: first.message.split("\n")[0] }
+
   const value: unknown = doc.toJS()
+
   if (value === null || value === undefined) return { data: {}, error: undefined }
+
   if (typeof value !== "object" || Array.isArray(value)) {
     return { data: {}, error: "frontmatter must be a mapping" }
   }
+
   return { data: value as Record<string, unknown>, error: undefined }
 }
 
@@ -26,6 +31,7 @@ const isScalarList = (value: unknown): value is ReadonlyArray<unknown> =>
 const entry = (key: string, value: unknown): string[] => {
   const doc = new Document({})
   doc.set(key, isScalarList(value) ? doc.createNode(value, { flow: true }) : value)
+
   return doc.toString({ flowCollectionPadding: false }).replace(/\n$/, "").split("\n")
 }
 
@@ -50,24 +56,33 @@ export const setFrontmatterFields = (
   const current = readFrontmatter(yaml).data
   const map = doc.contents
   const blockMap = isMap(map) && !map.flow
+
   if (doc.errors.length > 0 || (map !== null && !blockMap)) {
     const merged = { ...current, ...fields }
+
     return formatFrontmatter(Object.entries(merged).filter(([, value]) => value !== undefined))
   }
 
   const lineOf = (offset: number) => yaml.slice(0, offset).split("\n").length - 1
+
   const edits: Array<{ start: number; end: number; lines: string[] }> = []
   const appended: string[] = []
+
   for (const [key, value] of Object.entries(fields)) {
     if (same(current[key], value)) continue
+
     const pair = blockMap
       ? map.items.find((item) => isScalar(item.key) && item.key.value === key)
       : undefined
+
     const keyRange = pair !== undefined && isScalar(pair.key) ? pair.key.range : undefined
+
     if (keyRange == null) {
       if (value !== undefined) appended.push(...entry(key, value))
+
       continue
     }
+
     const valueRange = (pair?.value as { range?: [number, number, number] } | null)?.range
     const end = Math.max((valueRange ?? keyRange)[1] - 1, keyRange[0])
     edits.push({
@@ -76,8 +91,10 @@ export const setFrontmatterFields = (
       lines: value === undefined ? [] : entry(key, value),
     })
   }
+
   for (const edit of edits.sort((a, b) => b.start - a.start)) {
     lines.splice(edit.start, edit.end - edit.start + 1, ...edit.lines)
   }
+
   return [...lines, ...appended]
 }

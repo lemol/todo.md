@@ -22,10 +22,13 @@ test("emits a changed event for the source change and unsubscribes on abort", as
       signal: abort.signal,
     }),
   )
+
   expect(response.headers.get("content-type")).toContain("text/event-stream")
   const body = response.body
   expect(body).not.toBeNull()
+
   if (body === null) throw new Error("expected SSE response body")
+
   const reader = body.getReader()
 
   // The response must not resolve until hub.changes has acquired its source

@@ -159,6 +159,7 @@ describe("todo ls --all and next --all", () => {
       const view = JSON.parse(
         (yield* runTodo(["ls", "--all", "--json"], { home, cwd: "empty" })).stdout,
       )
+
       expect(
         view.projects.map((entry: { project: { name: string } }) => entry.project.name),
       ).toEqual(["a", "ghost"])
@@ -196,6 +197,7 @@ describe("todo sync", () => {
             Effect.fail(new SyncError({ project: "mem", reason: "auth", message: "bad token" })),
         }),
       ]
+
       yield* runTodo(["projects", "add", "x", "--source", "memory", "--name", "mem"], {
         home,
         sources,
@@ -232,6 +234,7 @@ describe("todo sync", () => {
           status: () => Effect.succeed({ diverged: true }),
         }),
       ]
+
       yield* withAlpha(home)
       yield* runTodo(["projects", "add", "x", "--source", "memory", "--name", "mem"], {
         home,
@@ -246,6 +249,7 @@ describe("todo sync", () => {
         home,
         sources,
       })
+
       expect(added.code).toBe(0)
       expect(added.stdout).toBe("Added 01  Do it")
       expect(added.stderr).toBe("todo: not pushed (ahead 1): offline")
@@ -254,6 +258,7 @@ describe("todo sync", () => {
         home,
         sources,
       })
+
       expect(other.code).toBe(0)
       expect(other.stderr).toBe("todo: memd has diverged; resolve it in memory")
 
@@ -261,6 +266,7 @@ describe("todo sync", () => {
         home,
         sources,
       })
+
       expect(local).toEqual({ code: 0, stdout: "Added 04  Do it", stderr: "" })
     }),
     diskWith(alpha),

@@ -18,6 +18,7 @@ export const parseHead = (
   head: string,
 ): { readonly id: string | undefined; readonly title: string } => {
   const match = /^(\d+) - (.*)$/.exec(head)
+
   return match === null
     ? { id: undefined, title: head.trim() }
     : { id: match[1]?.replace(/^0+(?=\d)/, ""), title: (match[2] ?? "").trim() }
@@ -40,7 +41,9 @@ export const formatInlineItem = (item: InlineItem): string[] => {
   const [firstLine] = description
   const separate =
     metadata === "" && firstLine !== undefined && parseMetadataLine(firstLine) !== undefined
+
   const body = [...(metadata === "" ? [] : [metadata]), ...(separate ? [""] : []), ...description]
+
   return [
     `- ${checkbox(item.checked)} ${formatHead(item.id, item.title)}`,
     ...body.map((line) => (isBlank(line) ? "" : `  ${line}`)),

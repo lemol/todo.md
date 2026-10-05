@@ -112,6 +112,7 @@ test("maps unclaimed domain failures to their specified status", () => {
 
 test("compiles the browser entry with its workspace import map", async () => {
   const assets = createAssets()
+
   try {
     const entry = await assets.getScriptEntry("app/actions/public/entry.ts")
     // `remix/*` subpaths are barrels, and the asset server rewrites named
@@ -136,6 +137,7 @@ test("the header carries the switcher, hub links and the live event list", async
     ],
     liveEvents: ["registry", "synced"],
   })
+
   expect(html).toContain(`action="/go"`)
   expect(html).toContain(`<option value="acme"`)
   expect(html).toContain(`list (not registered)`)
@@ -157,6 +159,7 @@ test("the sync badge carries the hub's words and a matching pastel", async () =>
   const errorBadge = await renderToString(
     syncStatusBadge({ result: "error", error: "<script>" }, now),
   )
+
   expect(errorBadge).toContain("&lt;script&gt;")
   expect(errorBadge).toContain("--ui-badge-danger-bg")
 })
@@ -167,6 +170,7 @@ test("renders the shared document shell with mini theme and shell", async () => 
   const response = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
   )
+
   const html = await response.text()
   expect(html).toMatch(/^<!doctype html>/i)
   expect(html).toContain('lang="en"')
@@ -190,6 +194,7 @@ test("renders flash toast and reload notice in the shell", async () => {
     content: "<p>body</p>",
     flash: { message: "Saved successfully", tone: "info" },
   })
+
   expect(html).toContain("Saved successfully")
   expect(html).toContain('id="flash-toast"')
   expect(html).toContain('popover="manual"')
@@ -203,6 +208,7 @@ test("renders ErrorPage using mini ErrorState", async () => {
   const html = await renderToString(
     <ErrorPage status={404} message="Task not found" project="acme" />,
   )
+
   expect(html).toContain("404 error")
   expect(html).toContain("Task not found")
   expect(html).toContain("Back to board")
@@ -225,6 +231,7 @@ test("renders CheckPage with diagnostics using @lemol/ui components", async () =
       ]}
     />,
   )
+
   expect(html).toContain("Errors")
   expect(html).toContain("unknown-dependency")
   expect(html).toContain("Task depends on unknown task 999")
@@ -246,6 +253,7 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
   const boardRes = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
   )
+
   const boardHtml = await boardRes.text()
   expect(boardHtml).toContain('command="show-modal"')
   expect(boardHtml).toContain('commandfor="add-task"')
@@ -265,11 +273,13 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
       headers: { Host: "localhost" },
     }),
   )
+
   expect(addRes.status).toBe(303)
 
   const taskRes = await router.fetch(
     new Request(`http://localhost/p/${project}/tasks/1`, { headers: { Host: "localhost" } }),
   )
+
   const taskHtml = await taskRes.text()
   expect(taskHtml).toContain('command="show-modal"')
   expect(taskHtml).toContain('commandfor="edit-task"')
@@ -309,6 +319,7 @@ test("renders Command Palette trigger and dialog in Document", async () => {
       { name: "other", registered: true },
     ],
   })
+
   expect(html).toContain('command="show-modal"')
   expect(html).toContain('commandfor="command-palette"')
   expect(html).toContain('id="command-palette"')
@@ -330,6 +341,7 @@ test("renders Command Palette in project-less context without contextual project
       { name: "other", registered: true },
     ],
   })
+
   expect(html).toContain('data-palette-label="Dashboard"')
   expect(html).toContain('data-palette-label="Projects"')
   expect(html).not.toContain("Board (")
@@ -357,6 +369,7 @@ test("renders LiveForm filter bar with liveSubmit wiring in DashboardPage", asyn
       syncable={false}
     />,
   )
+
   expect(html).toContain('id="dashboard-filters"')
   expect(html).toContain('command="--live-submit"')
   expect(html).toContain('commandfor="dashboard-filters"')
@@ -369,6 +382,7 @@ test("renders RemoveTask dialog and trigger on TaskDetailPage", async () => {
     detail: { view: { task: sampleTask, state: "ready" }, dependsOn: [], blocks: [] },
     capabilities: { ...allCapabilities, remove: true },
   })
+
   expect(html).toContain('command="show-modal"')
   expect(html).toContain('commandfor="remove-task"')
   expect(html).toContain('id="remove-task"')
@@ -381,6 +395,7 @@ test("renders RemoveTask dialog with open dependents warning on TaskDetailPage",
     id: "2",
     title: "Dependent task",
   }
+
   const html = await renderTaskDetail({
     project: "acme",
     task: sampleTask,
@@ -391,6 +406,7 @@ test("renders RemoveTask dialog with open dependents warning on TaskDetailPage",
     },
     capabilities: { ...allCapabilities, remove: true },
   })
+
   expect(html).toContain("These open tasks depend on it")
   expect(html).toContain("Dependent task")
   expect(html).toContain('name="force" value="1"')
@@ -404,6 +420,7 @@ test("does not render RemoveTask trigger or dialog when remove capability is fal
     detail: { view: { task: sampleTask, state: "ready" }, dependsOn: [], blocks: [] },
     capabilities: { ...allCapabilities, remove: false },
   })
+
   expect(html).not.toContain('commandfor="remove-task"')
   expect(html).not.toContain('id="remove-task"')
 })

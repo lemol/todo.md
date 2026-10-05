@@ -19,5 +19,6 @@ export const parseRef = (text: string): TaskRef => {
   const colon = text.indexOf(":")
   const project = text.slice(0, colon)
   const id = text.slice(colon + 1)
+
   return colon > 0 && isValidName(project) && id !== "" ? { project, id } : { id: text }
 }

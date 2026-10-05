@@ -70,12 +70,15 @@ export const add = Command.make(
     if (Option.isSome(flags.group) && flags.noGroup) {
       return yield* new UsageError({ message: "use --group or --no-group, not both" })
     }
+
     if (Option.isSome(flags.description) && flags.noDescription) {
       return yield* new UsageError({ message: "use --description or --no-description, not both" })
     }
+
     if (flags.file && flags.inline) {
       return yield* new UsageError({ message: "use --file or --inline, not both" })
     }
+
     // Where it goes and what it is are decisions, not defaults: a task added
     // without either is the mistake this asks about. An anchor already fixes
     // the group, and --quick answers whatever is left.
@@ -84,29 +87,35 @@ export const add = Command.make(
       flags.noGroup ||
       Option.isSome(flags.before) ||
       Option.isSome(flags.after)
+
     if (!placed && !flags.quick) {
       return yield* new UsageError({
         message: "say where it goes: --group <name>, --no-group, --before or --after",
       })
     }
+
     if (Option.isNone(flags.description) && !flags.noDescription && !flags.quick) {
       return yield* new UsageError({
         message:
           "say what it is: --description <text>, --description - to read stdin, or --no-description",
       })
     }
+
     const description = Option.isSome(flags.description)
       ? yield* textOf("description", flags.description.value)
       : undefined
+
     const dependsOn = flags.dependsOn.map(refOf)
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
     // Its own file by default, so a long task does not swamp TODO.md (§2.9).
     const wantsFile = flags.file || !(flags.inline || flags.quick)
+
     const toStoredId = (projectName: string) => (ref: TaskRef) =>
       ref.project !== undefined && ref.project !== projectName
         ? formatRef(ref.project, ref.id)
         : ref.id
+
     yield* withTodo((todo, project) =>
       Effect.gen(function* () {
         for (const anchor of [...Option.toArray(before), ...Option.toArray(after)]) {
@@ -116,6 +125,7 @@ export const add = Command.make(
             })
           }
         }
+
         const task = yield* todo.add(
           {
             title: flags.title.join(" "),
@@ -136,9 +146,11 @@ export const add = Command.make(
             ),
           },
         )
+
         // A store with nowhere to put a task file keeps the task as it is;
         // an explicit --file says so rather than pretending it worked.
         if (wantsFile && (todo.capabilities.promote || flags.file)) yield* todo.promote(task.id)
+
         yield* output(project, task, () => [
           `Added ${label(task)}${task.group === undefined ? "" : ` to ${task.group}`}`,
         ])
@@ -224,17 +236,21 @@ export const edit = Command.make(
     if (flags.unassign && Option.isSome(flags.assignee)) {
       return yield* new UsageError({ message: "use --assignee or --unassign, not both" })
     }
+
     const description = Option.isSome(flags.description)
       ? yield* textOf("description", flags.description.value)
       : undefined
+
     const id = refOf(flags.id)
     const dependsOn = flags.dependsOn.map(refOf)
     const drop = flags.dropDependency.map(refOf)
     const refProject = yield* projectOfRefs([id])
+
     const toStoredId = (projectName: string) => (ref: TaskRef) =>
       ref.project !== undefined && ref.project !== projectName
         ? formatRef(ref.project, ref.id)
         : ref.id
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
@@ -262,18 +278,22 @@ export const edit = Command.make(
                 }
               : {}),
           }
+
           if (Object.keys(patch).length === 0 && !flags.file) {
             return yield* new UsageError({
               message: "nothing to change; pass --title, --tag, --assignee or another change",
             })
           }
+
           // Promote first, so the change lands as a minimal edit to the new
           // task file instead of rewriting an inline item into a link.
           if (flags.file) yield* todo.promote(id.id)
+
           const task =
             Object.keys(patch).length === 0
               ? (yield* todo.show(id.id)).view.task
               : yield* todo.update(id.id, patch)
+
           yield* output(project, task, () => [`Updated ${label(task)}`])
           yield* warnUnpushed(project)
         }),
@@ -312,22 +332,34 @@ const newlyReadyInOtherProjects = (
     Effect.gen(function* () {
       const hub = yield* Hub
       const keys = new Set(completed.map((ref) => formatRef(ref.project ?? current, ref.id)))
-      if (keys.size === 0)
+
+      if (keys.size === 0) {
         return [] as ReadonlyArray<{ readonly project: string; readonly view: TaskView }>
+      }
+
       const infos = yield* hub.projects()
       const out: Array<{ readonly project: string; readonly view: TaskView }> = []
+
       for (const info of infos) {
         if (!info.registered || info.name === current) continue
+
         const service = yield* Effect.option(hub.todo(info.name))
+
         if (service._tag === "None") continue
+
         const ready = yield* Effect.option(service.value.next())
+
         if (ready._tag === "None") continue
+
         for (const view of ready.value) {
           if (view.state !== "ready") continue
-          if (view.task.dependsOn.some((dep) => keys.has(dep)))
+
+          if (view.task.dependsOn.some((dep) => keys.has(dep))) {
             out.push({ project: info.name, view })
+          }
         }
       }
+
       return out as ReadonlyArray<{ readonly project: string; readonly view: TaskView }>
     }),
     () =>
@@ -459,12 +491,14 @@ export const mv = Command.make(
       flags.top,
       flags.bottom,
     ].filter(Boolean).length
+
     if (chosen !== 1) {
       return yield* new UsageError({
         message:
           "say where to move it with one of --group, --ungrouped, --before, --after, --top, --bottom",
       })
     }
+
     const id = refOf(flags.id)
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
@@ -479,15 +513,19 @@ export const mv = Command.make(
               })
             }
           }
+
           const current = (yield* todo.show(id.id)).view.task
           const placed = yield* Effect.gen(function* () {
             if (flags.top) {
               const listing = yield* todo.list()
               const section = listing.sections.find((s) => s.tasks.some((v) => v.task.id === id.id))
               const first = section?.tasks[0]?.task
+
               if (first === undefined || first.id === id.id) return current
+
               return yield* todo.move(id.id, { before: first.id })
             }
+
             const placement: Placement = flags.bottom
               ? current.group === undefined
                 ? {}
@@ -503,8 +541,10 @@ export const mv = Command.make(
                     Option.map(after, (ref) => ref.id),
                   ),
                 }
+
             return yield* todo.move(id.id, placement)
           })
+
           yield* output(project, placed, () => [
             `Moved ${label(placed)} to ${placed.group ?? "the ungrouped tasks"}`,
           ])

@@ -13,9 +13,13 @@ import { respondDefect } from "../respond.tsx"
 export const syncSummary = (outcomes: ReadonlyArray<SyncResult | SyncFailure>): string => {
   const failures = outcomes.filter((outcome): outcome is SyncFailure => "error" in outcome)
   const synced = outcomes.length - failures.length
+
   if (outcomes.length === 0) return "Nothing to sync."
+
   if (failures.length === 0) return `${synced} synced.`
+
   const named = failures.map((failure) => `${failure.project} (${failure.error.reason})`).join(", ")
+
   return `${synced} synced, ${failures.length} failed: ${named}`
 }
 
@@ -33,6 +37,7 @@ export const syncAllAction =
         message: syncSummary(outcomes),
         tone: failed ? "error" : "info",
       })
+
       return redirect(back, 303)
     } catch (defect) {
       return respondDefect(context, defect)
@@ -48,12 +53,14 @@ export const projectSyncAction =
       const result = await options.runtime.runPromise(
         Effect.result(Effect.flatMap(Hub, (hub) => hub.sync(name))),
       )
+
       setFlash(
         context,
         Result.isFailure(result)
           ? { message: `${name}: ${result.failure.message}`, tone: "error" }
           : { message: `${name}: ${result.success.summary}`, tone: "info" },
       )
+
       return redirect(back, 303)
     } catch (defect) {
       return respondDefect(context, defect)

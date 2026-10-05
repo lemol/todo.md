@@ -38,6 +38,7 @@ describe("ensureAcyclic", () => {
     const error = await Effect.runPromise(
       Effect.flip(ensureAcyclic([task("1", ["2"]), task("2", ["1"])])),
     )
+
     expect(error.issues).toEqual(["dependency cycle: 1 → 2 → 1"])
   })
 })

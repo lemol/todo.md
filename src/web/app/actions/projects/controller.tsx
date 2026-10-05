@@ -23,18 +23,22 @@ const renderProjects = async (
   const { projects, kinds } = await runtime.runPromise(
     Effect.gen(function* () {
       const hub = yield* Hub
+
       return { projects: yield* hub.projects(), kinds: yield* hub.sourceKinds() }
     }),
   )
+
   const now = DateTime.nowUnsafe()
   const url = new URL(context.request.url)
   const sort = url.searchParams.get("sort")
   const dir = url.searchParams.get("dir") === "desc" ? "desc" : "asc"
   const sortedProjects = [...projects]
+
   if (sort) {
     const statusString = (p: ProjectInfo) => (p.syncable ? statusText(p.status, now) : "—")
     sortedProjects.sort((a, b) => {
       let cmp = 0
+
       if (sort === "name") cmp = a.name.localeCompare(b.name)
       else if (sort === "source") cmp = a.source.localeCompare(b.source)
       else if (sort === "location") cmp = a.location.localeCompare(b.location)
@@ -43,11 +47,14 @@ const renderProjects = async (
       if (cmp === 0 && sort !== "name") {
         cmp = a.name.localeCompare(b.name)
       }
+
       return dir === "desc" ? -cmp : cmp
     })
   }
+
   const flash = takeFlash(context)
   const { location, ...restExtra } = extra
+
   return renderPage(
     context,
     <Document
@@ -79,6 +86,7 @@ export const createProjectsController = (options: {
       index: async (context) => {
         try {
           const renaming = new URL(context.request.url).searchParams.get("rename") ?? undefined
+
           return await renderProjects(
             options.runtime,
             context as WebContext,
@@ -93,6 +101,7 @@ export const createProjectsController = (options: {
         try {
           const web = context as WebContext
           const values = parseProjectForm(context.get(FormData) as FormData)
+
           if (values.issues.length > 0) {
             return await renderProjects(
               options.runtime,
@@ -101,6 +110,7 @@ export const createProjectsController = (options: {
               422,
             )
           }
+
           const input = projectInputFrom(
             values.target,
             {
@@ -117,10 +127,13 @@ export const createProjectsController = (options: {
             },
             (cwd, relative) => {
               if (relative.startsWith("/")) return relative
+
               const base = cwd.endsWith("/") ? cwd.slice(0, -1) : cwd
+
               return `${base}/${relative}`
             },
           )
+
           const misplaced = [
             ...(input.source !== "git" && (values.branch !== "" || values.list !== "")
               ? [`Branch and list are for git projects; this is a ${input.source} project`]
@@ -135,12 +148,15 @@ export const createProjectsController = (options: {
                 ]
               : []),
           ]
+
           if (misplaced.length > 0) {
             return await renderProjects(options.runtime, web, { values, issues: misplaced }, 422)
           }
+
           const result = await options.runtime.runPromise(
             Effect.result(Effect.flatMap(Hub, (hub) => hub.add(input))),
           )
+
           if (Result.isFailure(result)) {
             return await renderProjects(
               options.runtime,
@@ -149,7 +165,9 @@ export const createProjectsController = (options: {
               422,
             )
           }
+
           setFlash(web, { message: `Added project ${result.success.name}.`, tone: "info" })
+
           return redirect(routes.project.board.href({ project: result.success.name }), 303)
         } catch (defect) {
           return respondDefect(context as WebContext, defect)
@@ -161,6 +179,7 @@ export const createProjectsController = (options: {
           const web = context as WebContext
           const from = String(web.params.name ?? "")
           const to = String((context.get(FormData) as FormData).get("to") ?? "").trim()
+
           if (to === "") {
             return await renderProjects(
               options.runtime,
@@ -169,9 +188,11 @@ export const createProjectsController = (options: {
               422,
             )
           }
+
           const result = await options.runtime.runPromise(
             Effect.result(Effect.flatMap(Hub, (hub) => hub.rename(from, to))),
           )
+
           if (Result.isFailure(result)) {
             return await renderProjects(
               options.runtime,
@@ -180,7 +201,9 @@ export const createProjectsController = (options: {
               422,
             )
           }
+
           setFlash(web, { message: `Renamed ${from} to ${to}.`, tone: "info" })
+
           return redirect(routes.projects.index.href(), 303)
         } catch (defect) {
           return respondDefect(context as WebContext, defect)
@@ -195,8 +218,10 @@ export const createProjectsController = (options: {
           const result = await options.runtime.runPromise(
             Effect.result(Effect.flatMap(Hub, (hub) => hub.remove(name, { force }))),
           )
+
           if (Result.isFailure(result)) {
             const error = result.failure
+
             if (error._tag === "SourceError") {
               return await renderProjects(
                 options.runtime,
@@ -205,9 +230,12 @@ export const createProjectsController = (options: {
                 422,
               )
             }
+
             return await renderProjects(options.runtime, web, { issues: [error.message] }, 422)
           }
+
           setFlash(web, { message: `Removed project ${name}.`, tone: "info" })
+
           return redirect(routes.projects.index.href(), 303)
         } catch (defect) {
           return respondDefect(context as WebContext, defect)

@@ -73,6 +73,7 @@ export const isInterrupted = (snapshot: Snapshot, entry: Entry): boolean =>
 /** The model task for an entry: done when its box is checked. */
 export const entryTask = (entry: Entry): Task => {
   const status = entry.item.checked ? "done" : "open"
+
   return entry.item.linked
     ? fileTask(entry.id, entry.file ?? parseTaskFile("", entry.item.path ?? ""), {
         title: entry.item.title,
@@ -100,9 +101,11 @@ export const readSnapshot = (files: Files, parser: Parser): Effect.Effect<Snapsh
 const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> =>
   Effect.gen(function* () {
     const source = yield* files.read(todoPath)
+
     if (source === undefined) {
       return yield* new StoreError({ message: `no ${todoPath} in ${files.root}` })
     }
+
     const todo = parser.todoFile(source)
     const { tasksDir, doneDir } = todo.config
     const diagnostics: Diagnostic[] = [...todo.diagnostics]
@@ -111,11 +114,13 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
     const donePaths = (yield* files.list(doneDir, { recursive: true })).filter(
       (path) => idOfFile(path) !== undefined,
     )
+
     const linkedPaths = todo.sections.flatMap((section) =>
       section.items.flatMap((item) =>
         item.id === undefined || item.path === undefined ? [] : [item.path],
       ),
     )
+
     const texts = new Map<string, string | undefined>()
     yield* Effect.forEach(
       unique([...donePaths, ...linkedPaths]),
@@ -124,30 +129,39 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
     )
 
     const done: DoneEntry[] = []
+
     for (const path of donePaths) {
       const id = idOfFile(path)
       const text = texts.get(path)
+
       if (id === undefined || text === undefined) continue
+
       const file = parser.taskFile(path, text)
       diagnostics.push(...file.diagnostics)
       done.push({ id, path, source: text, file })
     }
 
     const entries: Entry[] = []
+
     for (const section of todo.sections) {
       for (const item of section.items) {
         if (item.id === undefined) continue
+
         const path = item.path
         const text = path === undefined ? undefined : texts.get(path)
         const file =
           path === undefined || text === undefined ? undefined : parser.taskFile(path, text)
+
         const entry: Entry = { id: item.id, item, section, source: text, file }
         const location = { taskId: item.id, file: todoPath, line: item.start + 1 }
+
         if (file !== undefined) {
           diagnostics.push(...file.diagnostics)
           const stale = file.title === undefined ? undefined : staleLinkText(item, file.title)
+
           if (stale !== undefined) diagnostics.push(stale)
         }
+
         if (matchesDone(done, item.id, title(entry))) {
           diagnostics.push({
             severity: "warning",
@@ -163,6 +177,7 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
             ...location,
           })
         }
+
         entries.push(entry)
       }
     }
@@ -174,15 +189,19 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
         s.name === undefined ? [] : [joinPath(tasksDir, groupSlug(s.name))],
       ),
     ])
+
     const taskFiles: string[] = []
+
     for (const dir of taskDirs) {
       for (const path of yield* files.list(dir)) {
         if (idOfFile(path) !== undefined && !isUnder(path, doneDir)) taskFiles.push(path)
       }
     }
+
     const linked = new Set(
       allItems(todo).flatMap((item) => (item.path === undefined ? [] : [item.path])),
     )
+
     for (const path of taskFiles.filter((candidate) => !linked.has(candidate))) {
       diagnostics.push({
         severity: "warning",
@@ -195,8 +214,10 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
     // Each ID names one task: across items, and between items and done files
     // (except an interrupted completion, reported above).
     const seen = new Map<TaskId, string>()
+
     const claim = (id: TaskId, where: string) => {
       const first = seen.get(id)
+
       if (first === undefined) seen.set(id, where)
       else {
         diagnostics.push({
@@ -207,11 +228,15 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
         })
       }
     }
+
     for (const entry of entries) claim(entry.id, `${todoPath}:${entry.item.start + 1}`)
+
     for (const entry of done) {
       const open = entries.find((candidate) => candidate.id === entry.id)
-      if (open === undefined || !matchesDone([entry], open.id, title(open)))
+
+      if (open === undefined || !matchesDone([entry], open.id, title(open))) {
         claim(entry.id, entry.path)
+      }
     }
 
     return {

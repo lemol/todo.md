@@ -51,6 +51,7 @@ describe("status", () => {
       const hub = yield* hubOn([
         memorySource({ status: () => Effect.succeed({ ahead: 2, behind: 1 }) }),
       ])
+
       expect(plain(yield* hub.status("m"))).toEqual({
         lastSync: "2026-09-13T10:00:00.000Z",
         result: "error",
@@ -118,6 +119,7 @@ describe("status", () => {
 
   describe("statusText", () => {
     const now = DateTime.makeUnsafe("2026-09-16T12:00:00.000Z")
+
     const at = (iso: string) => DateTime.makeUnsafe(iso)
 
     test("reads a never-synced project", () => {

@@ -28,8 +28,10 @@ export const readState = (
 ): Effect.Effect<ProjectStatus, never, SourceEnv> =>
   Effect.gen(function* () {
     if (dir === undefined) return never
+
     const fs = yield* FileSystem.FileSystem
     const file = (yield* Path.Path).join(dir, stateFile)
+
     return yield* fs.readFileString(file).pipe(
       Effect.flatMap((text) => Schema.decodeUnknownEffect(StateJson)(text)),
       Effect.map(({ version: _version, ...status }): ProjectStatus => status),
@@ -66,11 +68,15 @@ export const writeState = (dir: string, state: Omit<SyncState, "version">) =>
 export const statusOf = (project: Project): Effect.Effect<ProjectStatus, never, SourceEnv> =>
   Effect.gen(function* () {
     const { config } = project
+
     if (config._tag === "Invalid") {
       return { result: "error" as const, error: config.problem.message }
     }
+
     const persisted = yield* readState(project.dir)
+
     if (config.source.status === undefined) return persisted
+
     const live = yield* config.source
       .status(sourceProjectOf(project, config.value))
       .pipe(
@@ -81,5 +87,6 @@ export const statusOf = (project: Project): Effect.Effect<ProjectStatus, never, 
           ),
         ),
       )
+
     return { ...persisted, ...live }
   })

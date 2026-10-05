@@ -13,6 +13,7 @@ const seed = Effect.gen(function* () {
   yield* todo.add({ title: "Add rate limiting" }, { group: "Backend" })
   yield* todo.add({ title: "Load test", dependsOn: ["2"] }, { group: "Backend" })
   yield* todo.add({ title: "Fix layout", tags: ["bug"], assignee: "lemol" }, { group: "Frontend" })
+
   return todo
 })
 
@@ -47,11 +48,13 @@ describe("TodoService queries", () => {
     "list filters by tag, assignee, group and state, keeping every section",
     Effect.gen(function* () {
       const todo = yield* seed
+
       const tasksOf = (listing: {
         readonly sections: ReadonlyArray<{
           readonly tasks: ReadonlyArray<{ readonly task: { readonly id: string } }>
         }>
       }) => listing.sections.flatMap((s) => ids(s.tasks))
+
       expect(tasksOf(yield* todo.list({ tags: ["bug"] }))).toEqual(["4"])
       expect(tasksOf(yield* todo.list({ assignee: "lemol" }))).toEqual(["4"])
       expect(tasksOf(yield* todo.list({ group: "Backend" }))).toEqual(["2", "3"])
@@ -212,6 +215,7 @@ const refuse = (operation: string) => () =>
 const limited = Layer.unwrap(
   Effect.gen(function* () {
     const store = yield* TodoStore
+
     return Layer.mergeAll(
       Layer.succeed(
         TodoStore,
@@ -243,6 +247,7 @@ const unordered = Layer.effect(
   TodoStore,
   Effect.gen(function* () {
     const store = yield* TodoStore
+
     return TodoStore.of({
       ...store,
       capabilities: { ...store.capabilities, groups: false, reorder: false },

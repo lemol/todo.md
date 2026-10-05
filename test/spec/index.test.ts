@@ -16,6 +16,7 @@ test("the public entry point exposes the model, contract, reference store and he
     commentAuthor: true,
   })
   expect(typeof spec.MemoryTodoStore.layer).toBe("function")
+
   for (const name of ["Task", "TaskInput", "TaskNotFound", "Diagnostic", "findCycle", "validate"]) {
     expect(spec).toHaveProperty(name)
   }

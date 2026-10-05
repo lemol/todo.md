@@ -22,15 +22,18 @@ export const init = Command.make(
     const { cwd } = yield* CliContext
     const path = yield* Path.Path
     const flag = yield* Project
+
     if (Option.isSome(flag)) {
       // `init` creates a list, so the project only matters when it is not local.
       const info = yield* (yield* Hub).resolve({ project: flag.value, cwd })
+
       if (info.source !== "fs") {
         return yield* new UsageError({
           message: `todo init works on local lists; ${info.name} is a ${info.source} project`,
         })
       }
     }
+
     const fallback = Option.getOrElse(yield* Dir, () => "todo")
     const target = Option.getOrElse(dir, () => fallback)
     const root = path.resolve(cwd, target)
@@ -59,7 +62,9 @@ const summarize = (report: NormalizeReport): string => {
       ? [`finished ${plural(report.finished.length, "interrupted completion")}`]
       : []),
   ]
+
   const text = parts.join(", ")
+
   return text === "" ? "Nothing to normalize." : `${text[0]?.toUpperCase()}${text.slice(1)}.`
 }
 
@@ -70,27 +75,35 @@ export const fmt = Command.make(
     const { cwd } = yield* CliContext
     const dir = yield* Dir
     const flag = yield* Project
+
     if (Option.isSome(dir) && Option.isSome(flag)) {
       return yield* new UsageError({ message: "use --project or --dir, not both" })
     }
+
     if (Option.isSome(dir)) {
       // A `--dir` target is the list itself, exactly as before.
       const path = yield* Path.Path
       const report = yield* FsTodoStore.normalize(path.resolve(cwd, dir.value))
+
       return yield* output(undefined, report, () => [summarize(report)])
     }
+
     const hub = yield* Hub
     const info = yield* hub.resolve({
       ...(Option.isSome(flag) ? { project: flag.value } : {}),
       cwd,
     })
+
     if (info.source !== "fs") {
       return yield* new UsageError({
         message: `todo fmt works on local lists; ${info.name} is a ${info.source} project`,
       })
     }
+
     const root = yield* listRootOf(info.location)
+
     if (Option.isNone(root)) return yield* new NoListFound({ cwd: info.location })
+
     const report = yield* FsTodoStore.normalize(root.value)
     yield* output(info, report, () => [summarize(report)])
   }),

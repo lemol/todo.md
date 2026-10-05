@@ -31,14 +31,18 @@ describe("inline tasks", () => {
   test("an inline item round-trips through the model", () => {
     const todo = parseTodoFile(`## Backend\n\n${inlineItemFor(task).join("\n")}\n`)
     const item = findItem(todo, "3")
+
     if (item === undefined) throw new Error("no item")
+
     expect(inlineTask(item, "3", "Backend")).toEqual(task)
   })
 
   test("a checked item is done", () => {
     const todo = parseTodoFile("- [x] 03 - Fix login redirect\n")
     const item = findItem(todo, "3")
+
     if (item === undefined) throw new Error("no item")
+
     expect(inlineTask(item, "3", undefined)).toMatchObject({
       status: "done",
       completedAt: undefined,
@@ -70,6 +74,7 @@ describe("file-backed tasks", () => {
       formatTaskFile(taskFileFor(task)),
       "backend/03-fix-login-redirect.md",
     )
+
     expect(fileTask("3", file, { title: "ignored", status: "open", group: "Backend" })).toEqual(
       task,
     )
@@ -102,6 +107,7 @@ describe("file-backed tasks", () => {
       formatTaskFile({ ...taskFileFor(task), outcome: "cancelled", cancelledReason: "Why not." }),
       "backend/03-fix-login-redirect.md",
     )
+
     expect(
       fileTask("3", file, { title: "ignored", status: "open", group: "Backend" }),
     ).toMatchObject({ outcome: undefined, cancelledReason: undefined })

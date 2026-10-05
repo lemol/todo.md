@@ -15,6 +15,7 @@ export class GitError extends Schema.TaggedError<GitError>()("GitError", {
 }) {
   override get message() {
     const detail = this.stderr === "" ? "no output" : this.stderr
+
     return `git ${this.args.join(" ")} failed (${this.code}): ${detail}`
   }
 }
@@ -47,11 +48,13 @@ export const makeGit = (
       GIT_TERMINAL_PROMPT: "0",
       ...(options.env?.GIT_SSH_COMMAND === undefined ? { GIT_SSH_COMMAND: batchModeSsh } : {}),
     }
+
     return (cwd, args) =>
       Effect.gen(function* () {
         const handle = yield* spawner.spawn(
           ChildProcess.make("git", [...args], { cwd, env, extendEnv: true }),
         )
+
         // Both pipes are drained while the process runs: waiting for the exit
         // code first would deadlock on a command with a lot of output.
         const [stdout, stderr, code] = yield* Effect.all(
@@ -62,7 +65,9 @@ export const makeGit = (
           ],
           { concurrency: "unbounded" },
         )
+
         if (code !== 0) return yield* new GitError({ args, code, stderr: stderr.trim() })
+
         return stdout
       }).pipe(
         Effect.scoped,

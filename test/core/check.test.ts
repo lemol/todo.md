@@ -29,6 +29,7 @@ describe("modelDiagnostics", () => {
       task({ id: "1", dependsOn: ["2"] }),
       task({ id: "2", dependsOn: ["1"] }),
     ])
+
     expect(diagnostic).toMatchObject({
       code: "dependency-cycle",
       message: "dependency cycle: 1 → 2 → 1",
@@ -41,6 +42,7 @@ describe("modelDiagnostics", () => {
       task({ id: "1", status: "done", outcome: "cancelled", cancelledReason: "Dropped." }),
       task({ id: "2", dependsOn: ["1"] }),
     ]
+
     expect(modelDiagnostics(tasks)).toEqual([
       {
         severity: "warning",
@@ -56,6 +58,7 @@ describe("modelDiagnostics", () => {
       task({ id: "1", status: "done", outcome: "completed" }),
       task({ id: "2", dependsOn: ["1"] }),
     ]
+
     expect(modelDiagnostics(tasks)).toEqual([])
   })
 
@@ -76,6 +79,7 @@ test("mergeDiagnostics skips model diagnostics the store already reported", () =
   const store = [
     { severity: "error" as const, code: "duplicate-id", message: "from the store", taskId: "1" },
   ]
+
   const model = [
     { severity: "error" as const, code: "duplicate-id", message: "from the model", taskId: "1" },
     {
@@ -85,6 +89,7 @@ test("mergeDiagnostics skips model diagnostics the store already reported", () =
       taskId: "2",
     },
   ]
+
   expect(mergeDiagnostics(store, model).map((d) => d.message)).toEqual([
     "from the store",
     "from the model",

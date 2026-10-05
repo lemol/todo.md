@@ -57,6 +57,7 @@ describe("initList", () => {
       const error = yield* Effect.flip(
         initList(disk.root, { title: "Again" }).pipe(Effect.provide(BunServices.layer)),
       )
+
       expect(error.message).toContain("already has a TODO.md")
       expect(yield* disk.read("TODO.md")).toBe(md("# Root"))
     }),

@@ -17,11 +17,14 @@ const handEdited = md(
   "- [x] 02 - Ticked by hand",
   "- [ ] [03 - Old title](./03-rename-me.md)",
 )
+
 const renameMe = md("---", "title: New title", "---")
+
 const list = () => listWith({ "TODO.md": handEdited, "03-rename-me.md": renameMe })
 
 const ids = Effect.gen(function* () {
   const list = yield* (yield* TodoStore).load()
+
   return list.ungrouped.map((task) => task.id)
 })
 

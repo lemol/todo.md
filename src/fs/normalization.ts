@@ -31,15 +31,20 @@ export const normalizeList = (
       usedIds: first.usedIds,
       titles: first.titles,
     })
+
     if (text !== first.source) yield* files.write(todoPath, text)
 
     const finished: TaskId[] = []
+
     while (true) {
       const snapshot = yield* readSnapshot(files, parser)
       const entry = snapshot.entries.find((candidate) => isInterrupted(snapshot, candidate))
+
       if (entry === undefined) break
+
       yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
       const leftover = entry.item.path
+
       if (
         entry.item.linked &&
         leftover !== undefined &&
@@ -47,16 +52,21 @@ export const normalizeList = (
       ) {
         yield* files.remove(leftover)
       }
+
       finished.push(entry.id)
     }
 
     const swept: TaskId[] = []
+
     while (true) {
       const snapshot = yield* readSnapshot(files, parser)
       const entry = snapshot.entries.find((candidate) => candidate.item.checked)
+
       if (entry === undefined) break
+
       yield* completeEntry(files, snapshot, entry)
       swept.push(entry.id)
     }
+
     return { assigned, finished, swept }
   })

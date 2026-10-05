@@ -18,6 +18,7 @@ const opened = <A, E>(
       Effect.gen(function* () {
         fixture.jira.put(...issues)
         yield* fixture.source.sync?.(fixture.project) ?? Effect.die("this source cannot sync")
+
         return yield* Effect.flatMap(TodoStore, (store) => use(store, fixture)).pipe(
           Effect.provide(fixture.source.open(fixture.project)),
         )
@@ -59,6 +60,7 @@ describe("the Jira store: reading", () => {
             source.open(project),
           ),
         )
+
         expect(error._tag).toBe("SourceError")
         expect(error.message).toContain("todo sync work")
       }),
@@ -172,6 +174,7 @@ describe("the Jira store: what it cannot do", () => {
 const sides = (dir: string) =>
   Effect.map(readMirror(dir), (mirror) => {
     const current = Option.getOrThrow(mirror)
+
     return {
       open: current.open.map((task) => task.id),
       done: current.done.map((task) => task.id),
@@ -364,6 +367,7 @@ describe("the Jira store: comment", () => {
           author: "someone-else",
           body: "First line\nsecond line\n\n  \nSecond paragraph.",
         })
+
         expect(comment.author).toBe("test-user")
         expect(writes(jira).map((request) => request.body)).toEqual([
           {
@@ -398,6 +402,7 @@ describe("the Jira store: comment", () => {
         const error = yield* Effect.flip(
           store.comment("PROJ-1", { author: "two words", body: "Hi." }),
         )
+
         expect(error._tag).toBe("ValidationError")
         expect(writes(jira)).toEqual([])
       }),
@@ -436,11 +441,13 @@ describe("the Jira store: read-only", () => {
             store.reopen("PROJ-2"),
             store.update("PROJ-1", { title: "Renamed" }),
           ]
+
           for (const call of calls) {
             const error = yield* Effect.flip(call)
             expect(error._tag).toBe("StoreError")
             expect(error.message).toContain("work is read-only (read_only")
           }
+
           const comment = yield* Effect.flip(store.comment("PROJ-1", { author: "me", body: "Hi." }))
           expect(comment._tag).toBe("Unsupported")
           expect(jira.requests.length).toBe(before)

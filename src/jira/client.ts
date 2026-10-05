@@ -74,6 +74,7 @@ const ErrorBody = Schema.Struct({
 const explain = (body: unknown): string | undefined => {
   const decoded = Schema.decodeUnknownOption(ErrorBody)(body)
   const messages = decoded._tag === "Some" ? (decoded.value.errorMessages ?? []) : []
+
   return messages.length === 0 ? undefined : messages.join("; ")
 }
 
@@ -85,12 +86,14 @@ const fromCommand = Effect.fn("jira.fromCommand")(function* (command: string) {
     [Stream.mkString(Stream.decodeText(handle.stdout)), handle.exitCode],
     { concurrency: "unbounded" },
   )
+
   if (code !== 0) {
     return yield* new JiraError({
       reason: "auth",
       message: `the token command failed (${code}): ${command}`,
     })
   }
+
   return stdout.trim()
 })
 
@@ -99,6 +102,7 @@ const resolveToken = (
   options: JiraClientOptions,
 ): Effect.Effect<string, JiraError, ChildProcessSpawner.ChildProcessSpawner> => {
   const { tokenEnv, tokenCommand } = credentials
+
   if (tokenCommand !== undefined) {
     return fromCommand(tokenCommand).pipe(
       Effect.scoped,
@@ -117,12 +121,15 @@ const resolveToken = (
       ),
     )
   }
+
   if (tokenEnv === undefined) {
     return Effect.fail(
       new JiraError({ reason: "auth", message: "no token: set token_env or token_command" }),
     )
   }
+
   const token = options.env?.[tokenEnv]
+
   return token === undefined || token === ""
     ? Effect.fail(new JiraError({ reason: "auth", message: `${tokenEnv} is not set` }))
     : Effect.succeed(token)
@@ -135,6 +142,7 @@ const failureOf = Effect.fn("jira.failureOf")(function* (
 ) {
   const at = issue === undefined ? {} : { issue }
   const response = error.response
+
   if (response === undefined) {
     return new JiraError({
       reason: "offline",
@@ -142,9 +150,11 @@ const failureOf = Effect.fn("jira.failureOf")(function* (
       ...at,
     })
   }
+
   const body = yield* Effect.orElseSucceed(response.json, () => undefined)
   const said = explain(body)
   const detail = said === undefined ? `HTTP ${response.status}` : said
+
   if (response.status === 401 || response.status === 403) {
     return new JiraError({
       reason: "auth",
@@ -152,18 +162,22 @@ const failureOf = Effect.fn("jira.failureOf")(function* (
       ...at,
     })
   }
+
   if (response.status === 404) {
     return new JiraError({ reason: "notFound", message: detail, ...at })
   }
+
   if (response.status === 429) {
     const after = response.headers["retry-after"]
     const wait = after === undefined ? "" : `; retry after ${after}s`
+
     return new JiraError({
       reason: "remote",
       message: `Jira is rate limiting this site${wait}`,
       ...at,
     })
   }
+
   return new JiraError({
     reason: "remote",
     message: `Jira returned ${response.status}: ${detail}`,
@@ -190,6 +204,7 @@ export const makeClient = (
     const token = resolveToken(credentials, options).pipe(
       Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
     )
+
     const fields = issueFields.join(",")
 
     /**
@@ -213,6 +228,7 @@ export const makeClient = (
             }),
           ),
         )
+
         return yield* read(response)
       }).pipe(
         Effect.catchTag("HttpClientError", (error) =>
@@ -262,6 +278,7 @@ export const makeClient = (
         (page) => {
           const comments = [...collected, ...(page.comments ?? [])]
           const total = page.total ?? comments.length
+
           return comments.length >= total || (page.comments ?? []).length === 0
             ? Effect.succeed(comments)
             : commentsFrom(key, comments.length, comments)

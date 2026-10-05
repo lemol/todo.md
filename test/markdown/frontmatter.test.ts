@@ -86,6 +86,7 @@ describe("setFrontmatterFields", () => {
       "keep2: unchanged",
       "key3: old3",
     ].join("\n")
+
     expect(setFrontmatterFields(input, { key1: "new1", key3: "new3" })).toEqual([
       "key1: new1",
       "keep1: unchanged",

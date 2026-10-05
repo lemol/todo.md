@@ -21,6 +21,7 @@ const makeHubRuntime = () => {
     userHome: tmpdir(),
     sources: [memorySource()],
   }).pipe(Layer.provide(BunServices.layer))
+
   return { runtime: ManagedRuntime.make(layer), home }
 }
 
@@ -53,8 +54,10 @@ test("loads the project's runtime, capabilities and info onto the context", asyn
   let nextCalled = false
   const response = await middleware(context as never, async () => {
     nextCalled = true
+
     return new Response("ok")
   })
+
   expect(nextCalled).toBe(true)
   expect(response.status).toBe(200)
   expect(context.get(projectInfoContext)).toMatchObject({ name: "m" })
@@ -83,8 +86,10 @@ test("renders a 404 page for an unknown project without calling next", async () 
   let nextCalled = false
   const response = await middleware(context as never, async () => {
     nextCalled = true
+
     return new Response("ok")
   })
+
   expect(nextCalled).toBe(false)
   expect(response.status).toBe(404)
   await runtime.dispose()

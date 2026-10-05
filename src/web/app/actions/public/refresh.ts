@@ -43,12 +43,16 @@ export const createLiveRegionRefresher = () => {
     const controller = new AbortController()
     abort = controller
     const current = ++generation
+
     try {
       const html = await load(controller.signal)
+
       if (current !== generation) return
+
       apply(html)
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return
+
       throw error
     }
   }

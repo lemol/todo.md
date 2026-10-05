@@ -25,6 +25,7 @@ const section = (name: string, tasks: ReadonlyArray<Task>) =>
 /** The open tasks' IDs per section: the ungrouped section (named "") first, then each group. */
 export const layout = Effect.gen(function* () {
   const list = yield* (yield* TodoStore).load()
+
   return [
     section("", list.ungrouped),
     ...list.groups.map((group) => section(group.name, group.tasks)),

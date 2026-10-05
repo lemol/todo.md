@@ -20,6 +20,7 @@ describe("git projects from the CLI", () => {
       const { root } = yield* Disk
       const remote = remoteIn(root, { "todo/TODO.md": md("# Remote", "", "- [ ] 01 - Seeded") })
       const home = `${root}/hub`
+
       const run = (...args: string[]) =>
         Effect.flatMap(sources, (loaded) => runTodo(args, { home, sources: loaded }))
 
@@ -49,6 +50,7 @@ describe("git projects from the CLI", () => {
       const { root } = yield* Disk
       const remote = remoteIn(root, { "README.md": md("Nothing to do.") })
       const home = `${root}/hub`
+
       const run = (...args: string[]) =>
         Effect.flatMap(sources, (loaded) => runTodo(args, { home, sources: loaded }))
 
@@ -64,8 +66,10 @@ describe("git projects from the CLI", () => {
     "refuses --branch and --list for a project that is not git",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       const run = (...args: string[]) =>
         Effect.flatMap(sources, (loaded) => runTodo(args, { home: `${root}/hub`, sources: loaded }))
+
       const refused = yield* run("projects", "add", `${root}/local`, "--branch", "main")
       expect(refused.code).toBe(2)
       expect(refused.stderr).toContain("--branch is not for fs projects")

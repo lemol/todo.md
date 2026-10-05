@@ -15,6 +15,7 @@ describe("Hub.layer", () => {
         userHome: "/nowhere",
         sources: [memorySource(), memorySource()],
       })
+
       const exit = yield* Effect.exit(Layer.build(layer.pipe(Layer.provide(BunServices.layer))))
       expect(Exit.hasDies(exit)).toBe(true)
     }),
@@ -43,9 +44,11 @@ describe("dashboard", () => {
         status: (project) => {
           const reads = (statusReads.get(project.name) ?? 0) + 1
           statusReads.set(project.name, reads)
+
           return Effect.succeed({ ahead: reads })
         },
       })
+
       const hub = yield* hubOn([counting])
       yield* hub.add({ name: "a", source: "memory", config: { title: "A" } })
       yield* hub.add({ name: "b", source: "memory", config: { title: "B" } })
@@ -77,6 +80,7 @@ describe("dashboard", () => {
         "    tasks:",
         "      - title: keep",
       )
+
       const otherYaml = md(
         "projects:",
         "  a:",
@@ -85,6 +89,7 @@ describe("dashboard", () => {
         "    tasks:",
         "      - title: gone",
       )
+
       let registryReads = 0
       const hub = yield* hubOn([memorySource()], {
         wrapFs: (fs) => ({
@@ -92,12 +97,15 @@ describe("dashboard", () => {
           readFileString: (path, options) => {
             if (path.endsWith("/projects.yaml")) {
               registryReads += 1
+
               return Effect.succeed(registryReads === 1 ? snapYaml : otherYaml)
             }
+
             return fs.readFileString(path, options)
           },
         }),
       })
+
       yield* hub.add({
         name: "a",
         source: "memory",
@@ -107,7 +115,9 @@ describe("dashboard", () => {
       const snapshot = yield* hub.dashboard()
       const entry = snapshot.overview.projects[0]
       expect(entry).toBeDefined()
+
       if (entry === undefined || !("listing" in entry)) return
+
       expect(entry.listing.title).toBe("SnapTitle")
       expect(
         entry.listing.sections.flatMap((section) => section.tasks).map((view) => view.task.title),
@@ -181,10 +191,12 @@ describe("projects", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
       const projects = yield* hub.projects()
+
       const invalidName = (name: string) => ({
         result: "error" as const,
         error: `project ${name} has an invalid config: invalid project name: use lowercase letters, digits and dashes`,
       })
+
       expect(projects.map(({ name, status }) => [name, status])).toEqual([
         ["..", invalidName("..")],
         ["../../victim", invalidName("../../victim")],
@@ -298,6 +310,7 @@ describe("add", () => {
             fs.writeFileString(`${project.dir}/marker`, project.name),
           ).pipe(Effect.orDie),
       })
+
       const hub = yield* hubOn([source])
       yield* hub.add({ name: "x", source: "memory", config: {} })
       expect(yield* disk.read(".todo-md/projects/x/marker")).toBe("x")
@@ -312,6 +325,7 @@ describe("add", () => {
       const source = memorySource({
         prepare: (project) => Effect.fail(new SourceError({ name: project.name, message: "no" })),
       })
+
       const hub = yield* hubOn([source])
       const error = yield* Effect.flip(hub.add({ name: "x", source: "memory", config: {} }))
       expect(error).toBeInstanceOf(SourceError)
@@ -376,10 +390,12 @@ test("concurrent adds of one name keep the winner's directory", () =>
           }),
         ]),
       ]
+
       const results = yield* Effect.all(
         [one, two].map((hub) => Effect.exit(hub.add({ name: "x", source: "memory", config: {} }))),
         { concurrency: "unbounded" },
       )
+
       expect(results.filter(Exit.isSuccess)).toHaveLength(1)
       const projects = yield* one.projects()
       expect(projects.map((project) => project.name)).toEqual(["x"])
@@ -399,6 +415,7 @@ describe("remove", () => {
             ? Effect.void
             : Effect.fail(new SourceError({ name: project.name, message: "ahead 1" })),
       })
+
       const hub = yield* hubOn([source])
       yield* hub.add({ name: "x", source: "memory", config: {} })
       const error = yield* Effect.flip(hub.remove("x"))
@@ -495,6 +512,7 @@ describe("remove", () => {
               : fs.rename(from, to),
         }),
       })
+
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/x/marker", "x")
       yield* hub.remove("x")
@@ -524,6 +542,7 @@ describe("remove", () => {
               : fs.remove(path, options),
         }),
       })
+
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/x/marker", "x")
       const error = yield* Effect.flip(hub.remove("x"))

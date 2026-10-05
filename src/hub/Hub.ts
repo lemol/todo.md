@@ -130,28 +130,37 @@ const make = (options: HubOptions) =>
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const sources = new Map<string, AnySource>()
+
     for (const source of options.sources) {
       if (sources.has(source.kind)) {
         return yield* Effect.die(new Error(`two sources have the kind ${source.kind}`))
       }
+
       sources.set(source.kind, source)
     }
+
     const registry = yield* makeRegistry(options.home)
     const unregistered = makeUnregistered()
     const projectsDir = path.join(options.home, "projects")
+
     // A defect, not an error: callers validate names first, so an escaping path is never built.
     const dirOf = (name: string) => {
       if (!isValidName(name)) throw new Error(`invalid project name ${name} has no data directory`)
+
       return path.join(projectsDir, name)
     }
+
     const inEnv = <A, E>(effect: Effect.Effect<A, E, SourceEnv>) =>
       Effect.provideContext(effect, env)
+
     const ioError = (message: string) => (cause: PlatformError.PlatformError) =>
       new RegistryError({ message: `${message}: ${cause.message}`, cause })
+
     const nameError = (name: string) =>
       new RegistryError({
         message: `invalid project name ${name}: use lowercase letters, digits and dashes`,
       })
+
     const takenError = (name: string) =>
       new RegistryError({ message: `a project named ${name} already exists` })
 
@@ -166,10 +175,13 @@ const make = (options: HubOptions) =>
     // Unregistered names never collide with registered ones when opened, so they are checked first.
     const find = (name: string): Effect.Effect<Project, ProjectNotFound | RegistryError> => {
       const open = unregistered.get(name)
+
       if (open !== undefined) return Effect.succeed(open)
+
       return registered.pipe(
         Effect.flatMap((projects) => {
           const found = projects.find((project) => project.name === name)
+
           return found === undefined
             ? Effect.fail(new ProjectNotFound({ name }))
             : Effect.succeed(found)
@@ -186,27 +198,35 @@ const make = (options: HubOptions) =>
     const watched = Effect.map(registered, (projects) =>
       [...projects, ...unregistered.all()].flatMap((project): ReadonlyArray<Watched> => {
         const { config } = project
+
         if (config._tag === "Invalid" || config.source.changes === undefined) return []
+
         const stream = config.source.changes(sourceProjectOf(project, config.value))
+
         return [{ name: project.name, key: fingerprintOf(project), changes: stream }]
       }),
     )
+
     const changes: Changes = yield* makeChanges({
       home: options.home,
       watched,
       onRegistryFile: Effect.suspend(() => refreshServices),
     })
+
     const registryChanged = Effect.andThen(changes.reconcile, changes.publish({ kind: "registry" }))
 
     const todoServiceLayer = (project: Project) =>
       Effect.gen(function* () {
         const { config } = project
+
         if (config._tag === "Invalid") return yield* config.problem
+
         const name = project.name
         const opened = config.source.open({
           ...sourceProjectOf(project, config.value),
           cacheDir: path.join(options.home, "cache"),
         })
+
         // Sources with `changes` report every change themselves; for the others, the hub
         // reports its own mutations.
         const store =
@@ -218,7 +238,9 @@ const make = (options: HubOptions) =>
                   notifying(store, changes.publish({ kind: "changed", project: name })),
                 ),
               ).pipe(Layer.provide(opened))
+
         const resolver = makeDependencyResolver(name, { find, serviceOf, registered })
+
         return Layer.fresh(TodoService.layer).pipe(Layer.provide(Layer.merge(store, resolver)))
       })
 
@@ -238,11 +260,14 @@ const make = (options: HubOptions) =>
     const serviceOf = (project: Project) =>
       Effect.gen(function* () {
         const key = fingerprintOf(project)
+
         if (built.get(project.name) !== key) {
           yield* services.invalidate(project.name)
           built.set(project.name, key)
         }
+
         const context = yield* Effect.scoped(services.contextEffect(project.name))
+
         return Context.get(context, TodoService)
       }).pipe(
         // A failed build is cached like a success; drop it so the next call retries.
@@ -254,6 +279,7 @@ const make = (options: HubOptions) =>
       Effect.gen(function* () {
         const layer = yield* todoServiceLayer(project)
         const context = yield* Effect.scoped(Layer.build(layer).pipe(Effect.provideContext(env)))
+
         return Context.get(context, TodoService)
       })
 
@@ -262,7 +288,8 @@ const make = (options: HubOptions) =>
       const current = new Map(
         (yield* registered).map((project) => [project.name, fingerprintOf(project)]),
       )
-      for (const [name, key] of [...built]) {
+
+      for (const [name, key] of built) {
         if (unregistered.get(name) === undefined && current.get(name) !== key) yield* forget(name)
       }
     }).pipe(
@@ -274,10 +301,12 @@ const make = (options: HubOptions) =>
     const syncAll = Effect.gen(function* () {
       const syncable = (yield* registered).flatMap((project) => {
         const { config } = project
+
         return config._tag === "Valid" && config.source.sync !== undefined
           ? [{ project, source: config.source, value: config.value }]
           : []
       })
+
       return yield* Effect.forEach(
         syncable,
         ({ project, source, value }) =>
@@ -304,14 +333,18 @@ const make = (options: HubOptions) =>
      */
     const forgetOpenList = (source: AnySource, config: unknown) => {
       const owns = source.owns
+
       if (owns === undefined) return Effect.void
+
       return Effect.forEach(
         unregistered.lists(),
         (list) =>
           Effect.flatMap(inEnv(owns(config, list)), (owned) => {
             if (!owned) return Effect.void
+
             const open = unregistered.byList(list)
             unregistered.forgetList(list)
+
             return open === undefined ? Effect.void : forget(open.name)
           }),
         { discard: true },
@@ -330,19 +363,25 @@ const make = (options: HubOptions) =>
         Effect.gen(function* () {
           const label = input.name ?? "(unnamed)"
           const source = sources.get(input.source)
+
           if (source === undefined) {
             return yield* new SourceUnavailable({ name: label, source: input.source })
           }
+
           const fields = yield* fieldsOf(label, input.config)
           const config = yield* decodeConfig(source, label, fields, options.userHome)
           const name = input.name ?? source.defaultName?.(config)
+
           if (name === undefined) {
             return yield* new RegistryError({ message: "a name is required" })
           }
+
           if (!isValidName(name)) return yield* nameError(name)
+
           if ((yield* registry.entries).some((entry) => entry.name === name)) {
             return yield* takenError(name)
           }
+
           const dir = dirOf(name)
           yield* fs
             .makeDirectory(path.dirname(dir), { recursive: true })
@@ -360,6 +399,7 @@ const make = (options: HubOptions) =>
             if (source.prepare !== undefined) {
               yield* inEnv(source.prepare({ name, config, dir }))
             }
+
             yield* registry.update((edit) =>
               edit.has(name)
                 ? Effect.fail(takenError(name))
@@ -370,6 +410,7 @@ const make = (options: HubOptions) =>
           unregistered.forget(name)
           yield* forget(name)
           yield* registryChanged
+
           return yield* describe({
             name,
             kind: source.kind,
@@ -382,16 +423,21 @@ const make = (options: HubOptions) =>
       remove: (name, options) =>
         Effect.gen(function* () {
           const project = (yield* registered).find((candidate) => candidate.name === name)
+
           if (project === undefined) return yield* new ProjectNotFound({ name })
+
           const { config } = project
           const force = options?.force === true
+
           if (config._tag === "Valid" && config.source.beforeRemove !== undefined) {
             const refusal = config.source.beforeRemove(
               sourceProjectOf(project, config.value),
               force,
             )
+
             yield* inEnv(refusal)
           }
+
           // A broken entry has no source to ask, and its data directory may
           // hold the only copy of something (a git clone with unpushed
           // commits). Deleting it blind needs `--force` (task 14's review).
@@ -399,6 +445,7 @@ const make = (options: HubOptions) =>
             const entries = yield* fs
               .readDirectory(project.dir)
               .pipe(Effect.orElseSucceed(() => [] as ReadonlyArray<string>))
+
             if (entries.length > 0) {
               return yield* new SourceError({
                 name,
@@ -406,6 +453,7 @@ const make = (options: HubOptions) =>
               })
             }
           }
+
           // An entry with an invalid name has no data directory.
           const { dir } = project
           let moved: string | undefined
@@ -415,14 +463,20 @@ const make = (options: HubOptions) =>
             .update((edit) =>
               Effect.gen(function* () {
                 if (!edit.has(name)) return yield* new ProjectNotFound({ name })
+
                 edit.delete(name)
+
                 if (dir === undefined) return undefined
+
                 const move = ioError(`could not move ${dir} aside`)
+
                 if (!(yield* fs.exists(dir).pipe(Effect.mapError(move)))) return undefined
+
                 const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
                 const to = path.join(projectsDir, `.removed-${name}-${token.toString(36)}`)
                 yield* fs.rename(dir, to).pipe(Effect.mapError(move))
                 moved = to
+
                 return to
               }),
             )
@@ -434,8 +488,10 @@ const make = (options: HubOptions) =>
                   : Effect.void,
               ),
             )
+
           yield* forget(name)
           yield* registryChanged
+
           if (aside !== undefined) {
             yield* fs.remove(aside, { recursive: true }).pipe(
               Effect.mapError(
@@ -452,8 +508,11 @@ const make = (options: HubOptions) =>
       rename: (from, to) =>
         Effect.gen(function* () {
           const project = (yield* registered).find((candidate) => candidate.name === from)
+
           if (project === undefined) return yield* new ProjectNotFound({ name: from })
+
           if (!isValidName(to)) return yield* nameError(to)
+
           // An entry with an invalid name has no data directory: renaming it only repairs the entry.
           const oldDir = project.dir
           const newDir = dirOf(to)
@@ -462,17 +521,25 @@ const make = (options: HubOptions) =>
             .update((edit) =>
               Effect.gen(function* () {
                 if (!edit.has(from)) return yield* new ProjectNotFound({ name: from })
+
                 if (from === to) return
+
                 if (edit.has(to)) return yield* takenError(to)
+
                 const check = ioError(`could not check ${newDir}`)
+
                 if (yield* fs.exists(newDir).pipe(Effect.mapError(check))) {
                   return yield* new RegistryError({
                     message: `${newDir} already exists; remove it or choose another name`,
                   })
                 }
+
                 edit.rename(from, to)
+
                 if (oldDir === undefined) return
+
                 const move = ioError(`could not move ${oldDir}`)
+
                 if (yield* fs.exists(oldDir).pipe(Effect.mapError(move))) {
                   yield* fs.rename(oldDir, newDir).pipe(Effect.mapError(move))
                   moved = true
@@ -491,6 +558,7 @@ const make = (options: HubOptions) =>
           yield* forget(from)
           yield* forget(to)
           yield* registryChanged
+
           return yield* describe(yield* find(to))
         }),
 
@@ -512,7 +580,9 @@ const make = (options: HubOptions) =>
         Effect.gen(function* () {
           const project = yield* find(name)
           const { config } = project
+
           if (config._tag === "Invalid") return yield* config.problem
+
           return yield* inEnv(runSync(project, config.source, config.value))
         }),
 

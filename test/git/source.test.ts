@@ -22,15 +22,20 @@ const todo = md("# Acme API", "", "- [ ] 01 - Write changelog")
 /** `sync`, `status` and `beforeRemove` as the hub calls them. */
 const syncing = Effect.fn(function* () {
   const { source, project } = yield* GitFixture
+
   return yield* inBun(Effect.orDie(source.sync?.(project) ?? Effect.die("no sync")))
 })
+
 const statusing = Effect.fn(function* () {
   const { source, project } = yield* GitFixture
+
   return yield* inBun(source.status?.(project) ?? Effect.succeed({}))
 })
+
 const removing = (force: boolean) =>
   Effect.gen(function* () {
     const { source, project } = yield* GitFixture
+
     return yield* inBun(Effect.result(source.beforeRemove?.(project, force) ?? Effect.void))
   })
 
@@ -70,10 +75,13 @@ describe("the git source", () => {
       const opened = yield* inBun(
         Effect.result(Effect.scoped(Layer.build(found.source.open(found.project)))),
       )
+
       expect(opened._tag).toBe("Failure")
+
       if (opened._tag === "Failure") {
         expect(opened.failure.message).toContain("todo sync repo")
       }
+
       expect((yield* syncing()).summary).toBe("cloned")
       expect(git(found.clone, "ls-files")).toContain("TODO.md")
     }),
@@ -128,9 +136,11 @@ describe("the git source", () => {
 
       const refused = yield* removing(false)
       expect(refused._tag).toBe("Failure")
+
       if (refused._tag === "Failure") {
         expect(refused.failure.message).toContain("1 unpushed commit")
       }
+
       expect((yield* removing(true))._tag).toBe("Success")
     }),
     fixture({ files: { "TODO.md": todo } }),

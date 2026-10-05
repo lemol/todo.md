@@ -44,6 +44,7 @@ describe("the Jira mirror", () => {
         ],
         done: [task("PROJ-2", { status: "done", completedAt: at("2026-09-17T12:00:00.000Z") })],
       }
+
       yield* writeMirror(root, written)
       const read = yield* readMirror(root)
       expect(Option.isSome(read)).toBe(true)
@@ -99,6 +100,7 @@ describe("the Jira mirror: patches", () => {
       task("PROJ-9", { status: "done", completedAt: at("2026-09-16T12:00:00.000Z") }),
     ],
   }
+
   const ids = (tasks: ReadonlyArray<Task>) => tasks.map((one) => one.id)
   const current = (root: string) => Effect.map(readMirror(root), Option.getOrThrow)
 

@@ -9,6 +9,7 @@ const isTaggedFailure = (value: unknown): value is TaggedFailure =>
 
 export const errorDescription = (error: unknown): string => {
   if (!isTaggedFailure(error)) return error instanceof Error ? error.message : String(error)
+
   switch (error._tag) {
     case "TaskNotFound":
       return `Task ${String(error.id)} was not found.`
@@ -33,6 +34,7 @@ export const errorDescription = (error: unknown): string => {
 
 export const statusFor = (error: unknown): number => {
   if (!isTaggedFailure(error)) return 500
+
   switch (error._tag) {
     case "TaskNotFound":
       return 404
@@ -52,6 +54,7 @@ export const statusFor = (error: unknown): number => {
 export const respond = (context: WebContext, error: unknown): Response => {
   const status = statusFor(error)
   const project = currentProject(context)
+
   return renderPage(
     context,
     <ErrorPage
@@ -66,6 +69,7 @@ export const respond = (context: WebContext, error: unknown): Response => {
 
 export const respondDefect = (context: WebContext, defect: unknown): Response => {
   const project = currentProject(context)
+
   return renderPage(
     context,
     <ErrorPage

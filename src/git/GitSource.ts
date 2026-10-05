@@ -61,7 +61,9 @@ export const repoNameOf = (url: string): string | undefined => {
     .trim()
     .replace(/\/+$/, "")
     .replace(/\.git$/, "")
+
   const start = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf(":")) + 1
+
   return nameFrom(trimmed.slice(start))
 }
 
@@ -75,9 +77,11 @@ const listRootIn = (
     const path = yield* Path.Path
     const candidates =
       list === undefined ? [path.join(clone, "todo"), clone] : [path.resolve(clone, list)]
+
     for (const root of candidates) {
       if (yield* fs.exists(path.join(root, "TODO.md"))) return Option.some(root)
     }
+
     return Option.none<string>()
   })
 
@@ -95,6 +99,7 @@ const cloneArgs = (config: GitConfig, into: string): ReadonlyArray<string> => [
 /** git's stderr as a `SyncError` reason; a rejected fetch or clone is just a remote problem. */
 const syncReason = (stderr: string): SyncError["reason"] => {
   const failure = classifyPush(stderr)
+
   return failure === "rejected" ? "remote" : failure
 }
 
@@ -122,6 +127,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
       const fs = yield* FileSystem.FileSystem
       const clone = path.join(dir, "clone")
       const cloned = yield* fs.exists(clone).pipe(Effect.orElseSucceed(() => false))
+
       return { dir, clone, cloned }
     })
 
@@ -170,6 +176,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
       Layer.unwrap(
         Effect.gen(function* () {
           const { dir, clone, cloned } = yield* cloneOf(project)
+
           if (!cloned) {
             return yield* Effect.fail(
               sourceError(
@@ -178,10 +185,12 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
               ),
             )
           }
+
           const path = yield* Path.Path
           const root = yield* listRootOf(project, clone)
           const relative = path.relative(clone, root)
           const lock = yield* makeLock(dir)
+
           return Layer.effect(
             TodoStore,
             Effect.flatMap(TodoStore, (store) =>
@@ -208,8 +217,10 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
     sync: (project) =>
       Effect.gen(function* () {
         const name = project.name
+
         const fail = (reason: SyncError["reason"], message: string) =>
           new SyncError({ project: name, reason, message })
+
         const { dir, clone, cloned } = yield* cloneOf(project).pipe(
           Effect.mapError((error) => fail("remote", error.message)),
         )
@@ -224,6 +235,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
             ),
           )
           yield* clearGitState(dir)
+
           return { summary: "cloned", ahead: 0, behind: 0 } satisfies SyncOutcome
         }
 
@@ -235,11 +247,15 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
             const before = (yield* git(clone, ["rev-parse", "HEAD"])).trim()
             yield* git(clone, ["fetch", "origin"])
             const rebased = yield* Effect.result(git(clone, ["pull", "--rebase"]))
+
             if (Result.isFailure(rebased)) {
               yield* Effect.ignore(git(clone, ["rebase", "--abort"]))
+
               return yield* fail("diverged", `${rebased.failure.message}; resolve it in ${clone}`)
             }
+
             const count = yield* git(clone, ["rev-list", "--count", `${before}..HEAD`])
+
             return Number(count.trim()) || 0
           }),
         ).pipe(
@@ -253,17 +269,22 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
         )
 
         const { ahead } = yield* countsOf(git, clone)
+
         if (ahead > 0) {
           const outcome = yield* pushCommits({ git, clone, branch: project.config.branch, lock })
           yield* recordPush(dir, outcome)
+
           if (outcome._tag === "Diverged") return yield* fail("diverged", outcome.message)
+
           if (outcome._tag === "Failed") return yield* fail(outcome.reason, outcome.message)
         }
+
         yield* clearGitState(dir)
         const parts = [
           ...(pulled > 0 ? [`pulled ${pulled} commit${pulled === 1 ? "" : "s"}`] : []),
           ...(ahead > 0 ? [`pushed ${ahead}`] : []),
         ]
+
         return {
           summary: parts.length === 0 ? "up to date" : parts.join(", "),
           ...(yield* countsOf(git, clone)),
@@ -273,9 +294,12 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
     status: (project) =>
       Effect.gen(function* () {
         const found = yield* Effect.result(cloneOf(project))
+
         if (Result.isFailure(found) || !found.success.cloned) return {}
+
         const { dir, clone } = found.success
         const state = yield* readGitState(dir)
+
         return {
           ...(yield* countsOf(git, clone)),
           ...(state.diverged === true ? { diverged: true } : {}),
@@ -290,10 +314,13 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
         Stream.drain(
           Stream.fromEffect(Effect.logWarning(`stopped watching ${project.name}: ${reason}`)),
         )
+
       return Stream.unwrap(
         Effect.gen(function* () {
           const { clone, cloned } = yield* cloneOf(project)
+
           if (!cloned) return stop(`${project.name} is not cloned`)
+
           const root = yield* listRootOf(project, clone)
           // When the list is the repository root, `.git` is inside the watched
           // tree: every commit we make would otherwise look like a change.
@@ -301,6 +328,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
             root,
             { ignore: (path) => path.split(/[\\/]/).includes(".git") },
           )
+
           return watching
         }),
       ).pipe(Stream.catch((error) => stop(error.message)))
@@ -309,9 +337,13 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
     beforeRemove: (project, force) =>
       Effect.gen(function* () {
         if (force) return
+
         const found = yield* Effect.result(cloneOf(project))
+
         if (Result.isFailure(found) || !found.success.cloned) return
+
         const { ahead } = yield* countsOf(git, found.success.clone)
+
         if (ahead > 0) {
           return yield* sourceError(
             project.name,

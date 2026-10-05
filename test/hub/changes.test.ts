@@ -58,6 +58,7 @@ describe("changes", () => {
         memorySource({ kind: "probe", changes: watchers.changes }),
         memorySource(),
       ])
+
       const { events } = yield* listen(hub, watchers.started)
       yield* (yield* hub.todo("probe")).add({ title: "Watched by its source" })
       yield* (yield* hub.todo("m")).add({ title: "Reported by the hub" })
@@ -99,15 +100,18 @@ describe("changes", () => {
             Stream.unwrap(
               Effect.gen(function* () {
                 yield* Queue.offer(brokenStarted, undefined)
+
                 return yield* Effect.die("broken watcher")
               }),
             ),
         }),
         memorySource({ kind: "healthy", changes: watchers.changes }),
       ])
+
       const subscription = yield* Effect.timeoutOption(hub.subscribeChanges, "1 second")
       expect(yield* Queue.size(brokenStarted)).toBe(1)
       expect(Option.isSome(subscription)).toBe(true)
+
       if (Option.isNone(subscription)) return
 
       const events = yield* Queue.unbounded<HubChange>()
@@ -128,6 +132,7 @@ describe("changes", () => {
         yield* hubOn([memorySource({ kind: "probe" })]),
         yield* hubOn([memorySource({ kind: "probe" })]),
       ]
+
       const events = yield* Queue.unbounded<HubChange>()
       yield* watching.changes.pipe(
         Stream.runForEach((change) => Queue.offer(events, change)),
@@ -139,6 +144,7 @@ describe("changes", () => {
         Effect.suspend(() => editing.add({ name: `p${added++}`, source: "probe", config: {} })),
         takeWithin(events, "300 millis"),
       )
+
       expect(seen).toEqual(Option.some({ kind: "registry" }))
     }),
     withProbe(),
@@ -160,6 +166,7 @@ describe("changes", () => {
         Effect.suspend(() => disk.write("app/TODO.md", md("# App", "", `Edit ${edits++}`))),
         takeWithin(events, "300 millis"),
       )
+
       expect(seen).toEqual(Option.some({ kind: "changed", project: info.name }))
     }),
     diskWith({ "app/TODO.md": md("# App") }),
@@ -181,6 +188,7 @@ describe("changes", () => {
             ),
           ),
       }
+
       const hub = yield* hubOn([source])
       yield* hub.changes.pipe(Stream.runDrain, Effect.forkScoped)
       yield* hub.todo("m")
@@ -188,6 +196,7 @@ describe("changes", () => {
         disk.write(".todo-md/projects.yaml", md("projects:", "  other:", "    source: memory")),
         takeWithin(closed, "300 millis"),
       )
+
       expect(seen).toEqual(Option.some("m"))
     }),
     diskWith({ ".todo-md/projects.yaml": md("projects:", "  m:", "    source: memory") }),

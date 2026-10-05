@@ -63,6 +63,7 @@ const layout = () => {
     join(rootDir, "app", "actions", "public", "entry.ts"),
     'import "@lemol/ui/remix/compat"\nimport { pad } from "remix"\nconsole.log(pad("ok"))\n',
   )
+
   return { rootDir, remixDir, uiDir }
 }
 
@@ -75,6 +76,7 @@ test("builds the asset server inside a bun store layout", async () => {
 test("compiles an entry importing through a sibling store entry", async () => {
   const { rootDir, remixDir, uiDir } = layout()
   const server = createAssetServer(assetOptions(rootDir, remixDir, uiDir))
+
   try {
     const entry = await server.getScriptEntry("app/actions/public/entry.ts")
     expect(entry.href).toMatch(/\/assets\//)

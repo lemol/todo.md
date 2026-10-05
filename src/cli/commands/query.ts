@@ -39,6 +39,7 @@ const filterOf = (flags: {
 /** The registered project names, in registry order. */
 const registeredNames = Effect.gen(function* () {
   const hub = yield* Hub
+
   return (yield* hub.projects()).filter((p) => p.registered).map((p) => p.name)
 })
 
@@ -49,12 +50,15 @@ const registeredNames = Effect.gen(function* () {
 const showAll = (filter: TaskFilter, done: boolean) =>
   Effect.gen(function* () {
     const names = yield* registeredNames
+
     if (names.length === 0) return yield* showList({ ...filter, status: "all" })
+
     const hub = yield* Hub
     const view = yield* hub.overview({
       projects: names,
       filter: { ...filter, status: done ? "done" : "open" },
     })
+
     yield* output(undefined, view, (style) => renderOverview(view, style))
   })
 
@@ -65,6 +69,7 @@ const showAll = (filter: TaskFilter, done: boolean) =>
 const showNextAll = (filter: TaskFilter, limit: number) =>
   Effect.gen(function* () {
     const names = yield* registeredNames
+
     if (names.length === 0) {
       return yield* withTodo((todo, project) =>
         Effect.gen(function* () {
@@ -75,6 +80,7 @@ const showNextAll = (filter: TaskFilter, limit: number) =>
         }),
       )
     }
+
     const hub = yield* Hub
     const view = yield* hub.overview({ projects: names, filter: { ...filter, state: "ready" } })
     const shown = limit > 0 ? view.tasks.slice(0, limit) : view.tasks
@@ -119,7 +125,9 @@ export const list = Command.make(
     if (flags.ready && flags.blocked) {
       return yield* new UsageError({ message: "use --ready or --blocked, not both" })
     }
+
     const state = flags.ready ? "ready" : flags.blocked ? "blocked" : undefined
+
     if (!flags.all) {
       const status = flags.done ? "done" : "open"
       yield* showList({ ...filterOf(flags), status, ...(state === undefined ? {} : { state }) })
@@ -221,6 +229,7 @@ export const check = Command.make(
         const diagnostics = yield* todo.check()
         yield* output(project, diagnostics, (style) => renderDiagnostics(diagnostics, style))
         const errors = diagnostics.filter((d) => d.severity === "error").length
+
         if (errors > 0) return yield* new ProblemsFound({ errors })
       }),
     )

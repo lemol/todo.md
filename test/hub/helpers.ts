@@ -39,6 +39,7 @@ export const hubOn = (
       sources,
       ...(options.autoSync === undefined ? {} : { autoSync: options.autoSync }),
     })
+
     const { wrapFs } = options
     const wrapped =
       wrapFs === undefined
@@ -48,7 +49,9 @@ export const hubOn = (
               Layer.effect(FileSystem.FileSystem, Effect.map(FileSystem.FileSystem, wrapFs)),
             ),
           )
+
     const context = yield* Layer.build(wrapped.pipe(Layer.provide(BunServices.layer)))
+
     return Context.get(context, Hub)
   })
 
@@ -78,8 +81,10 @@ export const eventually = <A, E, R>(
     for (let attempt = 0; attempt < attempts; attempt++) {
       yield* action
       const found = yield* check
+
       if (Option.isSome(found)) return found
     }
+
     return Option.none()
   })
 
@@ -98,6 +103,7 @@ export const makeWatchers: Effect.Effect<Watchers> = Effect.gen(function* () {
   const started = yield* Queue.unbounded<string>()
   const stopped = yield* Queue.unbounded<string>()
   const emitted = yield* PubSub.unbounded<string>()
+
   return {
     started,
     stopped,
@@ -108,6 +114,7 @@ export const makeWatchers: Effect.Effect<Watchers> = Effect.gen(function* () {
         Effect.gen(function* () {
           const subscription = yield* PubSub.subscribe(emitted)
           yield* Queue.offer(started, project.name)
+
           return Stream.fromSubscription(subscription).pipe(
             Stream.filter((name) => name === project.name),
             Stream.map(() => undefined),
@@ -130,6 +137,8 @@ export const listen = (hub: Hub["Service"], started: Queue.Queue<string>) =>
       Stream.runForEach((change) => Queue.offer(events, change)),
       Effect.forkScoped,
     )
+
     const first = yield* Queue.take(started)
+
     return { events, fiber, first }
   })

@@ -28,22 +28,28 @@ process.on("exit", () => rmSync(home, { recursive: true, force: true }))
 /** Every file below `dir` as sorted `<path> <hash>` lines; a missing `dir` is empty. */
 const snapshotOf = (dir: string): string => {
   const lines: string[] = []
+
   const walk = (at: string) => {
     let entries: ReadonlyArray<Dirent<string>>
+
     try {
       entries = readdirSync(at, { withFileTypes: true, encoding: "utf8" })
     } catch {
       return
     }
+
     for (const entry of entries) {
       const full = join(at, entry.name)
+
       if (entry.isDirectory()) walk(full)
       else if (entry.isFile()) {
         lines.push(`${relative(dir, full)} ${Bun.hash(readFileSync(full, "utf8")).toString(16)}`)
       }
     }
   }
+
   walk(dir)
+
   return lines.sort().join("\n")
 }
 
@@ -55,18 +61,24 @@ const changesBetween = (before: string, after: string): string => {
         ? []
         : snapshot.split("\n").map((line) => {
             const space = line.lastIndexOf(" ")
+
             return [line.slice(0, space), line.slice(space + 1)] as const
           }),
     )
+
   const from = parse(before)
   const to = parse(after)
   const lines: string[] = []
+
   for (const [path, hash] of to) {
     const was = from.get(path)
+
     if (was === undefined) lines.push(`  + ${path}`)
     else if (was !== hash) lines.push(`  ~ ${path}`)
   }
+
   for (const path of from.keys()) if (!to.has(path)) lines.push(`  - ${path}`)
+
   return lines.sort().join("\n")
 }
 
@@ -77,7 +89,9 @@ const baselines = new Map(guarded.map((dir) => [dir, snapshotOf(dir)] as const))
 afterEach(() => {
   for (const [dir, before] of baselines) {
     const after = snapshotOf(dir)
+
     if (after === before) continue
+
     baselines.set(dir, after)
     throw new Error(
       [

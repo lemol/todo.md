@@ -24,6 +24,7 @@ const childrenOf = (node: Node): ReadonlyArray<Node> =>
   Array.isArray(node.content)
     ? node.content.flatMap((child) => {
         const parsed = asNode(child)
+
         return parsed === undefined ? [] : [parsed]
       })
     : []
@@ -33,14 +34,18 @@ const attr = (node: Node, name: string): unknown =>
 
 const stringAttr = (node: Node, name: string): string | undefined => {
   const value = attr(node, name)
+
   return Predicate.isString(value) ? value : undefined
 }
 
 const marked = (text: string, marks: unknown): string => {
   if (!Array.isArray(marks)) return text
+
   return marks.reduce<string>((inner, raw) => {
     const mark = asNode(raw)
+
     if (mark === undefined) return inner
+
     switch (typeOf(mark)) {
       case "strong":
         return `**${inner}**`
@@ -52,6 +57,7 @@ const marked = (text: string, marks: unknown): string => {
         return `~~${inner}~~`
       case "link": {
         const href = stringAttr(mark, "href")
+
         return href === undefined ? inner : `[${inner}](${href})`
       }
       default:
@@ -71,6 +77,7 @@ const inline = (nodes: ReadonlyArray<Node>): string =>
           return "\n"
         case "mention": {
           const label = stringAttr(node, "text") ?? stringAttr(node, "displayName")
+
           return label === undefined ? "" : label.startsWith("@") ? label : `@${label}`
         }
         case "emoji":
@@ -78,6 +85,7 @@ const inline = (nodes: ReadonlyArray<Node>): string =>
         case "inlineCard":
         case "blockCard": {
           const url = stringAttr(node, "url")
+
           return url === undefined ? "" : `<${url}>`
         }
         case "media":
@@ -127,12 +135,17 @@ const table = (node: Node, options: AdfOptions): string => {
       text: cell(column, options),
     })),
   )
+
   const first = rows[0]
+
   if (first === undefined) return ""
+
   const headed = first.every((column) => column.header)
   const header = headed ? first.map((column) => column.text) : first.map(() => "")
   const body = (headed ? rows.slice(1) : rows).map((row) => row.map((column) => column.text))
+
   const line = (columns: ReadonlyArray<string>) => `| ${columns.join(" | ")} |`
+
   return [line(header), line(header.map(() => "---")), ...body.map(line)].join("\n")
 }
 
@@ -142,10 +155,14 @@ const table = (node: Node, options: AdfOptions): string => {
  */
 const itemBody = (item: Node, options: AdfOptions): string => {
   if (typeOf(item) !== "listItem") return block(item, options)
+
   return childrenOf(item).reduce((body, child) => {
     const rendered = block(child, options)
+
     if (rendered === "") return body
+
     if (body === "") return rendered
+
     return `${body}${listTypes.has(typeOf(child)) ? "\n" : "\n\n"}${rendered}`
   }, "")
 }
@@ -158,6 +175,7 @@ const list = (
   childrenOf(node)
     .map((item, index) => {
       const bullet = marker(index, item)
+
       return indent(itemBody(item, options), bullet, " ".repeat(bullet.length))
     })
     .join("\n")
@@ -169,6 +187,7 @@ const block = (node: Node, options: AdfOptions): string => {
     case "heading": {
       const level = attr(node, "level")
       const shifted = (Predicate.isNumber(level) ? level : 1) + (options.headingShift ?? 0)
+
       return `${"#".repeat(Math.min(Math.max(shifted, 1), 6))} ${inline(childrenOf(node))}`
     }
     case "codeBlock":
@@ -189,6 +208,7 @@ const block = (node: Node, options: AdfOptions): string => {
     case "orderedList": {
       const start = attr(node, "order")
       const first = Predicate.isNumber(start) ? start : 1
+
       return list(node, options, (index) => `${first + index}. `)
     }
     case "taskList":
@@ -203,5 +223,6 @@ const block = (node: Node, options: AdfOptions): string => {
 /** The document as Markdown, with no trailing newline; an absent document is empty. */
 export const adfToMarkdown = (document: unknown, options: AdfOptions = {}): string => {
   const node = asNode(document)
+
   return node === undefined ? "" : block(node, options)
 }

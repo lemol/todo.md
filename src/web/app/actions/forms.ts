@@ -13,10 +13,14 @@ export const splitList = (value: string): ReadonlyArray<string> => [
 
 export const parseTaskFilter = (url: URL): TaskFilter => {
   const state = url.searchParams.get("state")
-  if (state !== null && state !== "ready" && state !== "blocked")
+
+  if (state !== null && state !== "ready" && state !== "blocked") {
     throw new Error("Invalid state filter")
+  }
+
   const assignee = url.searchParams.get("assignee")
   const group = url.searchParams.get("group")
+
   return {
     tags: url.searchParams.getAll("tag"),
     ...(state === null ? {} : { state }),
@@ -35,6 +39,7 @@ export const parseAddForm = (form: FormData) => {
     ...(title === "" ? ["Title is required"] : []),
     ...(group === "__new__" && newGroup === "" ? ["New group is required"] : []),
   ]
+
   return { title, group: group === "__new__" ? newGroup : group, newGroup, issues }
 }
 
@@ -72,6 +77,7 @@ export const parseMoveForm = (form: FormData) => {
   const group = value(form, "group")
   const newGroup = value(form, "newGroup")
   const issues = group === "__new__" && newGroup === "" ? ["New group is required"] : []
+
   return {
     before: before === "" ? undefined : taskId(before),
     after: after === "" ? undefined : taskId(after),
@@ -93,6 +99,7 @@ export const hubBack = (value_: string | undefined, fallback: string): string =>
   !value_.includes("\\") &&
   ![...value_].some((character) => {
     const code = character.charCodeAt(0)
+
     return code <= 31 || code === 127
   })
     ? value_
@@ -117,6 +124,7 @@ export const parseProjectForm = (form: FormData) => {
   const tokenCommand = value(form, "token_command")
   const jql = value(form, "jql")
   const readOnly = form.get("read_only") !== null
+
   return {
     target,
     name,

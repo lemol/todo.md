@@ -17,10 +17,13 @@ export const parseId = (value: string): TaskId | undefined =>
  */
 export const parseDependencyId = (value: string): TaskId | undefined => {
   const ref = parseRef(value)
+
   if (ref.project !== undefined) {
     const id = parseId(ref.id)
+
     return id !== undefined ? formatRef(ref.project, id) : value
   }
+
   return parseId(value)
 }
 
@@ -30,8 +33,10 @@ export const formatId = (id: TaskId): string => id.padStart(2, "0")
 /** One more than the largest ID in `ids` (`"1"` when there are none). */
 export const nextId = (ids: Iterable<TaskId>): TaskId => {
   let max = 0n
+
   for (const id of ids) {
     if (digits.test(id) && BigInt(id) > max) max = BigInt(id)
   }
+
   return String(max + 1n)
 }

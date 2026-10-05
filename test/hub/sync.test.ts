@@ -32,6 +32,7 @@ describe("sync", () => {
       const hub = yield* hubOn([
         memorySource({ sync: () => Effect.succeed({ summary: "pulled 3", ahead: 0, behind: 0 }) }),
       ])
+
       yield* hub.add({ name: "m", source: "memory", config: {} })
       const result = yield* hub.sync("m")
       expect({ ...result, at: DateTime.formatIso(result.at) }).toEqual({
@@ -92,6 +93,7 @@ describe("sync", () => {
             p.name === "bad" ? Effect.fail(failing(p.name)) : Effect.succeed({ summary: "ok" }),
         }),
       ])
+
       const { events } = yield* listen(hub, watchers.started)
       yield* hub.sync("good")
       expect(yield* Queue.take(events)).toEqual({ kind: "synced", project: "good" })
@@ -131,10 +133,12 @@ describe("sync", () => {
               most = Math.max(most, running)
               yield* Effect.sleep("50 millis")
               running -= 1
+
               return { summary: "ok" }
             }),
         }),
       ])
+
       yield* hub.add({ name: "m", source: "memory", config: {} })
       yield* Effect.all([hub.sync("m"), hub.sync("m"), hub.sync("m")], {
         concurrency: "unbounded",
@@ -158,6 +162,7 @@ describe("syncAll", () => {
         }),
         memorySource({ kind: "plain" }),
       ])
+
       const outcomes = yield* hub.syncAll()
       expect(
         outcomes.map((outcome) =>

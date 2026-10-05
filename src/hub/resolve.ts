@@ -31,7 +31,9 @@ export interface Unregistered {
 
 export const makeUnregistered = (): Unregistered => {
   const byPath = new Map<string, Project>()
+
   const all = () => [...byPath.values()]
+
   return {
     get: (name) => all().find((project) => project.name === name),
     all,
@@ -45,7 +47,9 @@ export const makeUnregistered = (): Unregistered => {
     },
     open: (list, registered) => {
       const existing = byPath.get(list)
+
       if (existing !== undefined) return existing
+
       const taken = new Set([...registered, ...all().map((project) => project.name)])
       const project: Project = {
         name: uniqueName(nameForList(list) ?? "list", taken),
@@ -54,7 +58,9 @@ export const makeUnregistered = (): Unregistered => {
         dir: undefined,
         config: { _tag: "Valid", source: fsSource, value: { path: list } },
       }
+
       byPath.set(list, project)
+
       return project
     },
   }
@@ -78,21 +84,30 @@ export const resolveProject = (
 ): Effect.Effect<Project, ProjectNotFound | RegistryError | NoListFound | StoreError, SourceEnv> =>
   Effect.gen(function* () {
     if (at.project !== undefined) return yield* hub.find(at.project)
+
     const path = yield* Path.Path
     // A broken registry must not break unregistered lists: it only costs matches and names.
     const registered = yield* hub.registered.pipe(Effect.orElseSucceed(() => []))
+
     const open = (list: string) =>
       hub.unregistered.open(
         list,
         registered.map((project) => project.name),
       )
+
     if (at.dir !== undefined) return open(path.resolve(at.cwd, at.dir))
+
     const root = yield* findListRoot(at.cwd)
+
     if (Option.isNone(root)) return yield* new NoListFound({ cwd: at.cwd })
+
     for (const project of registered) {
       const { config } = project
+
       if (config._tag !== "Valid" || config.source.owns === undefined) continue
+
       if (yield* config.source.owns(config.value, root.value)) return project
     }
+
     return open(root.value)
   })

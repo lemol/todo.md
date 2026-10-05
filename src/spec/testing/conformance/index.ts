@@ -42,9 +42,13 @@ const skipReason = (
   options: ConformanceOptions,
 ): string | undefined => {
   const missing = (testCase.requires ?? []).filter((capability) => !capabilities[capability])
+
   if (missing.length > 0) return `needs ${missing.join(" and ")}`
-  if (testCase.setup === true && !capabilities.add && options.seed === undefined)
+
+  if (testCase.setup === true && !capabilities.add && options.seed === undefined) {
     return "needs add or a seed"
+  }
+
   return undefined
 }
 
@@ -67,10 +71,12 @@ export const runConformance = <E>(
   describe(`${name} conforms to TodoStore`, async () => {
     let registrar: "done" | "unfinished" = "unfinished"
     test("registers its cases", () => {
-      if (registrar === "unfinished")
+      if (registrar === "unfinished") {
         throw new Error("no case was registered: this runner does not await an async describe body")
+      }
     })
     let capabilities: Capabilities
+
     try {
       capabilities = await Effect.runPromise(
         TodoStore.pipe(
@@ -85,11 +91,14 @@ export const runConformance = <E>(
       test("builds a store", () => {
         throw cause
       })
+
       return
     }
+
     for (const testCase of conformanceCases) {
       const reason = skipReason(testCase, capabilities, options)
-      if (reason === undefined)
+
+      if (reason === undefined) {
         effectTest(
           testCase.name,
           options.seed === undefined
@@ -97,7 +106,8 @@ export const runConformance = <E>(
             : Effect.provideService(testCase.run, Seeding, options.seed),
           layer,
         )
-      else test.skip(`${testCase.name} (${reason})`, () => {})
+      } else test.skip(`${testCase.name} (${reason})`, () => {})
     }
+
     registrar = "done"
   })

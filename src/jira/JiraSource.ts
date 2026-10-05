@@ -105,6 +105,7 @@ export const jiraSourceWith = (
     Effect.gen(function* () {
       const dir = yield* located(project)
       const client = yield* clientFor(project.config)
+
       return JiraTodoStore.layer({
         name: project.name,
         dir,
@@ -125,15 +126,19 @@ export const jiraSourceWith = (
     Effect.gen(function* () {
       const issues: Array<Issue> = []
       let token: string | undefined
+
       for (let page = 0; page < pageLimit; page++) {
         const result = yield* client.search({
           jql,
           ...(token === undefined ? {} : { nextPageToken: token }),
         })
+
         issues.push(...(result.issues ?? []))
         token = result.nextPageToken ?? undefined
+
         if (token === undefined) break
       }
+
       return yield* Effect.forEach(issues, (issue) => taskFor(client, issue, site))
     })
 
@@ -148,6 +153,7 @@ export const jiraSourceWith = (
             new SyncError({ project: project.name, reason: "remote", message: error.message }),
         ),
       )
+
       const client = yield* clientFor(project.config)
       const queries = queriesOf(project.config)
       const site = project.config.site
@@ -155,8 +161,10 @@ export const jiraSourceWith = (
       const { open, done } = yield* Effect.gen(function* () {
         const open = yield* fetchAll(client, queries.open, site)
         const done = yield* fetchAll(client, queries.done, site)
+
         return { open, done }
       }).pipe(Effect.mapError((error) => asSyncError(project.name, error)))
+
       const syncedAt = yield* DateTime.now
       yield* writeMirror(dir, { version: 1, syncedAt, open, done }, startedAt).pipe(
         Effect.mapError(
@@ -164,6 +172,7 @@ export const jiraSourceWith = (
             new SyncError({ project: project.name, reason: "remote", message: error.message }),
         ),
       )
+
       return { summary: `${open.length} open, ${done.length} done` } satisfies SyncOutcome
     })
 
@@ -217,6 +226,7 @@ export const jiraSourceWith = (
         Stream.drain(
           Stream.fromEffect(Effect.logWarning(`stopped watching ${project.name}: ${reason}`)),
         )
+
       // The hub keeps its own `state.json` in the same directory and rewrites
       // it after every sync; only the mirror is a change to the list.
       return project.dir === undefined
@@ -248,6 +258,7 @@ export const make = (
     const services = yield* Effect.context<
       HttpClient.HttpClient | ChildProcessSpawner.ChildProcessSpawner
     >()
+
     return jiraSourceWith((config) =>
       makeClient(credentialsOf(config), { env: options.env }).pipe(Effect.provideContext(services)),
     )

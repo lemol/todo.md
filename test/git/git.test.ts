@@ -22,6 +22,7 @@ const recording = (answer: { code: number; stdout?: string; stderr?: string }) =
     ChildProcessSpawner.ChildProcessSpawner.of(
       ChildProcessSpawner.make((command) => {
         if (!ChildProcess.isStandardCommand(command)) return Effect.die("not a standard command")
+
         runs.push({
           command: command.command,
           args: command.args,
@@ -29,6 +30,7 @@ const recording = (answer: { code: number; stdout?: string; stderr?: string }) =
           env: command.options.env ?? {},
           extendEnv: command.options.extendEnv,
         })
+
         return Effect.succeed(
           ChildProcessSpawner.makeHandle({
             pid: ChildProcessSpawner.ProcessId(1),
@@ -47,6 +49,7 @@ const recording = (answer: { code: number; stdout?: string; stderr?: string }) =
       }),
     ),
   )
+
   return { runs, layer }
 }
 
@@ -71,6 +74,7 @@ describe("running git", () => {
         makeGit({ env: { GIT_SSH_COMMAND: "ssh -i /keys/id" } }),
         chosen.layer,
       )
+
       yield* theirs("/work", ["status"])
       expect(chosen.runs[0]?.env.GIT_TERMINAL_PROMPT).toBe("0")
       expect(chosen.runs[0]?.env.GIT_SSH_COMMAND).toBeUndefined()

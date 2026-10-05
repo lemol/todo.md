@@ -38,8 +38,10 @@ describe("fsSource", () => {
     "owns the list root it opens",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       const owns = (path: string, listRoot: string) =>
         inBun(fsSource.owns?.({ path }, listRoot) ?? Effect.succeed(false))
+
       expect(yield* owns(`${root}/both`, `${root}/both/todo`)).toBe(true)
       expect(yield* owns(`${root}/both/todo`, `${root}/both/todo`)).toBe(true)
       expect(yield* owns(`${root}/both`, `${root}/both`)).toBe(false)
@@ -65,14 +67,17 @@ describe("fsSource.changes", () => {
       )
       const fired = (within: Duration.Input) =>
         Effect.map(takeWithin(events, within), Option.isSome)
+
       // Arm: touch a probe file until the watch reports it, then let it settle.
       let probes = 0
       const armed = yield* eventually(
         Effect.suspend(() => disk.write("probe.md", String(probes++))),
         takeWithin(events, "200 millis"),
       )
+
       expect(Option.isSome(armed)).toBe(true)
       let settling = true
+
       while (settling) settling = yield* fired("300 millis")
 
       yield* disk.write("tasks/01-one.md", "one")
@@ -99,13 +104,16 @@ describe("fsSource.changes", () => {
       )
       const fired = (within: Duration.Input) =>
         Effect.map(takeWithin(events, within), Option.isSome)
+
       let probes = 0
       const armed = yield* eventually(
         Effect.suspend(() => disk.write("probe.md", String(probes++))),
         takeWithin(events, "200 millis"),
       )
+
       expect(Option.isSome(armed)).toBe(true)
       let settling = true
+
       while (settling) settling = yield* fired("300 millis")
 
       yield* disk.write(".git/refs/heads/main", "abc")
@@ -124,6 +132,7 @@ describe("fsSource.changes", () => {
       const exit = yield* Effect.exit(
         changesOf(`${root}/gone`).pipe(Stream.runDrain, Effect.provide(BunServices.layer)),
       )
+
       expect(Exit.isSuccess(exit)).toBe(true)
     }),
     diskWith({}),

@@ -33,5 +33,6 @@ export function effectTest<A, E, R, LE>(
     E | LE,
     Scope.Scope
   >
+
   test(name, () => Effect.runPromise(provided.pipe(Effect.scoped, Effect.provide(TestEnv))), t)
 }

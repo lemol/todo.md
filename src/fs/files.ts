@@ -34,6 +34,7 @@ export const makeFiles = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
+
     const absolute = (relative: string) => path.join(root, relative)
     const makeParent = (target: string) =>
       fs.makeDirectory(path.dirname(target), { recursive: true })
@@ -53,6 +54,7 @@ export const makeFiles = (
       write: (relative, text) => {
         const target = absolute(relative)
         const temporary = `${target}.${Math.random().toString(36).slice(2)}.tmp`
+
         return makeParent(target).pipe(
           Effect.andThen(fs.writeFileString(temporary, text)),
           Effect.andThen(fs.rename(temporary, target)),

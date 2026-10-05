@@ -53,7 +53,9 @@ export const currentProject = (context: WebContext): string | undefined => {
 
 export const projectOf = (context: WebContext): string => {
   const name = currentProject(context)
+
   if (name === undefined) throw new Error("no project on this request")
+
   return name
 }
 
@@ -72,6 +74,7 @@ export const sessionOf = (context: WebContext): WebSession =>
 
 export const takeFlash = (context: WebContext): FlashMessage | undefined => {
   const value = sessionOf(context).get("flash")
+
   if (
     typeof value !== "object" ||
     value === null ||
@@ -79,8 +82,10 @@ export const takeFlash = (context: WebContext): FlashMessage | undefined => {
     typeof value.message !== "string" ||
     !("tone" in value) ||
     (value.tone !== "info" && value.tone !== "warning" && value.tone !== "error")
-  )
+  ) {
     return undefined
+  }
+
   return { message: value.message, tone: value.tone }
 }
 
@@ -99,8 +104,11 @@ export const loadChrome = async (context: WebContext) => {
     runTodo(runtimeContext(context), (todo) => todo.list()),
     runTodo(runtimeContext(context), (todo) => todo.check()),
   ])
+
   if (!listing.ok) return { ok: false as const, error: listing.error }
+
   if (!diagnostics.ok) return { ok: false as const, error: diagnostics.error }
+
   return {
     ok: true as const,
     title: listing.value.title,

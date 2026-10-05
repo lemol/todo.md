@@ -33,11 +33,14 @@ const pastTense: Record<string, string> = {
 /** A one-line, human explanation of a failure. */
 export const describeError = (error: unknown): string => {
   if (!isTagged(error)) return String(error)
+
   const text = (key: string) => String(error[key] ?? "")
   const list = (key: string) => {
     const value = error[key]
+
     return Array.isArray(value) ? value.join(", ") : ""
   }
+
   switch (error._tag) {
     case "TaskNotFound":
       return `no task ${text("id")}`
@@ -45,6 +48,7 @@ export const describeError = (error: unknown): string => {
       return `no group "${text("name")}"`
     case "InvalidTransition": {
       const operation = text("operation")
+
       return `task ${text("id")} is ${text("status")}, so it cannot be ${pastTense[operation] ?? operation}`
     }
     case "ValidationError":
@@ -59,6 +63,7 @@ export const describeError = (error: unknown): string => {
       return `check found ${text("errors")} error(s)`
     case "SyncFailed": {
       const errors = Number(error.errors)
+
       return `sync failed for ${errors} project${errors === 1 ? "" : "s"}`
     }
     default:
@@ -75,9 +80,11 @@ const isPlain = (value: unknown) =>
 /** The JSON form of a failure: its tag, the message, and its plain fields. */
 export const errorJson = (error: unknown): Record<string, unknown> => {
   if (!isTagged(error)) return { tag: "Error", message: String(error) }
+
   const fields = Object.entries(error).filter(
     ([key, value]) => key !== "_tag" && key !== "message" && isPlain(value),
   )
+
   return { tag: error._tag, message: describeError(error), ...Object.fromEntries(fields) }
 }
 

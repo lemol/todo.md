@@ -19,7 +19,9 @@ const withCli = <A, E>(use: (run: Run, jira: FakeJira) => Effect.Effect<A, E, Di
       fsSource,
       yield* JiraSource.make({ env: { JIRA_TOKEN: "s3cret" } }).pipe(Effect.provide(layer)),
     ]
+
     const home = `${root}/hub`
+
     return yield* use((...args) => runTodo(args, { home, sources }), jira)
   }).pipe(Effect.provide(BunServices.layer))
 
@@ -45,6 +47,7 @@ describe("jira projects from the CLI", () => {
           "--token-env",
           "JIRA_TOKEN",
         )
+
         expect(added.stderr).toBe("")
         expect(added.code).toBe(0)
 
@@ -129,6 +132,7 @@ describe("jira projects from the CLI", () => {
           "--author",
           "ana",
         )
+
         expect(commented.stderr).toBe("")
         expect(commented.code).toBe(0)
         const shown = yield* run("show", "work:PROJ-1")
@@ -143,6 +147,7 @@ describe("jira projects from the CLI", () => {
           "--tag",
           "backend",
         )
+
         expect(edited.stderr).toBe("")
         expect(edited.code).toBe(0)
         expect(jira.issue("PROJ-1")?.fields).toMatchObject({
@@ -203,6 +208,7 @@ describe("jira projects from the CLI", () => {
           "JIRA_TOKEN",
           "--read-only",
         )
+
         expect(added.stderr).toBe("")
         expect(added.code).toBe(0)
 
@@ -240,6 +246,7 @@ describe("jira projects from the CLI", () => {
           "--token-env",
           "JIRA_TOKEN",
         )
+
         expect(refused.code).not.toBe(0)
         expect(refused.stderr).toContain("credentials")
         expect((yield* run("projects")).stdout).toContain("No projects registered")
@@ -263,6 +270,7 @@ describe("jira projects from the CLI", () => {
           "--token-env",
           "JIRA_TOKEN",
         )
+
         expect(unnamed.code).not.toBe(0)
         expect(unnamed.stderr).toContain("name")
       }),
@@ -301,6 +309,7 @@ describe("jira projects from the CLI", () => {
           "--email",
           "tester@acme.test",
         )
+
         expect(neither.code).not.toBe(0)
         expect(neither.stderr).toContain("token_env")
       }),

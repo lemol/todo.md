@@ -67,8 +67,11 @@ const file = "TODO.md"
 /** Columns of content inside a list item: the bullet, then 1–4 spaces (CommonMark). */
 const contentIndent = (line: string): number => {
   const match = /^(\s*)[-*+]( +)/.exec(line)
+
   if (match === null) return 0
+
   const spaces = match[2]?.length ?? 1
+
   return (match[1]?.length ?? 0) + 1 + (spaces > 4 ? 1 : spaces)
 }
 
@@ -77,19 +80,28 @@ const dedent = (line: string, columns: number): string =>
 
 const readConfig = (yaml: string, diagnostics: Diagnostic[]): ListConfig => {
   const { data, error } = readFrontmatter(yaml)
+
   const report = (message: string) =>
     diagnostics.push({ severity: "error", code: "invalid-frontmatter", message, file, line: 1 })
+
   if (error !== undefined) report(error)
+
   const dir = (key: string, fallback: string): string => {
     const value = data[key]
+
     if (value === undefined) return fallback
+
     const path = typeof value === "string" ? normalizePath(value) : undefined
+
     if (path === undefined) {
       report(`${key} must be a path inside the list root`)
+
       return fallback
     }
+
     return path === "" ? "." : path
   }
+
   return {
     tasksDir: dir("tasks_dir", defaultConfig.tasksDir),
     doneDir: dir("done_dir", defaultConfig.doneDir),
@@ -115,10 +127,14 @@ export const parseTodoFile = (source: string): TodoFile => {
     const { start, end } = lineSpan(node)
     const first = text.lines[start] ?? ""
     const prefix = /^\s*[-*+]\s+\[[ xX]\]\s*/.exec(first)
+
     if (node.checked == null || prefix === null) return undefined
+
     const headColumn = prefix[0].length
     const head = first.slice(headColumn).trimEnd()
+
     if (head === "") return undefined
+
     const indent = contentIndent(first)
     const body = text.lines.slice(start + 1, end).map((line) => dedent(line, indent))
     const location = { file, line: start + 1 }
@@ -134,11 +150,13 @@ export const parseTodoFile = (source: string): TodoFile => {
       first.slice(linkPosition.end.column - 1).trim() === ""
 
     let item: TodoItem
+
     if (isLink && link?.type === "link") {
       const from = (link.children[0]?.position?.start.column ?? headColumn + 2) - 1
       const to = (link.children.at(-1)?.position?.end.column ?? headColumn + 2) - 1
       const { id, title } = parseHead(unescapeLinkText(first.slice(from, to)))
       const path = resolveLink(link.url)
+
       if (path === undefined) {
         diagnostics.push({
           severity: "error",
@@ -148,6 +166,7 @@ export const parseTodoFile = (source: string): TodoFile => {
         })
       } else {
         const prefixId = /^(\d+)-/.exec(basename(path))?.[1]
+
         if (id !== undefined && prefixId !== undefined && parseId(prefixId) !== id) {
           diagnostics.push({
             severity: "warning",
@@ -158,6 +177,7 @@ export const parseTodoFile = (source: string): TodoFile => {
           })
         }
       }
+
       if (body.some((line) => !isBlank(line))) {
         diagnostics.push({
           severity: "warning",
@@ -166,6 +186,7 @@ export const parseTodoFile = (source: string): TodoFile => {
           ...location,
         })
       }
+
       item = {
         start,
         end,
@@ -184,6 +205,7 @@ export const parseTodoFile = (source: string): TodoFile => {
       const [firstBody] = body
       const metadata =
         firstBody === undefined || isBlank(firstBody) ? undefined : parseMetadataLine(firstBody)
+
       for (const diagnostic of metadata?.diagnostics ?? []) {
         diagnostics.push({
           ...diagnostic,
@@ -192,6 +214,7 @@ export const parseTodoFile = (source: string): TodoFile => {
           line: start + 2,
         })
       }
+
       const description = trimBlock(metadata === undefined ? body : body.slice(1))
       item = {
         start,
@@ -207,6 +230,7 @@ export const parseTodoFile = (source: string): TodoFile => {
         linkText: undefined,
       }
     }
+
     if (item.id === undefined) {
       diagnostics.push({
         severity: "info",
@@ -215,6 +239,7 @@ export const parseTodoFile = (source: string): TodoFile => {
         ...location,
       })
     }
+
     if (item.checked) {
       diagnostics.push({
         severity: "info",
@@ -224,11 +249,13 @@ export const parseTodoFile = (source: string): TodoFile => {
         ...location,
       })
     }
+
     return item
   }
 
   for (const node of tree.children) {
     const { start, end } = lineSpan(node)
+
     if (node.type === "yaml") {
       config = readConfig(node.value, diagnostics)
       ungroupedStart = end
@@ -244,6 +271,7 @@ export const parseTodoFile = (source: string): TodoFile => {
       const duplicate = groups.find(
         (group) => group.name === name || groupSlug(group.name) === groupSlug(name),
       )
+
       if (duplicate !== undefined) {
         diagnostics.push({
           severity: "error",
@@ -253,10 +281,12 @@ export const parseTodoFile = (source: string): TodoFile => {
           line: start + 1,
         })
       }
+
       groups.push({ name, heading: { line: start, from, to }, items: [] })
     } else if (node.type === "list") {
       for (const child of node.children) {
         const item = parseItem(child)
+
         if (item !== undefined) (groups.at(-1)?.items ?? ungrouped).push(item)
       }
     }
@@ -264,6 +294,7 @@ export const parseTodoFile = (source: string): TodoFile => {
 
   const describe = (from: number, items: ReadonlyArray<TodoItem>, end: number) =>
     trimBlock(text.lines.slice(from, items[0]?.start ?? end))
+
   const ungroupedEnd = groups[0]?.heading.line ?? text.lines.length
   const sections: TodoSection[] = [
     {
@@ -276,6 +307,7 @@ export const parseTodoFile = (source: string): TodoFile => {
     },
     ...groups.map((group, index) => {
       const end = groups[index + 1]?.heading.line ?? text.lines.length
+
       return {
         name: group.name,
         description: describe(group.heading.line + 1, group.items, end),
@@ -286,6 +318,7 @@ export const parseTodoFile = (source: string): TodoFile => {
       }
     }),
   ]
+
   return { text, config, title, description: sections[0]?.description ?? "", sections, diagnostics }
 }
 
@@ -302,7 +335,9 @@ export const sectionOf = (todo: TodoFile, item: TodoItem): TodoSection | undefin
 
 const lastContentLine = (lines: ReadonlyArray<string>, before: number): number => {
   let line = before - 1
+
   while (line >= 0 && isBlank(lines[line])) line--
+
   return line
 }
 
@@ -318,19 +353,25 @@ export const insertItem = (
 ): string => {
   const { lines } = todo.text
   const section = todo.sections.find((candidate) => candidate.name === group)
+
   if (section === undefined) {
     const last = lastContentLine(lines, lines.length)
     const insert = [...(last >= 0 ? [""] : []), `## ${group}`, "", ...item]
+
     return joinLines(spliceLines(todo.text, last + 1, lines.length - last - 1, insert))
   }
+
   if (section.items.length === 0) {
     const at = lastContentLine(lines, section.end) + 1
     const before = at > 0 ? [""] : []
     const after = at < lines.length && !isBlank(lines[at]) ? [""] : []
+
     return joinLines(spliceLines(todo.text, at, 0, [...before, ...item, ...after]))
   }
+
   const target = section.items[Math.max(0, index)]
   const at = target?.start ?? section.items.at(-1)?.end ?? section.end
+
   return joinLines(spliceLines(todo.text, at, 0, item))
 }
 
@@ -339,8 +380,10 @@ export const removeItem = (todo: TodoFile, item: TodoItem): string => {
   let text = spliceLines(todo.text, item.start, item.end - item.start, [])
   const at = item.start
   const blankBefore = at > 0 && isBlank(text.lines[at - 1])
+
   if (blankBefore && isBlank(text.lines[at])) text = spliceLines(text, at, 1, [])
   else if (blankBefore && at === text.lines.length) text = spliceLines(text, at - 1, 1, [])
+
   return joinLines(text)
 }
 
@@ -356,6 +399,7 @@ export const withHead = (text: Lines, item: TodoItem, id: TaskId, title: string)
     item.linkText === undefined
       ? line.slice(0, item.headColumn) + head
       : line.slice(0, item.linkText[0]) + escapeLinkText(head) + line.slice(item.linkText[1])
+
   return spliceLines(text, item.start, 1, [rewritten])
 }
 
@@ -365,8 +409,11 @@ export const setItemHead = (todo: TodoFile, item: TodoItem, id: TaskId, title: s
 /** Renames a group's heading in place (spec §2.10, renameGroup). */
 export const renameSection = (todo: TodoFile, from: string, to: string): string => {
   const heading = todo.sections.find((section) => section.name === from)?.heading
+
   if (heading === undefined) return joinLines(todo.text)
+
   const line = todo.text.lines[heading.line] ?? ""
+
   return joinLines(
     spliceLines(todo.text, heading.line, 1, [
       line.slice(0, heading.from) + to + line.slice(heading.to),

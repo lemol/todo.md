@@ -30,8 +30,10 @@ const isToken = (token: string): boolean =>
 /** Reads a `key:value` value as a YAML plain scalar: `3` is a number, `true` a boolean. */
 const scalar = (value: string): unknown => {
   if (/^[[{]/.test(value)) return value
+
   try {
     const parsed: unknown = parseYaml(value)
+
     return parsed === null || typeof parsed === "object" ? value : parsed
   } catch {
     return value
@@ -50,6 +52,7 @@ export const parseMetadataLine = (line: string): ParsedMetadata | undefined => {
     .split(/\s+/)
     .flatMap((chunk) => chunk.split(/,(?=[#@])/))
     .filter((token) => token !== "")
+
   if (tokens.length === 0 || !tokens.every(isToken)) return undefined
 
   const tags: string[] = []
@@ -63,11 +66,14 @@ export const parseMetadataLine = (line: string): ParsedMetadata | undefined => {
       tags.push(token.slice(1))
       continue
     }
+
     if (token.startsWith("@")) {
       assignees.push(token.slice(1))
       continue
     }
+
     const [, key = "", value = ""] = keyValue.exec(token) ?? []
+
     if (reserved.has(key)) {
       diagnostics.push(error("reserved-field", `${key} cannot be set on a metadata line`))
     } else if (key === "tags") {
@@ -76,6 +82,7 @@ export const parseMetadataLine = (line: string): ParsedMetadata | undefined => {
       assignees.push(value)
     } else if (key === "depends_on") {
       const ids = value.split(",").map(parseDependencyId)
+
       if (ids.every((id) => id !== undefined)) {
         dependsOn.push(...ids)
       } else {
@@ -85,6 +92,7 @@ export const parseMetadataLine = (line: string): ParsedMetadata | undefined => {
       extra[key] = scalar(value)
     }
   }
+
   if (assignees.length > 1) {
     diagnostics.push(error("multiple-assignees", `more than one assignee: ${assignees.join(", ")}`))
   }
@@ -103,7 +111,9 @@ const token = (value: unknown): string | undefined => {
       : (typeof value === "number" && Number.isFinite(value)) || typeof value === "boolean"
         ? String(value)
         : undefined
+
   if (text === undefined || !/^[^\s/]\S*$/.test(text) || /,[#@]/.test(text)) return undefined
+
   return scalar(text) === value ? text : undefined
 }
 

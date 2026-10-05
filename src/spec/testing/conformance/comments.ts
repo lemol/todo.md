@@ -19,6 +19,7 @@ export const commentCases: ReadonlyArray<ConformanceCase> = [
         author: "lemol",
         body: "Do this after the login fix.",
       })
+
       yield* TestClock.adjust("1 minute")
       yield* store.comment(task.id, { author: "claude", body: "Started on the token bucket." })
       equal(DateTime.toEpochMillis(first.at), at)
@@ -27,11 +28,14 @@ export const commentCases: ReadonlyArray<ConformanceCase> = [
         comments.map((c) => c.body),
         ["Started on the token bucket.", "Do this after the login fix."],
       )
+
       // Without `commentAuthor` the backend's own user signs every comment.
       if (!store.capabilities.commentAuthor) {
         equal(first.author, comments[1]?.author)
+
         return
       }
+
       equal(first.author, "lemol")
       equal(
         comments.map((c) => c.author),

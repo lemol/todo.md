@@ -33,6 +33,7 @@ export const readGitState = (
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const file = (yield* Path.Path).join(dir, gitStateFile)
+
     return yield* fs.readFileString(file).pipe(
       Effect.flatMap((text) => Schema.decodeUnknownEffect(StateJson)(text)),
       Effect.map(({ version: _version, ...state }) => state),
@@ -89,9 +90,11 @@ const patterns: ReadonlyArray<readonly [PushFailure, ReadonlyArray<string>]> = [
  */
 export const classifyPush = (stderr: string): PushFailure => {
   const text = stderr.toLowerCase()
+
   for (const [failure, needles] of patterns) {
     if (needles.some((needle) => text.includes(needle))) return failure
   }
+
   return "remote"
 }
 
@@ -113,6 +116,7 @@ export const countsOf = (
   git(clone, ["rev-list", "--left-right", "--count", "HEAD...@{u}"]).pipe(
     Effect.map((out) => {
       const [ahead, behind] = out.trim().split(/\s+/)
+
       return { ahead: Number(ahead) || 0, behind: Number(behind) || 0 }
     }),
     Effect.orElseSucceed(() => ({ ahead: 0, behind: 0 })),
@@ -143,31 +147,43 @@ export const pushCommits = (context: PushContext): Effect.Effect<PushOutcome> =>
   Effect.gen(function* () {
     const { git, clone, lock } = context
     const { ahead } = yield* countsOf(git, clone)
+
     if (ahead === 0) return { _tag: "UpToDate" } as const
+
     const branch = yield* Effect.result(branchOf(git, clone, context.branch))
+
     if (Result.isFailure(branch)) {
       return { _tag: "Failed", reason: "remote", message: branch.failure.message } as const
     }
+
     const push = git(clone, ["push", "origin", `HEAD:${branch.success}`])
 
     const first = yield* Effect.result(push)
+
     if (Result.isSuccess(first)) return { _tag: "Pushed" } as const
+
     const failure = classifyPush(first.failure.stderr)
+
     if (failure !== "rejected") {
       return { _tag: "Failed", reason: failure, message: first.failure.message } as const
     }
 
     // Someone else pushed first: replay our commits on top and try once more.
     const rebased = yield* Effect.result(lock(git(clone, ["pull", "--rebase"])))
+
     if (Result.isFailure(rebased)) {
       yield* Effect.ignore(lock(git(clone, ["rebase", "--abort"])))
+
       return {
         _tag: "Diverged",
         message: `${rebased.failure.message}; resolve it in ${clone}`,
       } as const
     }
+
     const second = yield* Effect.result(push)
+
     if (Result.isSuccess(second)) return { _tag: "Pushed" } as const
+
     return {
       _tag: "Failed",
       reason: classifyPush(second.failure.stderr),

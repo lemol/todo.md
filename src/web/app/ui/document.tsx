@@ -266,6 +266,7 @@ export function Document(handle: Handle<DocumentOptions>) {
 
     const mapFlashTone = (tone: "info" | "warning" | "error"): ToastTone => {
       if (tone === "error") return "danger"
+
       return tone
     }
 
@@ -334,6 +335,7 @@ export function ErrorPage(handle: Handle<ErrorPageOptions>) {
     const options = handle.props
     const back =
       options.project === undefined ? "/" : routes.project.board.href({ project: options.project })
+
     return (
       <Document
         title="todo.md"

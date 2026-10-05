@@ -18,6 +18,7 @@ export const memoryWithCapabilities = (
   changes?: MemoryHooks["changes"],
 ): Source<MemoryConfig> => {
   const base = memorySource(changes === undefined ? {} : { changes })
+
   return {
     ...base,
     open: (project) =>
@@ -25,6 +26,7 @@ export const memoryWithCapabilities = (
         TodoStore,
         Effect.gen(function* () {
           const store = yield* TodoStore
+
           return TodoStore.of({
             ...store,
             capabilities: { ...store.capabilities, ...capabilities },
@@ -57,7 +59,9 @@ const homeFor = (projects: ReadonlyArray<HubProject>): string => {
       ].join("\n"),
     )
     .join("\n")
+
   writeFileSync(`${home}/projects.yaml`, `projects:\n${body}\n`)
+
   return home
 }
 
@@ -78,17 +82,20 @@ export const makeHub = (options: MakeHubOptions = {}) => {
   const entries = options.projects ?? [
     { name: options.project ?? "acme", fields: { title: options.title ?? "Acme" } },
   ]
+
   const project = entries[0]?.name ?? "acme"
   const home = homeFor(entries)
   const source =
     options.capabilities === undefined
       ? memorySource(options.changes === undefined ? {} : { changes: options.changes })
       : memoryWithCapabilities(options.capabilities, options.changes)
+
   const hubRuntime = ManagedRuntime.make(
     Hub.layer({ home, userHome: home, sources: [source, ...(options.extraSources ?? [])] }).pipe(
       Layer.provide(BunServices.layer),
     ),
   )
+
   return { hubRuntime, project, home }
 }
 
@@ -137,9 +144,11 @@ export const makeRouter = async (options: MakeRouterOptions = {}) => {
           projects: options.projects ?? [],
           extraSources: [fsSource, ...(options.extraSources ?? [])],
         }
+
   const { hubRuntime, project, home } = makeHub(hubOptions)
   let startup = options.startup ?? project
   const listDir = options.listDir
+
   if (listDir !== undefined) {
     startup = (
       await hubRuntime.runPromise(
@@ -147,6 +156,7 @@ export const makeRouter = async (options: MakeRouterOptions = {}) => {
       )
     ).name
   }
+
   const runtime: HubRuntime = { runPromise: (effect) => hubRuntime.runPromise(effect) }
   const router = createAppRouter({
     runtime,
@@ -157,6 +167,7 @@ export const makeRouter = async (options: MakeRouterOptions = {}) => {
     sessionSecret: "test-secret-at-least-32-characters",
     assets: options.assets ?? makeFakeAssets(),
   })
+
   return {
     router,
     project,

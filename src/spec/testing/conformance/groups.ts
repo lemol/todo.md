@@ -14,6 +14,7 @@ export const groupCases: ReadonlyArray<ConformanceCase> = [
         { title: "A", placement: { group: "Backend" } },
         { title: "B", placement: { group: "Frontend" } },
       )
+
       yield* store.renameGroup("Backend", "Server")
       equal((yield* store.get(a.id)).group, "Server")
       equal(yield* layout, [
@@ -33,6 +34,7 @@ export const groupCases: ReadonlyArray<ConformanceCase> = [
         { title: "A", placement: { group: "Backend" }, done: true },
         { title: "B", placement: { group: "Backend" } },
       )
+
       yield* store.renameGroup("Backend", "Server")
       equal((yield* store.get(a.id)).group, "Backend")
     }),
@@ -47,6 +49,7 @@ export const groupCases: ReadonlyArray<ConformanceCase> = [
         { title: "A", placement: { group: "Backend" } },
         { title: "B", placement: { group: "Frontend" } },
       )
+
       yield* failsWith(store.renameGroup("Nope", "Other"), "GroupNotFound")
       yield* failsWith(store.renameGroup("Backend", "Frontend"), "ValidationError")
       yield* failsWith(store.renameGroup("Backend", ""), "ValidationError")

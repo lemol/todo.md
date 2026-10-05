@@ -22,6 +22,7 @@ describe("todo add", () => {
         "--tag",
         "release",
       )
+
       expect(result).toEqual({ code: 0, stdout: "Added 06  Ship it to Backend", stderr: "" })
       const disk = yield* Disk
       expect(yield* disk.read("TODO.md")).toContain(
@@ -48,6 +49,7 @@ describe("todo add", () => {
         "--tag",
         "ops",
       )
+
       expect(inline.code).toBe(0)
       const text = yield* (yield* Disk).read("TODO.md")
       expect(text).toContain("- [ ] 06 - Write notes\n")
@@ -80,6 +82,7 @@ describe("todo add", () => {
       const described = yield* todo("add", "Try it", "--no-group")
       expect(described.code).toBe(2)
       expect(described.stderr).toContain("say what it is: --description <text>")
+
       for (const args of [
         ["--group", "Backend", "--no-group"],
         ["--no-group", "--description", "x", "--no-description"],
@@ -87,6 +90,7 @@ describe("todo add", () => {
       ]) {
         expect((yield* todo("add", "Try it", ...args)).code, args.join(" ")).toBe(2)
       }
+
       expect(yield* (yield* Disk).read("TODO.md")).toBe(acme["TODO.md"])
     }),
     diskWith(acme),
@@ -109,6 +113,7 @@ describe("todo add", () => {
         ],
         { stdin: "Hammer it.\n" },
       )
+
       expect(JSON.parse(result.stdout)).toMatchObject({
         id: "6",
         title: "Load test",
@@ -146,6 +151,7 @@ describe("todo add --description -", () => {
         ["add", "Record the cause", "--group", "Backend", "--description", "-"],
         { stdin: body },
       )
+
       expect(result).toEqual({
         code: 0,
         stdout: "Added 06  Record the cause to Backend",
@@ -237,6 +243,7 @@ describe("todo edit", () => {
         "--drop-dependency",
         "2",
       )
+
       expect(result.stdout).toBe("Updated 03  Fix the redirect")
       expect(yield* showJson("3")).toMatchObject({
         title: "Fix the redirect",
@@ -267,6 +274,7 @@ describe("todo edit", () => {
       const result = yield* runTodo(["edit", "3", "--file", "--description", "-"], {
         stdin: "The referrer is dropped by `redirect()`.\n",
       })
+
       expect(result.stdout).toBe("Updated 03  Fix login redirect")
       expect(yield* (yield* Disk).read("backend/03-fix-login-redirect.md")).toContain(
         "The referrer is dropped by `redirect()`.",
@@ -339,6 +347,7 @@ describe("todo cancel", () => {
       const result = yield* runTodo(["cancel", "3", "--reason", "-"], {
         stdin: "Dropped: `apps/*` is gone.\n",
       })
+
       expect(result.stdout).toContain("Cancelled 03")
       expect(yield* (yield* Disk).read("done/backend/03-fix-login-redirect.md")).toContain(
         "Dropped: `apps/*` is gone.",
@@ -515,6 +524,7 @@ describe("todo add with cross-project dependencies", () => {
         ],
         { home },
       )
+
       expect(addResult.code).toBe(0)
       expect(addResult.stdout).toContain("Added 01  Dependent Task")
 
@@ -554,6 +564,7 @@ describe("todo add with cross-project dependencies", () => {
         ["add", "Anchor probe", "--quick", "--before", "slash-usage:1"],
         { home, cwd: "w" },
       )
+
       expect(retarget.code).toBe(2)
       expect(retarget.stderr).toContain("anchor project slash-usage contradicts workspace")
 
@@ -561,6 +572,7 @@ describe("todo add with cross-project dependencies", () => {
         ["add", "Anchor probe", "--quick", "--project", "workspace", "--before", "slash-usage:1"],
         { home },
       )
+
       expect(flagged.code).toBe(2)
       expect(flagged.stderr).toContain("anchor project slash-usage contradicts workspace")
 

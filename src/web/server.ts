@@ -25,6 +25,7 @@ export const startServer = async (options: ServerOptions) => {
   if (options.project !== undefined && options.dir !== undefined) {
     throw new Error("use --project or --dir, not both")
   }
+
   const runtime = ManagedRuntime.make(
     Layer.unwrap(
       Effect.map(
@@ -41,8 +42,10 @@ export const startServer = async (options: ServerOptions) => {
       ),
     ).pipe(Layer.provide(BunServices.layer)),
   )
+
   const hubRuntime: HubRuntime = { runPromise: (effect) => runtime.runPromise(effect) }
   let startup: string
+
   try {
     const info = await runtime.runPromise(
       Effect.flatMap(Hub, (hub) =>
@@ -53,12 +56,15 @@ export const startServer = async (options: ServerOptions) => {
         }),
       ),
     )
+
     startup = info.name
   } catch (error) {
     await runtime.dispose()
     throw error
   }
+
   let app: ReturnType<typeof createAppRouter>
+
   try {
     app = createAppRouter({
       runtime: hubRuntime,
@@ -71,8 +77,10 @@ export const startServer = async (options: ServerOptions) => {
     await runtime.dispose()
     throw error
   }
+
   let port = options.port
   let server: ReturnType<typeof Bun.serve>
+
   try {
     while (true) {
       try {
@@ -80,6 +88,7 @@ export const startServer = async (options: ServerOptions) => {
         break
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "EADDRINUSE") throw error
+
         port += 1
       }
     }
@@ -88,13 +97,16 @@ export const startServer = async (options: ServerOptions) => {
     await runtime.dispose()
     throw error
   }
+
   let closed = false
+
   return {
     server,
     port: server.port,
     project: startup,
     close: async () => {
       if (closed) return
+
       closed = true
       await app.close()
       await runtime.dispose()

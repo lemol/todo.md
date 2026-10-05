@@ -2,12 +2,16 @@ import type { Middleware } from "remix/router"
 
 const hostname = (value: string): string | undefined => {
   const bracketed = value.startsWith("[") && value.includes("]")
+
   if (bracketed) {
     const end = value.indexOf("]")
     const port = value.slice(end + 1)
+
     if (port !== "" && !/^:\d+$/.test(port)) return undefined
+
     return value.slice(1, end).toLowerCase()
   }
+
   const colon = value.lastIndexOf(":")
   const host =
     colon >= 0 && value.indexOf(":") === colon
@@ -15,6 +19,7 @@ const hostname = (value: string): string | undefined => {
         ? value.slice(0, colon)
         : ""
       : value
+
   return host.length > 0 && !/[/?#\s]/.test(host) ? host.toLowerCase() : undefined
 }
 
@@ -24,5 +29,6 @@ export const localOnly =
     const host = context.request.headers.get("Host")
     const name = host === null ? undefined : hostname(host)
     const allowed = name !== undefined && hosts.some((value) => value.toLowerCase() === name)
+
     return allowed ? next() : new Response("Forbidden", { status: 403 })
   }

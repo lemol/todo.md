@@ -53,6 +53,7 @@ test("an older live refresh cannot replace a newer one", async () => {
       applied.push(html)
     },
   )
+
   const newer = refresh(
     async () => "<main data-live-region>new</main>",
     (html) => {

@@ -55,6 +55,7 @@ export const given = <const Tasks extends ReadonlyArray<SeedTask>>(
     const created: ReadonlyArray<Task> = yield* seed === undefined
       ? viaAdd(tasks)
       : seed(tasks).pipe(Effect.tap((seeded) => checkSeeded(tasks, seeded)))
+
     // The shape is the runner's promise, checked above for a `seed`.
     return created as unknown as { readonly [K in keyof Tasks]: Task }
   })
@@ -62,11 +63,13 @@ export const given = <const Tasks extends ReadonlyArray<SeedTask>>(
 const viaAdd = Effect.fn("given.viaAdd")(function* (tasks: ReadonlyArray<SeedTask>) {
   const store = yield* TodoStore
   const created: Array<Task> = []
+
   for (const task of tasks) {
     const { placement, done, ...input } = task
     const added = yield* store.add(input, placement)
     created.push(done === true ? yield* store.complete(added.id) : added)
   }
+
   return created
 })
 
@@ -79,10 +82,14 @@ const checkSeeded = (
   seeded: ReadonlyArray<Task>,
 ): Effect.Effect<void> => {
   const wrong = (message: string) => Effect.die(new Error(`the seed ${message}`))
-  if (seeded.length !== asked.length)
+
+  if (seeded.length !== asked.length) {
     return wrong(`returned ${seeded.length} of the ${asked.length} tasks it was given`)
+  }
+
   const open = asked.findIndex(
     (task, index) => task.done === true && seeded[index]?.status !== "done",
   )
+
   return open === -1 ? Effect.void : wrong(`left task ${open + 1} of ${asked.length} open`)
 }

@@ -120,6 +120,7 @@ const asksForDone = (jql: string) => /statuscategory\s*=\s*done/i.test(jql)
 
 const isDone = (issue: RawIssue): boolean => {
   const status = issue.fields.status as { statusCategory?: { key?: string } } | undefined
+
   return status?.statusCategory?.key === "done"
 }
 
@@ -128,12 +129,15 @@ const project = (issue: RawIssue, fields: ReadonlyArray<string>, commentPageSize
   const wanted = fields.includes("*all")
     ? Object.keys(issue.fields)
     : fields.filter((name) => name in issue.fields)
+
   const picked: Record<string, unknown> = {}
+
   for (const name of wanted) {
     if (name !== "comment") {
       picked[name] = issue.fields[name]
       continue
     }
+
     const comments = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []
     picked.comment = {
       startAt: 0,
@@ -142,6 +146,7 @@ const project = (issue: RawIssue, fields: ReadonlyArray<string>, commentPageSize
       comments: comments.slice(0, commentPageSize),
     }
   }
+
   return { id: issue.id ?? issue.key, key: issue.key, fields: picked }
 }
 
@@ -192,6 +197,7 @@ export const makeFakeJira = (
         request.body._tag === "Uint8Array"
           ? JSON.parse(new TextDecoder().decode(request.body.body))
           : undefined
+
       requests.push({
         method: request.method,
         url: url.toString(),
@@ -209,6 +215,7 @@ export const makeFakeJira = (
           }),
         )
       }
+
       const answer = (status: number, payload: unknown, headers?: Record<string, string>) =>
         Effect.succeed(
           HttpClientResponse.fromWeb(
@@ -219,13 +226,17 @@ export const makeFakeJira = (
             }),
           ),
         )
+
       if (failure === "auth") {
         return answer(401, { errorMessages: ["Client must be authenticated"], errors: {} })
       }
+
       if (failure === "forbidden") return answer(403, { errorMessages: ["Forbidden"], errors: {} })
+
       if (failure === "rateLimited") {
         return answer(429, { errorMessages: [] }, { "retry-after": "42" })
       }
+
       if (failure === "serverError") {
         return answer(500, { errorMessages: ["Jira is having a moment"], errors: {} })
       }
@@ -244,6 +255,7 @@ export const makeFakeJira = (
         const from = Number(url.searchParams.get("nextPageToken") ?? "0")
         const page = matching.slice(from, from + pageSize)
         const next = from + pageSize
+
         return answer(200, {
           issues: page.map((issue) => project(issue, fields, commentPageSize)),
           ...(next < matching.length ? { nextPageToken: String(next) } : { isLast: true }),
@@ -251,41 +263,50 @@ export const makeFakeJira = (
       }
 
       const one = /^\/issue\/([^/]+)(\/comment|\/transitions)?$/.exec(path)
+
       if (one !== null) {
         const key = decodeURIComponent(one[1] ?? "")
         const issue = issues.get(key)
+
         if (issue === undefined) {
           return answer(404, {
             errorMessages: ["Issue does not exist or you do not have permission to see it."],
             errors: {},
           })
         }
+
         const status = (issue.fields.status as RawStatus | undefined)?.name ?? ""
         const offered = workflow.get(status) ?? []
+
         const edited = (changes: Record<string, unknown>) =>
           issues.set(key, { ...issue, fields: { ...issue.fields, ...changes } })
 
         if (one[2] === "/transitions" && request.method === "GET") {
           return answer(200, { transitions: offered })
         }
+
         if (one[2] === "/transitions") {
           const id = (body as { transition?: { id?: string } } | undefined)?.transition?.id
           const chosen = offered.find((transition) => transition.id === id)
+
           if (chosen === undefined) {
             return answer(400, {
               errorMessages: [`Transition id '${id}' is not valid for this issue.`],
               errors: {},
             })
           }
+
           return Effect.flatMap(DateTime.now, (now) => {
             edited({
               status: chosen.to,
               resolutiondate:
                 chosen.to.statusCategory.key === "done" ? DateTime.formatIso(now) : null,
             })
+
             return answer(204, undefined)
           })
         }
+
         if (one[2] === "/comment" && request.method === "POST") {
           return Effect.flatMap(Clock.currentTimeMillis, (millis) => {
             const created = {
@@ -294,27 +315,36 @@ export const makeFakeJira = (
               created: new Date(millis).toISOString(),
               body: (body as { body?: unknown } | undefined)?.body,
             }
+
             const existing = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []
             edited({ comment: [...existing, created] })
+
             return answer(201, created)
           })
         }
+
         if (one[2] === undefined && request.method === "PUT") {
           const changes = (body as { fields?: Record<string, unknown> } | undefined)?.fields ?? {}
           const unknown = Object.keys(changes).filter(
             (name) => !["summary", "labels"].includes(name),
           )
+
           if (unknown.length > 0) {
             return answer(400, {
               errorMessages: [],
               errors: Object.fromEntries(unknown.map((name) => [name, "not editable here"])),
             })
           }
+
           edited(changes)
+
           return answer(204, undefined)
         }
+
         if (one[2] === undefined) return answer(200, project(issue, fields, commentPageSize))
+
         const comments = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []
+
         return answer(200, {
           startAt: 0,
           maxResults: comments.length,

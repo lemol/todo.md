@@ -20,6 +20,7 @@ afterEach(async () => {
 const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
   const app = await makeRouter(options)
   cleanup.push(app.close)
+
   return app
 }
 
@@ -32,7 +33,9 @@ const postApp = (
   fields: Record<string, string>,
 ) => {
   const body = new FormData()
+
   for (const [key, value] of Object.entries(fields)) body.append(key, value)
+
   return router.fetch(
     new Request(`http://localhost${path}`, {
       method: "POST",
@@ -44,6 +47,7 @@ const postApp = (
 
 const required = (value: string | null | undefined): string => {
   if (value === null || value === undefined) throw new Error("expected a value")
+
   return value
 }
 
@@ -62,6 +66,7 @@ describe("projects page", () => {
         { name: "work", fields: { title: "Work" } },
       ],
     })
+
     const html = await (await fetchApp(app.router, "/projects")).text()
     expect(html).toContain("acme")
     expect(html).toContain("work")
@@ -79,6 +84,7 @@ describe("projects page", () => {
         { name: "work", fields: { title: "Work" } },
       ],
     })
+
     const response = await fetchApp(app.router, "/projects?sort=name&dir=desc")
     expect(response.status).toBe(200)
     const html = await response.text()
@@ -117,6 +123,7 @@ describe("projects page", () => {
     const git = gitSourceWith(
       await Effect.runPromise(Effect.provide(makeGit({ env: {} }), BunServices.layer)),
     )
+
     const app = await open({ extraSources: [git] })
 
     const added = await postApp(app.router, "/projects", {
@@ -126,6 +133,7 @@ describe("projects page", () => {
       branch: defaultBranch,
       list: "todo",
     })
+
     expect(added.status).toBe(303)
     expect(added.headers.get("Location")).toBe("/p/acme-git")
 
@@ -147,6 +155,7 @@ describe("projects page", () => {
       name: "local",
       branch: "main",
     })
+
     expect(refused.status).toBe(422)
     expect(await refused.text()).toContain("Branch and list are for git projects")
   })
@@ -160,6 +169,7 @@ describe("projects page", () => {
         Effect.provide(BunServices.layer),
       ),
     )
+
     const app = await open({ extraSources: [source] })
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain('name="token_env"')
 
@@ -171,6 +181,7 @@ describe("projects page", () => {
       token_env: "JIRA_TOKEN",
       jql: "project = PROJ",
     })
+
     expect(added.status).toBe(303)
     expect(added.headers.get("Location")).toBe("/p/work")
     expect(jira.searches[0]).toStartWith("project = PROJ")
@@ -190,6 +201,7 @@ describe("projects page", () => {
       title: "Rework sessions",
       tags: "api backend",
     })
+
     expect(saved.status).toBe(303)
     expect(jira.issue("PROJ-1")?.fields).toMatchObject({
       summary: "Rework sessions",
@@ -207,6 +219,7 @@ describe("projects page", () => {
       name: "local",
       email: "tester@acme.test",
     })
+
     expect(refused.status).toBe(422)
     expect(await refused.text()).toContain("Email, token, JQL and read-only are for jira projects")
   })
@@ -241,6 +254,7 @@ describe("projects page", () => {
         }),
       )
     ).text()
+
     expect(html).toContain("acme2")
     expect(html).toContain("Renamed acme to acme2")
   })
@@ -259,6 +273,7 @@ describe("projects page", () => {
         { name: "work", fields: { title: "Work" } },
       ],
     })
+
     const response = await postApp(app.router, "/projects/work/remove", {})
     expect(response.status).toBe(303)
     const html = await (await fetchApp(app.router, "/projects")).text()
@@ -273,6 +288,7 @@ describe("projects page", () => {
           ? Effect.void
           : Effect.fail(new SourceError({ name: project.name, message: "1 unpushed commit" })),
     })
+
     const app = await open({
       projects: [
         { name: "acme", fields: { title: "Acme" } },
@@ -280,6 +296,7 @@ describe("projects page", () => {
       ],
       extraSources: [refuses],
     })
+
     const refused = await postApp(app.router, "/projects/stub/remove", {})
     expect(refused.status).toBe(422)
     const html = await refused.text()

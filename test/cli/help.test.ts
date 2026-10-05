@@ -8,9 +8,12 @@ import { todo } from "./harness.ts"
 const section = (help: string, heading: string): string[] => {
   const lines = help.split("\n")
   const start = lines.indexOf(heading)
+
   if (start === -1) return []
+
   const rest = lines.slice(start + 1)
   const end = rest.findIndex((line) => line === "" || /^[A-Z][A-Z ]+$/.test(line))
+
   return end === -1 ? rest : rest.slice(0, end)
 }
 
@@ -26,6 +29,7 @@ effectTest(
     const commands = section(root.stdout, "SUBCOMMANDS").map(
       (line) => line.trim().split(/[\s,]+/)[0] ?? "",
     )
+
     expect(commands).toEqual([
       "list",
       "next",
@@ -46,20 +50,24 @@ effectTest(
       "sync",
       "web",
     ])
+
     for (const command of commands) {
       const help = yield* todo(command, "--help")
       expect(help.code, command).toBe(0)
       expect(section(help.stdout, "DESCRIPTION").length, command).toBeGreaterThan(0)
       expect(section(help.stdout, "EXAMPLES").length, command).toBeGreaterThan(0)
+
       for (const line of [...section(help.stdout, "FLAGS"), ...section(help.stdout, "ARGUMENTS")]) {
         expect(line, `${command}: ${line}`).toMatch(described)
       }
     }
+
     for (const sub of ["ls", "add", "rm", "rename"]) {
       const help = yield* todo("projects", sub, "--help")
       expect(help.code, `projects ${sub}`).toBe(0)
       expect(section(help.stdout, "DESCRIPTION").length, `projects ${sub}`).toBeGreaterThan(0)
       expect(section(help.stdout, "EXAMPLES").length, `projects ${sub}`).toBeGreaterThan(0)
+
       for (const line of [...section(help.stdout, "FLAGS"), ...section(help.stdout, "ARGUMENTS")]) {
         expect(line, `projects ${sub}: ${line}`).toMatch(described)
       }

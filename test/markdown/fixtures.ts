@@ -32,6 +32,8 @@ export const example = md(
 
 export const itemOf = (todo: TodoFile, id: string): TodoItem => {
   const found = findItem(todo, id)
+
   if (found === undefined) throw new Error(`no item ${id}`)
+
   return found
 }

@@ -37,13 +37,16 @@ export interface Parser {
 const hash = (text: string): string => {
   let h1 = 0xdeadbeef
   let h2 = 0x41c6ce57
+
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i)
     h1 = Math.imul(h1 ^ c, 2654435761)
     h2 = Math.imul(h2 ^ c, 1597334677)
   }
+
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)
 }
 
@@ -125,24 +128,33 @@ export const makeParser = (
 
     const load = Effect.gen(function* () {
       loaded = true
+
       if (file === undefined) return
+
       const cache = yield* fs
         .readFileString(file)
         .pipe(Effect.flatMap(Schema.decodeUnknownEffect(CacheJson)), Effect.option)
+
       if (cache._tag === "None" || cache.value.root !== root) return
+
       for (const [key, value] of Object.entries(cache.value.entries)) {
         const decoded = decodeEntry(value)
+
         if (decoded._tag === "Some") taskFiles.set(key, restore(decoded.value))
       }
     })
 
     const save = Effect.gen(function* () {
       if (file === undefined || cacheDir === undefined) return
+
       const entries: Record<string, unknown> = {}
+
       for (const [key, taskFile] of taskFiles) {
         const encoded = encodeEntry(defined(taskFile))
+
         if (encoded._tag === "Some") entries[key] = encoded.value
       }
+
       const text = JSON.stringify({ version: taskFileParserVersion, root, entries })
       const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
       const temporary = `${file}.${token.toString(36)}.tmp`
@@ -156,29 +168,39 @@ export const makeParser = (
     return {
       todoFile: (source) => {
         if (lastTodo?.source !== source) lastTodo = { source, todo: parseTodoFile(source) }
+
         return lastTodo.todo
       },
       taskFile: (at, source) => {
         const key = keyOf(at, source)
         let parsed = used.get(key) ?? taskFiles.get(key)
+
         if (parsed === undefined) {
           parsed = parseTaskFile(source, at)
           fresh = true
         }
+
         used.set(key, parsed)
+
         return parsed
       },
       begin: Effect.suspend(() => {
         active++
+
         return loaded ? Effect.void : load
       }),
       end: Effect.suspend(() => {
         active = Math.max(0, active - 1)
+
         if (active > 0) return Effect.void
+
         taskFiles = used
         used = new Map()
+
         if (!fresh) return Effect.void
+
         fresh = false
+
         return Effect.ignore(save)
       }),
     }

@@ -11,13 +11,17 @@ import { type ProjectStatus, statusText } from "../../../hub/index.ts"
  */
 export const statusTone = (status: ProjectStatus): "ready" | "blocked" | "error" | "muted" => {
   if (status.diverged === true || status.result === "error") return "error"
+
   if (status.ahead !== undefined && status.ahead > 0) return "blocked"
+
   if (status.result === "never" || status.lastSync === undefined) return "muted"
+
   return "ready"
 }
 
 export const badgeToneForStatus = (status: ProjectStatus): BadgeTone => {
   const tone = statusTone(status)
+
   switch (tone) {
     case "ready":
       return "success"

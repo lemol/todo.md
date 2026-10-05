@@ -26,6 +26,7 @@ export const runTodo = async <A, E>(
   const result = await context
     .get(todoRuntimeContext)
     .runPromise(Effect.result(TodoService.use(use)))
+
   return Result.isSuccess(result)
     ? { ok: true, value: result.success }
     : { ok: false, error: result.failure }
@@ -41,6 +42,7 @@ export const loadTodo =
     context.set(todoRuntimeContext, options.runtime)
     context.set(capabilitiesContext, options.capabilities)
     context.set(authorContext, options.author)
+
     return next()
   }
 

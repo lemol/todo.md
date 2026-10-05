@@ -26,6 +26,7 @@ const withJira = <A, E>(
 ): Effect.Effect<A, E> =>
   Effect.suspend(() => {
     const { jira, layer } = makeFakeJira(options)
+
     return use(jira).pipe(Effect.provide(layer), Effect.provide(BunServices.layer))
   })
 
@@ -54,6 +55,7 @@ describe("the Jira client: authentication", () => {
           { tokenEnv: undefined, tokenCommand: "echo '  from-keychain  '" },
           {},
         )
+
         yield* client.myself
         expect(jira.lastAuthorization).toBe(`Basic ${btoa("tester@acme.test:from-keychain")}`)
       }),
@@ -137,6 +139,7 @@ describe("the Jira client: reading", () => {
             jql: "x",
             nextPageToken: first.nextPageToken ?? undefined,
           })
+
           expect(second.issues?.map((issue) => issue.key)).toEqual(["PROJ-3"])
           expect(second.nextPageToken).toBeUndefined()
         }),
@@ -191,6 +194,7 @@ describe("the Jira client: failures", () => {
           const client = yield* clientWith()
           const error = yield* Effect.flip(client.myself)
           expect(error.reason).toBe(reason)
+
           if (part !== undefined) expect(error.message).toContain(part)
         }),
       ),

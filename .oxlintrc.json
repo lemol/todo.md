@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["@stylistic/eslint-plugin", "./lint/style.js"],
+  "ignorePatterns": [".agents/**", ".claude/**", "todo/**"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    "local/const-groups": "error",
+    "@stylistic/padding-line-between-statements": [
+      "error",
+      {
+        "blankLine": "always",
+        "prev": "*",
+        "next": "return"
+      },
+      {
+        "blankLine": "always",
+        "prev": "*",
+        "next": ["if", "for", "while", "do", "switch", "try"]
+      },
+      {
+        "blankLine": "always",
+        "prev": ["if", "for", "while", "do", "switch", "try"],
+        "next": "*"
+      },
+      {
+        "blankLine": "always",
+        "prev": "multiline-const",
+        "next": "*"
+      }
+    ],
+    "curly": ["error", "multi-line"],
+    "no-underscore-dangle": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "no-shadow": "off",
+    "unicorn/no-array-sort": "off",
+    "import/no-unassigned-import": "off"
+  },
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import"]
+}

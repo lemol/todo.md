@@ -1,8 +1,8 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import * as MemoryTodoStore from "../../src/spec/MemoryTodoStore.ts"
-import { allCapabilities, TodoStore } from "../../src/spec/TodoStore.ts"
 import { effectTest, runConformance } from "../../src/spec/testing.ts"
+import { allCapabilities, TodoStore } from "../../src/spec/TodoStore.ts"
 
 runConformance("MemoryTodoStore", MemoryTodoStore.layer())
 runConformance("MemoryTodoStore without cancel", MemoryTodoStore.layer({ cancel: false }))

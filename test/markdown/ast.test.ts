@@ -7,7 +7,9 @@ describe("parseAst and lineSpan", () => {
     const doc = ["# Title", "", "Paragraph line 1", "Paragraph line 2"].join("\n")
     const tree = parseAst(doc)
     const [first, second] = tree.children
+
     if (first === undefined || second === undefined) throw new Error("expected 2 children")
+
     expect(lineSpan(first)).toEqual({ start: 0, end: 1 })
     expect(lineSpan(second)).toEqual({ start: 2, end: 4 })
   })
@@ -35,6 +37,7 @@ describe("headingText", () => {
         },
       ],
     }
+
     const source = "  Padded Heading  "
     const res = headingText(source, mockHeading)
     expect(res).toEqual({
@@ -51,6 +54,7 @@ describe("headingText", () => {
       depth: 2,
       children: [],
     }
+
     expect(headingText("##", noChildren)).toEqual({ text: "", from: 0, to: 0 })
 
     const whitespaceHeading: Heading = {
@@ -67,6 +71,7 @@ describe("headingText", () => {
         },
       ],
     }
+
     expect(headingText("##    ", whitespaceHeading)).toEqual({ text: "", from: 3, to: 3 })
   })
 })

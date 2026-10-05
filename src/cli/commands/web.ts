@@ -22,12 +22,15 @@ export const web = Command.make(
     const { cwd, env, username, home, userHome } = yield* CliContext
     const dir = yield* Dir
     const project = yield* Project
+
     if (Option.isSome(dir) && Option.isSome(project)) {
       return yield* Effect.fail(new Error("use --project or --dir, not both"))
     }
+
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       return yield* new UsageError({ message: "port must be an integer from 1 to 65535" })
     }
+
     const path = yield* Path.Path
     // Fail fast with the CLI's tagged errors; startServer re-resolves the same project.
     const hub = yield* Hub
@@ -55,6 +58,7 @@ export const web = Command.make(
           ),
           (handle) => Effect.promise(() => handle.close()),
         )
+
         const url = `http://${host}:${started.port}/p/${started.project}`
         yield* output(undefined, { url }, () =>
           loopback(host)

@@ -34,12 +34,15 @@ import { projectSyncAction, syncAllAction } from "./sync/controller.tsx"
 
 const switcherOf = async (runtime: HubRuntime) => {
   const projects = await runtime.runPromise(Effect.flatMap(Hub, (hub) => hub.projects()))
+
   return projects.map((info) => ({ name: info.name, registered: info.registered }))
 }
 
 const boardSyncChrome = (project: string, info: ReturnType<typeof projectInfoOf>, back: string) => {
   if (!info.syncable) return null
+
   const now = DateTime.nowUnsafe()
+
   return (
     <>
       {syncStatusBadge(info.status, now)}{" "}
@@ -62,6 +65,7 @@ export const renderBoard = async (
   try {
     const project = projectOf(context)
     let filter: TaskFilter
+
     try {
       filter = parseTaskFilter(new URL(context.request.url))
     } catch {
@@ -76,19 +80,25 @@ export const renderBoard = async (
         { status: 400 },
       )
     }
+
     const [listing, next, diagnostics] = await Promise.all([
       runTodo(runtimeContext(context), (todo) => todo.list(filter)),
       runTodo(runtimeContext(context), (todo) => todo.next()),
       runTodo(runtimeContext(context), (todo) => todo.check()),
     ])
+
     if (!listing.ok) return respond(context, listing.error)
+
     if (!next.ok) return respond(context, next.error)
+
     if (!diagnostics.ok) return respond(context, diagnostics.error)
+
     const url = new URL(context.request.url)
     const back = `${url.pathname}${url.search}`
     const info = projectInfoOf(context)
     const flash = takeFlash(context)
     const switcher = await switcherOf(hubRuntimeOf(context))
+
     return renderPage(
       context,
       <Document
@@ -124,10 +134,14 @@ const done = async (context: WebContext): Promise<Response> => {
       runTodo(runtimeContext(context), (todo) => todo.list({ status: "done" })),
       runTodo(runtimeContext(context), (todo) => todo.check()),
     ])
+
     if (!listing.ok) return respond(context, listing.error)
+
     if (!diagnostics.ok) return respond(context, diagnostics.error)
+
     const flash = takeFlash(context)
     const switcher = await switcherOf(hubRuntimeOf(context))
+
     return renderPage(
       context,
       <Document
@@ -155,10 +169,14 @@ const check = async (context: WebContext): Promise<Response> => {
       runTodo(runtimeContext(context), (todo) => todo.list()),
       runTodo(runtimeContext(context), (todo) => todo.check()),
     ])
+
     if (!listing.ok) return respond(context, listing.error)
+
     if (!diagnostics.ok) return respond(context, diagnostics.error)
+
     const flash = takeFlash(context)
     const switcher = await switcherOf(hubRuntimeOf(context))
+
     return renderPage(
       context,
       <Document
@@ -208,19 +226,26 @@ const eventsAction =
     let fiber: Fiber.Fiber<void, never> | undefined
     const cleanup = () => {
       if (closed) return
+
       closed = true
+
       if (heartbeat !== undefined) clearInterval(heartbeat)
+
       if (fiber !== undefined) Effect.runFork(Fiber.interrupt(fiber))
     }
+
     const send = (change: HubChange) => {
       if (closed || controllerRef === undefined) return
+
       const data = change.kind === "registry" ? "{}" : JSON.stringify({ project: change.project })
+
       try {
         controllerRef.enqueue(encoder.encode(`event: ${change.kind}\ndata: ${data}\n\n`))
       } catch {
         cleanup()
       }
     }
+
     const ready = await runtime.runPromise(Deferred.make<void>())
     fiber = await runtime.runPromise(
       Effect.gen(function* () {
@@ -232,6 +257,7 @@ const eventsAction =
             yield* Stream.runForEach(changes, (change) => Effect.sync(() => send(change)))
           }),
         )
+
         return yield* Effect.forkDetach(consumer)
       }),
     )
@@ -241,6 +267,7 @@ const eventsAction =
         controllerRef = controller
         heartbeat = setInterval(() => {
           if (closed) return
+
           try {
             controller.enqueue(encoder.encode(": heartbeat\n\n"))
           } catch {
@@ -248,10 +275,12 @@ const eventsAction =
           }
         }, 15_000)
         context.request.signal.addEventListener("abort", cleanup, { once: true })
+
         if (context.request.signal.aborted) cleanup()
       },
       cancel: cleanup,
     })
+
     return new Response(stream, {
       headers: {
         "Content-Type": "text/event-stream; charset=utf-8",
@@ -279,6 +308,7 @@ export const createTopController = (options: {
             }
           }
         ).get(assetsContext)
+
         return (await assets.fetch(context.request)) ?? new Response("Not Found", { status: 404 })
       },
     },

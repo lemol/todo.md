@@ -24,6 +24,7 @@ export const provideHub =
   (runtime: HubRuntime): Middleware =>
   (context, next) => {
     context.set(hubRuntimeContext, runtime)
+
     return next()
   }
 
@@ -37,6 +38,7 @@ export const loadProject =
   (options: { readonly runtime: HubRuntime; readonly author: string }): Middleware =>
   async (context, next) => {
     const request = (context as WebContext).request
+
     if (
       request !== undefined &&
       request.method === "POST" &&
@@ -44,6 +46,7 @@ export const loadProject =
     ) {
       return next()
     }
+
     const name = String((context as WebContext).params.project ?? "")
     const result = await options.runtime.runPromise(
       Effect.result(
@@ -51,13 +54,16 @@ export const loadProject =
           const hub = yield* Hub
           const info = yield* hub.resolve({ project: name, cwd: "" })
           const todo = yield* hub.todo(info.name)
+
           return { info, todo }
         }),
       ),
     )
+
     if (Result.isFailure(result)) {
       const error = result.failure
       const status = error._tag === "ProjectNotFound" ? 404 : 500
+
       return renderPage(
         context as WebContext,
         <ErrorPage
@@ -68,6 +74,7 @@ export const loadProject =
         { status },
       )
     }
+
     const { info, todo } = result.success
     context.set(projectInfoContext, info)
     context.set(authorContext, options.author)
@@ -76,5 +83,6 @@ export const loadProject =
       runPromise: (effect) =>
         options.runtime.runPromise(Effect.provideService(effect, TodoService, todo)),
     } satisfies TodoRuntime)
+
     return next()
   }

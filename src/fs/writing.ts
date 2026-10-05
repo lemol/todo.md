@@ -26,8 +26,10 @@ export const itemLinesFor = (
 ): Effect.Effect<string[], StoreError> =>
   Effect.gen(function* () {
     if (path === undefined && fitsInline(task)) return inlineItemFor(task)
+
     const target = path ?? taskPath(config.tasksDir, task.group, task.id, task.title)
     yield* files.write(target, formatTaskFile(taskFileFor(task)))
+
     return linkedItemFor(task, target)
   })
 
@@ -49,6 +51,7 @@ export const completeEntry = (
       completedAt: yield* DateTime.now,
       group,
     }
+
     const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, done.title)
     const source =
       entry.source === undefined
@@ -59,11 +62,16 @@ export const completeEntry = (
             outcome: "completed",
             ...(entry.file?.title === undefined ? { title: done.title } : {}),
           })
+
     yield* files.write(donePath, source)
     const original = entry.item.path
-    if (entry.item.linked && original !== undefined && original !== donePath)
+
+    if (entry.item.linked && original !== undefined && original !== donePath) {
       yield* files.remove(original)
+    }
+
     yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
+
     return done
   })
 
@@ -87,6 +95,7 @@ export const cancelEntry = (
       completedAt: yield* DateTime.now,
       group,
     }
+
     const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, cancelled.title)
     const source =
       entry.source === undefined
@@ -98,10 +107,15 @@ export const cancelEntry = (
             cancelledReason: reason,
             ...(entry.file?.title === undefined ? { title: cancelled.title } : {}),
           })
+
     yield* files.write(donePath, source)
     const original = entry.item.path
-    if (entry.item.linked && original !== undefined && original !== donePath)
+
+    if (entry.item.linked && original !== undefined && original !== donePath) {
       yield* files.remove(original)
+    }
+
     yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
+
     return cancelled
   })

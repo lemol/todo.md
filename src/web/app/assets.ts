@@ -16,17 +16,22 @@ export const loadAssets =
   (assets: AppAssets): Middleware =>
   (context, next) => {
     context.set(assetsContext, assets)
+
     return next()
   }
 
 // The nearest node_modules above a package dir.
 const containerOf = (packageDir: string): string => {
   let dir = packageDir
+
   while (basename(dir) !== "node_modules") {
     const parent = dirname(dir)
+
     if (parent === dir) throw new Error(`no node_modules above ${packageDir}`)
+
     dir = parent
   }
+
   return dir
 }
 
@@ -39,16 +44,21 @@ const containerOf = (packageDir: string): string => {
 export const packageContainers = (remixPackageDir: string): ReadonlyArray<string> => {
   const containers = new Set<string>()
   const seen = new Set<string>()
+
   const visit = (packageDir: string) => {
     const real = realpathSync(packageDir)
+
     if (seen.has(real)) return
+
     seen.add(real)
     containers.add(containerOf(real))
     const pkg = JSON.parse(readFileSync(join(real, "package.json"), "utf8")) as {
       dependencies?: Readonly<Record<string, string>>
       optionalDependencies?: Readonly<Record<string, string>>
     }
+
     const require = createRequire(join(real, "package.json"))
+
     for (const dep of [
       ...Object.keys(pkg.dependencies ?? {}),
       ...Object.keys(pkg.optionalDependencies ?? {}),
@@ -60,7 +70,9 @@ export const packageContainers = (remixPackageDir: string): ReadonlyArray<string
       }
     }
   }
+
   visit(remixPackageDir)
+
   return [...containers]
 }
 
@@ -79,10 +91,12 @@ export const assetOptions = (rootDir: string, remixPackageDir: string, uiPackage
     ...packageContainers(remixPackageDir),
     ...(uiPackageDir ? packageContainers(uiPackageDir) : []),
   ]
+
   const uniqueContainers = [...new Set(containers)]
   uniqueContainers.forEach((dir, index) => {
     mounts[index === 0 ? "npm" : `npm${index + 1}`] = relative(base, dir)
   })
+
   return {
     rootDir: base,
     basePath: "/assets",
@@ -97,5 +111,6 @@ export const assetOptions = (rootDir: string, remixPackageDir: string, uiPackage
 export const createAssets = (rootDir = resolve(import.meta.dir, "..")): AppAssets => {
   const remixPackageDir = dirname(fileURLToPath(import.meta.resolve("remix/package.json")))
   const uiPackageDir = dirname(fileURLToPath(import.meta.resolve("@lemol/ui/package.json")))
+
   return createAssetServer(assetOptions(rootDir, remixPackageDir, uiPackageDir))
 }

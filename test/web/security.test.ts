@@ -7,11 +7,13 @@ import { makeRouter } from "./harness.ts"
 
 test("rejects foreign hosts, including the event stream", async () => {
   const { router, project, close } = await makeRouter()
+
   try {
     for (const path of [`/p/${project}`, "/events", "/", "/projects", "/go?project=acme"]) {
       const response = await router.fetch(
         new Request(`http://foreign.example${path}`, { headers: { Host: "foreign.example" } }),
       )
+
       expect(response.status).toBe(403)
     }
   } finally {
@@ -21,6 +23,7 @@ test("rejects foreign hosts, including the event stream", async () => {
 
 test("rejects cross-origin POSTs on every route", async () => {
   const { router, project, close } = await makeRouter()
+
   try {
     for (const path of [
       `/p/${project}/tasks`,
@@ -37,6 +40,7 @@ test("rejects cross-origin POSTs on every route", async () => {
           body: new FormData(),
         }),
       )
+
       expect(response.status).toBe(403)
     }
   } finally {
@@ -50,6 +54,7 @@ test("maps typed failures but lets defects reject", async () => {
     runPromise: <A, E>(effect: Effect.Effect<A, E, TodoService>) =>
       Effect.runPromise(Effect.provideService(effect, TodoService, stub)),
   }
+
   const context = { get: () => fakeRuntime }
   const typed = await runTodo(context, () => Effect.fail(new TaskNotFound({ id: "7" })))
   expect(typed).toEqual({ ok: false, error: expect.any(TaskNotFound) })

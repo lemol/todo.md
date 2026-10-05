@@ -16,7 +16,6 @@ const VisitedRef = Context.Reference<ReadonlySet<string>>("@lemol/todo-md/hub/Vi
 })
 
 /** What the hub resolver needs from `Hub.ts` without importing it. */
-// biome-ignore lint/suspicious/noExplicitAny: hub service doubles vary by source
 type AnyService = any
 
 export interface HubDeps {
@@ -38,6 +37,7 @@ const showTask = (service: AnyService, id: string): Effect.Effect<Task, unknown,
           service.show(id),
           (detail: { readonly view: { readonly task: Task } }) => detail.view.task,
         )
+
   return Effect.mapError(getTask, () => "missing" as const) as Effect.Effect<Task, unknown, never>
 }
 
@@ -84,21 +84,32 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
       Effect.gen(function* () {
         const visited = yield* VisitedRef
         const done = new Set<TaskId>()
+
         for (const qualified of ids) {
           if (visited.has(qualified)) continue
+
           const ref = parseRef(qualified)
+
           if (ref.project === undefined) continue
+
           const project = yield* Effect.option(deps.find(ref.project))
+
           if (project._tag === "None") continue
+
           const service = yield* Effect.option(deps.serviceOf(project.value))
+
           if (service._tag === "None") continue
+
           const nextVisited = new Set([...visited, qualified])
           const task = yield* Effect.option(
             Effect.provideService(showTask(service.value, ref.id), VisitedRef, nextVisited),
           )
+
           if (task._tag === "None") continue
+
           if (taskDoneCompleted(task.value)) done.add(qualified)
         }
+
         return done as ReadonlySet<TaskId>
       }).pipe(
         Effect.orElseSucceed(() => new Set<TaskId>() as ReadonlySet<TaskId>),
@@ -111,37 +122,48 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
           TaskId,
           { readonly title: string | undefined; readonly state: string }
         >()
+
         for (const qualified of ids) {
           const ref = parseRef(qualified)
+
           if (ref.project === undefined) continue
+
           if (visited.has(qualified)) {
             out.set(qualified, { title: undefined, state: "blocked" })
             continue
           }
+
           const project = yield* Effect.option(deps.find(ref.project))
+
           if (project._tag === "None") {
             out.set(qualified, { title: undefined, state: "unknown" })
             continue
           }
+
           const service = yield* Effect.option(deps.serviceOf(project.value))
+
           if (service._tag === "None") {
             out.set(qualified, { title: undefined, state: "unknown" })
             continue
           }
+
           const nextVisited = new Set([...visited, qualified])
           const detail = yield* Effect.option(
             Effect.provideService(showDetail(service.value, ref.id), VisitedRef, nextVisited),
           )
+
           if (detail._tag === "None") {
             out.set(qualified, { title: undefined, state: "unknown" })
             continue
           }
+
           const task: Task = detail.value.view.task
           out.set(qualified, {
             title: task.title,
             state: task.outcome === "cancelled" ? "cancelled" : detail.value.view.state,
           })
         }
+
         return out
       }).pipe(Effect.orElseSucceed(() => new Map())) as Effect.Effect<
         ReadonlyMap<TaskId, { readonly title: string | undefined; readonly state: string }>,
@@ -152,11 +174,15 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
     diagnostics: (tasks: ReadonlyArray<Task>) =>
       Effect.gen(function* () {
         const diagnostics: Diagnostic[] = []
+
         for (const task of tasks) {
           for (const dependency of task.dependsOn) {
             const ref = parseRef(dependency)
+
             if (ref.project === undefined) continue
+
             const project = yield* Effect.option(deps.find(ref.project))
+
             if (project._tag === "None") {
               diagnostics.push({
                 severity: "warning",
@@ -166,7 +192,9 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
               })
               continue
             }
+
             const service = yield* Effect.option(deps.serviceOf(project.value))
+
             if (service._tag === "None") {
               diagnostics.push({
                 severity: "warning",
@@ -176,7 +204,9 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
               })
               continue
             }
+
             const found = yield* Effect.option(showTask(service.value, ref.id))
+
             if (found._tag === "None") {
               diagnostics.push({
                 severity: "warning",
@@ -186,6 +216,7 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
               })
               continue
             }
+
             if (found.value.outcome === "cancelled") {
               diagnostics.push({
                 severity: "warning",
@@ -196,8 +227,11 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
             }
           }
         }
+
         const cycle = yield* findCrossProjectCycle(currentProject, tasks, deps)
+
         if (cycle !== undefined) diagnostics.push(cycle)
+
         return diagnostics as ReadonlyArray<Diagnostic>
       }).pipe(Effect.orElseSucceed(() => [] as ReadonlyArray<Diagnostic>)) as Effect.Effect<
         ReadonlyArray<Diagnostic>,
@@ -213,22 +247,32 @@ const findCrossProjectCycle = (
 ): Effect.Effect<Diagnostic | undefined, never, never> =>
   Effect.gen(function* () {
     const projects = yield* Effect.option(deps.registered)
+
     if (projects._tag === "None") return undefined
+
     const edges = new Map<string, ReadonlyArray<string>>()
     const byProject = new Map<string, ReadonlyArray<Task>>([[currentProject, tasks]])
+
     for (const project of projects.value) {
       if (project.name === currentProject) continue
+
       const service = yield* Effect.option(deps.serviceOf(project))
+
       if (service._tag === "None") continue
+
       if (typeof service.value.tasks === "function") {
         const projectTasks = yield* Effect.option(listTasks(service.value))
+
         if (projectTasks._tag !== "None") {
           byProject.set(project.name, projectTasks.value)
           continue
         }
       }
+
       const listing = yield* Effect.option(listSections(service.value))
+
       if (listing._tag === "None") continue
+
       byProject.set(
         project.name,
         listing.value.sections.flatMap(
@@ -237,12 +281,14 @@ const findCrossProjectCycle = (
         ),
       )
     }
+
     for (const [projectName, projectTasks] of byProject) {
       for (const task of projectTasks) {
         edges.set(
           qualifiedKey(projectName, task.id),
           task.dependsOn.map((dep) => {
             const ref = parseRef(dep)
+
             return ref.project === undefined
               ? qualifiedKey(projectName, ref.id)
               : qualifiedKey(ref.project, ref.id)
@@ -250,19 +296,29 @@ const findCrossProjectCycle = (
         )
       }
     }
+
     const cycle = findCycle(edges)
+
     if (cycle === undefined) return undefined
+
     const [first] = cycle
+
     if (first === undefined) return undefined
+
     const localId = (() => {
       const ref = parseRef(first)
+
       if (ref.project === currentProject) return ref.id
+
       for (const node of cycle) {
         const r = parseRef(node)
+
         if (r.project === currentProject) return r.id
       }
+
       return ref.id
     })()
+
     return {
       severity: "error",
       code: "dependency-cycle",

@@ -41,12 +41,14 @@ export const makeLock = (
     const opts: LockOptions = { ...defaultLockOptions, ...options }
     const fs = yield* FileSystem.FileSystem
     const lock = (yield* Path.Path).join(root, lockFile)
+
     const failure = (error: PlatformError.PlatformError) =>
       new StoreError({ message: `could not lock ${root}: ${error.message}`, cause: error })
 
     const acquire = Effect.gen(function* () {
       const deadline = (yield* Clock.currentTimeMillis) + Duration.toMillis(opts.timeout)
       const token = newToken()
+
       while (true) {
         const created = yield* fs.writeFileString(lock, token, { flag: "wx" }).pipe(
           Effect.as(true),
@@ -54,19 +56,24 @@ export const makeLock = (
             alreadyExists(error) ? Effect.succeed(false) : Effect.fail(failure(error)),
           ),
         )
+
         if (created) return token
+
         const now = yield* Clock.currentTimeMillis
         const modified = Option.flatMap(yield* Effect.option(fs.stat(lock)), (info) => info.mtime)
         const age = Option.isSome(modified) ? now - modified.value.getTime() : 0
+
         if (age > Duration.toMillis(opts.staleAfter)) {
           yield* Effect.ignore(fs.remove(lock))
           continue
         }
+
         if (now >= deadline) {
           return yield* new StoreError({
             message: `${root} is locked by another process (${lock})`,
           })
         }
+
         yield* Effect.sleep(opts.retryEvery)
       }
     })
@@ -74,6 +81,7 @@ export const makeLock = (
     const release = (token: string) =>
       Effect.gen(function* () {
         const current = yield* Effect.option(fs.readFileString(lock))
+
         if (Option.isSome(current) && current.value === token) {
           yield* Effect.ignore(fs.remove(lock))
         }

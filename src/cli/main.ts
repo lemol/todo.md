@@ -64,6 +64,7 @@ export const main = (
           error && typeof error === "object" && "_tag" in error
             ? String((error as { _tag: unknown })._tag)
             : undefined
+
         if (tag !== "ShowHelp" && tag !== "ProblemsFound") {
           yield* Console.error(
             args.includes("--json")
@@ -71,6 +72,7 @@ export const main = (
               : `error: ${describeError(error)}`,
           )
         }
+
         return exitCodeOf(error)
       }),
     ),

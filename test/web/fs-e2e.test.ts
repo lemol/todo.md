@@ -27,6 +27,7 @@ const setUp = async (todoMd: string) => {
   const hubRuntime = ManagedRuntime.make(
     Hub.layer({ home, userHome: home, sources: [fsSource] }).pipe(Layer.provide(BunServices.layer)),
   )
+
   const runtime: HubRuntime = { runPromise: (effect) => hubRuntime.runPromise(effect) }
   const router = createAppRouter({
     runtime,
@@ -37,12 +38,14 @@ const setUp = async (todoMd: string) => {
     sessionSecret: "test-secret-at-least-32-characters",
     assets: makeFakeAssets(),
   })
+
   cleanup.push(async () => {
     await router.close()
     await hubRuntime.dispose()
     await rm(root, { recursive: true, force: true })
     await rm(home, { recursive: true, force: true })
   })
+
   return { router, root }
 }
 
@@ -59,6 +62,7 @@ test("adds and completes a task through the router over FsTodoStore", async () =
       body: add,
     }),
   )
+
   expect(added.status).toBe(303)
   expect(await readFile(join(root, "TODO.md"), "utf8")).toContain("Persist me")
 
@@ -71,6 +75,7 @@ test("adds and completes a task through the router over FsTodoStore", async () =
       body: complete,
     }),
   )
+
   expect(completed.status).toBe(303)
   expect(await readFile(join(root, "TODO.md"), "utf8")).not.toContain("Persist me")
   const doneFiles = await readdir(join(root, "done"), { recursive: true })
@@ -81,10 +86,14 @@ test("moves, renames a group, and removes a task through the router over FsTodoS
   const { router, root } = await setUp(
     "# Disk list\n\n- [ ] 1 - One\n- [ ] 2 - Two\n\n## Backend\n\n- [ ] 3 - Three\n",
   )
+
   const project = "disk"
+
   const post = async (path: string, fields: Record<string, string>) => {
     const body = new FormData()
+
     for (const [name, value] of Object.entries(fields)) body.set(name, value)
+
     const response = await router.fetch(
       new Request(`http://localhost${path}`, {
         method: "POST",
@@ -92,6 +101,7 @@ test("moves, renames a group, and removes a task through the router over FsTodoS
         body,
       }),
     )
+
     expect(response.status).toBe(303)
   }
 

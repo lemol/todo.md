@@ -27,6 +27,7 @@ const list = (url: URL, name: string): ReadonlyArray<string> =>
 
 const single = (url: URL, name: string): string | undefined => {
   const value = url.searchParams.get(name)?.trim()
+
   return value === undefined || value === "" ? undefined : value
 }
 
@@ -37,15 +38,21 @@ const single = (url: URL, name: string): string | undefined => {
  */
 export const parseDashboardQuery = (url: URL): DashboardQuery => {
   const rawView = single(url, "view") ?? "projects"
+
   if (rawView !== "projects" && rawView !== "flat") throw new InvalidQuery("Invalid view.")
+
   const rawState = single(url, "state")
-  if (rawState !== undefined && rawState !== "ready" && rawState !== "blocked")
+
+  if (rawState !== undefined && rawState !== "ready" && rawState !== "blocked") {
     throw new InvalidQuery("Invalid state filter.")
+  }
+
   const projects = list(url, "project")
   const sources = list(url, "source")
   const tags = list(url, "tag")
   const assignee = single(url, "assignee")
   const hasFilter = tags.length > 0 || assignee !== undefined || rawState !== undefined
+
   return {
     view: rawView,
     projects,
@@ -77,13 +84,22 @@ export interface DashboardPatch {
 /** The dashboard URL for a query, with `patch` applied. Parameter order is stable. */
 export const dashboardHref = (query: DashboardQuery, patch: DashboardPatch = {}): string => {
   const params = new URLSearchParams()
+
   for (const project of patch.projects ?? query.projects) params.append("project", project)
+
   for (const source of query.sources) params.append("source", source)
+
   for (const tag of query.tags) params.append("tag", tag)
+
   if (query.assignee !== undefined) params.set("assignee", query.assignee)
+
   if (query.state !== undefined) params.set("state", query.state)
+
   const view = patch.view ?? query.view
+
   if (view !== "projects") params.set("view", view)
+
   const search = params.toString()
+
   return search === "" ? routes.dashboard.href() : `${routes.dashboard.href()}?${search}`
 }

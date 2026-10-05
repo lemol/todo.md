@@ -80,6 +80,7 @@ describe("formatMetadataLine", () => {
       dependsOn: ["1", "2"],
       extra: { estimate: 3, size: "m" },
     }
+
     const line = formatMetadataLine(fields)
     expect(line).toBe("#bug @lemol depends_on:1,2 estimate:3 size:m")
     expect(parseMetadataLine(line)?.fields).toEqual(fields)

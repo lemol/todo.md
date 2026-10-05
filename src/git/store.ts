@@ -51,8 +51,11 @@ export const committing = (
       Effect.gen(function* () {
         yield* git(clone, ["add", "-A", "--", listPath])
         const staged = yield* Effect.result(git(clone, ["diff", "--cached", "--quiet"]))
+
         if (Result.isSuccess(staged)) return
+
         if (staged.failure.code !== nothingStagedExitCode) return yield* staged.failure
+
         yield* git(clone, ["commit", "-m", message])
       }).pipe(
         Effect.mapError(

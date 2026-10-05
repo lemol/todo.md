@@ -21,7 +21,9 @@ export interface SectionView {
 /** The derived state of `task`, given the IDs of all tasks that satisfy a dependency. */
 export const viewOf = (task: Task, satisfiedIds: ReadonlySet<TaskId>): TaskView => {
   if (task.status === "done") return { task, state: "done", blockedBy: [] }
+
   const blockedBy = task.dependsOn.filter((id) => !satisfiedIds.has(id))
+
   return { task, state: blockedBy.length === 0 ? "ready" : "blocked", blockedBy }
 }
 

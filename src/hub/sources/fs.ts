@@ -17,9 +17,11 @@ export const listRootOf = (path: string) =>
     const fs = yield* FileSystem.FileSystem
     const paths = yield* Path.Path
     const dir = paths.resolve(path)
+
     for (const root of [paths.join(dir, "todo"), dir]) {
       if (yield* fs.exists(paths.join(root, "TODO.md"))) return Option.some(root)
     }
+
     return Option.none<string>()
   })
 
@@ -43,12 +45,15 @@ export const watchList = (
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const path = yield* Path.Path
+
       // Event paths may be relative to `root`; only the file name matters,
       // except for `options.ignore`, which sees the path as reported.
       return fs.watch(root, { recursive: true }).pipe(
         Stream.filter((event) => {
           const name = path.basename(event.path)
+
           if (name === lockFile || name.endsWith(".tmp")) return false
+
           return options.ignore === undefined || !options.ignore(event.path)
         }),
         Stream.debounce("100 millis"),
@@ -63,6 +68,7 @@ const changesOf = (project: SourceProject<FsConfig>): Stream.Stream<void, never,
     Stream.drain(
       Stream.fromEffect(Effect.logWarning(`stopped watching ${project.name}: ${reason}`)),
     )
+
   return Stream.unwrap(
     Effect.gen(function* () {
       const root = yield* listRootOf(project.config.path)
@@ -71,6 +77,7 @@ const changesOf = (project: SourceProject<FsConfig>): Stream.Stream<void, never,
       )
         ? watchList(root.value)
         : stop(`no TODO.md at ${project.config.path}`)
+
       return changes
     }),
   ).pipe(Stream.catch((error) => stop(error.message)))
@@ -95,12 +102,14 @@ export const fsSource: Source<FsConfig> = {
               }),
           ),
         )
+
         if (Option.isNone(root)) {
           return yield* new SourceError({
             name: project.name,
             message: `no TODO.md at ${project.config.path}`,
           })
         }
+
         return FsTodoStore.layer({
           root: root.value,
           ...(project.cacheDir === undefined ? {} : { cacheDir: project.cacheDir }),

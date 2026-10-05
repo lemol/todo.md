@@ -127,16 +127,23 @@ export class TodoService extends Context.Service<
       const store = yield* TodoStore
       const resolverOption = yield* Effect.serviceOption(DependencyResolver)
       const resolver = Option.getOrUndefined(resolverOption)
+
       const foreignIdsOf = (tasks: ReadonlyArray<Task>): ReadonlyArray<TaskId> => [
         ...new Set(tasks.flatMap((task) => task.dependsOn).filter((id) => id.includes(":"))),
       ]
+
       const board = Effect.gen(function* () {
         const [list, done] = yield* Effect.all([store.load(), store.listDone()])
         const base = boardOf(list, done)
+
         if (resolver === undefined) return base
+
         const foreignIds = foreignIdsOf([...inPriorityOrder(list), ...done])
+
         if (foreignIds.length === 0) return base
+
         const satisfied = yield* resolver.satisfied(foreignIds)
+
         return {
           ...base,
           satisfiedIds: new Set([...base.satisfiedIds, ...satisfied]),
@@ -170,6 +177,7 @@ export class TodoService extends Context.Service<
               description: section.description,
               tasks: section.tasks.map(view(b)).filter(keep),
             }))
+
             return {
               title: b.list.title,
               description: b.list.description,
@@ -203,10 +211,12 @@ export class TodoService extends Context.Service<
               resolver !== undefined && foreignIds.length > 0
                 ? yield* resolver.resolve(foreignIds)
                 : new Map()
+
             return {
               view: view(b)(task),
               dependencies: task.dependsOn.map((dependency) => {
                 const found = byId.get(dependency)
+
                 if (found !== undefined) {
                   return {
                     id: dependency,
@@ -215,7 +225,9 @@ export class TodoService extends Context.Service<
                       found.outcome === "cancelled" ? ("cancelled" as const) : view(b)(found).state,
                   }
                 }
+
                 const foreign = resolved.get(dependency)
+
                 return {
                   id: dependency,
                   title: foreign?.title,
@@ -232,9 +244,12 @@ export class TodoService extends Context.Service<
           Effect.gen(function* () {
             const [diagnostics, b] = yield* Effect.all([store.diagnostics(), board])
             const model = modelDiagnostics(allTasks(b))
+
             if (resolver === undefined) return mergeDiagnostics(diagnostics, model)
+
             const local = model.filter((d) => d.code !== "unresolvable-project")
             const foreign = yield* resolver.diagnostics(allTasks(b))
+
             return mergeDiagnostics(diagnostics, [...local, ...foreign])
           }),
 
@@ -260,6 +275,7 @@ export class TodoService extends Context.Service<
               .filter((t) => t.dependsOn.includes(id))
               .map(view(b))
               .filter((v) => v.state === "ready")
+
             return { task, unblocked }
           }),
 
@@ -272,12 +288,15 @@ export class TodoService extends Context.Service<
           Effect.gen(function* () {
             yield* requires("remove", "remove")
             yield* store.get(id)
+
             if (options.force !== true) {
               const dependents = inPriorityOrder((yield* board).list)
                 .filter((t) => t.dependsOn.includes(id))
                 .map((t) => t.id)
+
               if (dependents.length > 0) return yield* new HasDependents({ id, dependents })
             }
+
             yield* store.remove(id)
           }),
 

@@ -37,18 +37,22 @@ const layer: Layer.Layer<TodoStore> = Layer.effect(
       email: "tester@acme.test",
       token_env: "JIRA_TOKEN",
     }
+
     const project: SourceProject<JiraConfig> = {
       name: "work",
       config,
       dir: path.join(root, "projects", "work"),
     }
+
     const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>()
     const sync = (source.sync?.(project) ?? Effect.die("the Jira source cannot sync")).pipe(
       Effect.provideContext(services),
     )
+
     yield* sync
     const store = Context.get(yield* Layer.build(source.open(project)), TodoStore)
     behind.set(store, { jira, sync, next: 1 })
+
     return store
   }).pipe(Effect.orDie),
 ).pipe(Layer.provide(BunServices.layer))
@@ -58,8 +62,11 @@ const seed = (tasks: ReadonlyArray<SeedTask>) =>
   Effect.gen(function* () {
     const store = yield* TodoStore
     const fixture = behind.get(store)
-    if (fixture === undefined)
+
+    if (fixture === undefined) {
       return yield* Effect.die(new Error("the store has no fake behind it"))
+    }
+
     const now = DateTime.formatIso(yield* DateTime.now)
     const keys = tasks.map(() => `PROJ-${fixture.next++}`)
     tasks.forEach((task, index) => {
@@ -81,7 +88,9 @@ const seed = (tasks: ReadonlyArray<SeedTask>) =>
     })
     yield* fixture.sync
     const seeded: Array<Task> = []
+
     for (const key of keys) seeded.push(yield* store.get(key))
+
     return seeded
   })
 

@@ -77,6 +77,7 @@ describe("parseTodoFile", () => {
         "- [ ] 02 - Task",
       ),
     )
+
     expect(parsed.sections.map((section) => section.name)).toEqual([undefined])
     expect(parsed.sections[0]?.items.map((i) => i.id)).toEqual(["2"])
   })
@@ -109,6 +110,7 @@ describe("parseTodoFile", () => {
         "  stray text",
       ),
     )
+
     expect(parsed.diagnostics.map((d) => [d.code, d.severity, d.line])).toEqual([
       ["outside-root", "error", 1],
       ["id-mismatch", "warning", 2],

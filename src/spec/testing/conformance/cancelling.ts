@@ -111,7 +111,9 @@ export const cancellingCases: ReadonlyArray<ConformanceCase> = [
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       if (store.capabilities.cancel) return
+
       const [task] = yield* given({ title: "Task" })
       yield* failsWith(store.cancel(task.id, "Dropped."), "Unsupported")
     }),

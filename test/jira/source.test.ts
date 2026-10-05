@@ -70,6 +70,7 @@ describe("the Jira queries", () => {
         jql: "project = PROJ",
         done_jql: "project = PROJ AND statusCategory = Done",
       })
+
       expect(queries.open).toBe("project = PROJ ORDER BY Rank ASC")
       expect(queries.done).toBe("project = PROJ AND statusCategory = Done ORDER BY resolved DESC")
     }),
@@ -156,6 +157,7 @@ describe("the Jira source: sync", () => {
           expect(error._tag).toBe("SyncError")
           expect(error.reason).toBe(reason)
           expect(error.project).toBe("work")
+
           if (part !== undefined) expect(error.message).toContain(part)
         }),
       ),
@@ -231,8 +233,10 @@ describe("the Jira source: changes", () => {
             fs.writeFileString(`${dir}/${mirrorFile}`, "{}").pipe(Effect.orDie),
             takeWithin(events, "200 millis"),
           )
+
           expect(Option.isSome(armed)).toBe(true)
           let settling = true
+
           while (settling) {
             settling = Option.isSome(yield* takeWithin(events, "300 millis"))
           }

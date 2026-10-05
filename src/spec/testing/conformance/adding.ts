@@ -38,6 +38,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
         dependsOn: [first.id],
         extra: { estimate: 3 },
       })
+
       const stored = yield* store.get(task.id)
       equal(stored.description, "Token bucket per API key.")
       equal(stored.tags, ["api", "security"])
@@ -139,7 +140,9 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
     name: "add fails with Unsupported when the store cannot add",
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       if (store.capabilities.add) return
+
       yield* failsWith(store.add({ title: "Task" }), "Unsupported")
       equal(yield* layout, [["", []]])
     }),

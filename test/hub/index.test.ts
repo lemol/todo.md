@@ -4,6 +4,7 @@ import * as testing from "../../src/hub/testing.ts"
 
 test("the public entry point exposes the hub, its errors, fsSource and projectInput", () => {
   expect(hub.Hub.key).toBe("@lemol/todo-md/hub/Hub")
+
   for (const name of [
     "ProjectNotFound",
     "NoListFound",
@@ -22,5 +23,6 @@ test("the public entry point exposes the hub, its errors, fsSource and projectIn
   ]) {
     expect(hub).toHaveProperty(name)
   }
+
   expect(testing.memorySource().kind).toBe("memory")
 })

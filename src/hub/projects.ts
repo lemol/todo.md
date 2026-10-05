@@ -80,6 +80,7 @@ export const registeredProject = (
     const { name } = entry
     const fields = yield* Effect.option(Schema.decodeUnknownEffect(Fields)(entry.value))
     const kind = Option.getOrUndefined(fields)?.source
+
     if (!isValidName(name)) {
       return {
         name,
@@ -94,7 +95,9 @@ export const registeredProject = (
         ),
       }
     }
+
     const base = { name, registered: true, dir: dirOf(name) }
+
     if (Option.isNone(fields) || !Predicate.isString(kind)) {
       return {
         ...base,
@@ -102,16 +105,20 @@ export const registeredProject = (
         config: invalid(new InvalidProjectConfig({ name, issues: ["the entry needs a source"] })),
       }
     }
+
     const source = sources.get(kind)
+
     if (source === undefined) {
       return { ...base, kind, config: invalid(new SourceUnavailable({ name, source: kind })) }
     }
+
     const config = yield* decodeConfig(source, name, withoutSource(fields.value), userHome).pipe(
       Effect.match({
         onFailure: invalid,
         onSuccess: (value): ProjectConfig => ({ _tag: "Valid", source, value }),
       }),
     )
+
     return { ...base, kind, config }
   })
 
@@ -124,6 +131,7 @@ export const sourceProjectOf = (project: Project, value: unknown): SourceProject
 
 export const infoOf = (project: Project, status: ProjectStatus): ProjectInfo => {
   const { config } = project
+
   if (config._tag === "Invalid") {
     return {
       name: project.name,
@@ -134,6 +142,7 @@ export const infoOf = (project: Project, status: ProjectStatus): ProjectInfo => 
       status,
     }
   }
+
   return {
     name: project.name,
     source: project.kind,

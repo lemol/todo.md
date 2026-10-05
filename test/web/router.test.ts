@@ -12,6 +12,7 @@ test("allowed GET requests reach the board controller", async () => {
   const response = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
   )
+
   expect(response.status).toBe(200)
   expect(await response.text()).toContain("Acme")
 })
@@ -22,6 +23,7 @@ test("GET / renders the dashboard", async () => {
   const response = await router.fetch(
     new Request("http://localhost/", { headers: { Host: "localhost" } }),
   )
+
   expect(response.status).toBe(200)
   expect(await response.text()).toContain("Projects")
 })
@@ -32,5 +34,6 @@ test("an unknown project renders 404", async () => {
   const response = await router.fetch(
     new Request("http://localhost/p/ghost", { headers: { Host: "localhost" } }),
   )
+
   expect(response.status).toBe(404)
 })

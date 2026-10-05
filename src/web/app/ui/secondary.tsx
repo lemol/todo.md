@@ -16,6 +16,7 @@ export interface DonePageProps {
 export function DonePage(handle: Handle<DonePageProps>) {
   return () => {
     const { project, tasks } = handle.props
+
     if (tasks.length === 0) {
       return (
         <Stack gap={4}>
@@ -24,6 +25,7 @@ export function DonePage(handle: Handle<DonePageProps>) {
         </Stack>
       )
     }
+
     return (
       <Stack gap={4}>
         <Heading level={1}>Done</Heading>
@@ -33,6 +35,7 @@ export function DonePage(handle: Handle<DonePageProps>) {
           // "cancelled" explicitly so every historical done task keeps reading as
           // completed.
           const outcome = task.outcome === "cancelled" ? "cancelled" : formatDate(task.completedAt)
+
           return (
             <article class="done-row" key={task.id}>
               <code>{showId(task.id)}</code>
@@ -69,6 +72,7 @@ const badgeToneForSeverity = (severity: (typeof severities)[number]): BadgeTone 
 export function CheckPage(handle: Handle<CheckPageProps>) {
   return () => {
     const { project, diagnostics } = handle.props
+
     if (diagnostics.length === 0) {
       return (
         <Stack gap={4}>
@@ -77,13 +81,17 @@ export function CheckPage(handle: Handle<CheckPageProps>) {
         </Stack>
       )
     }
+
     return (
       <Stack gap={6}>
         <Heading level={1}>Check</Heading>
         {severities.flatMap((severity) => {
           const items = diagnostics.filter((item) => item.severity === severity)
+
           if (items.length === 0) return []
+
           const label = `${severity[0]?.toUpperCase()}${severity.slice(1)}s`
+
           return [
             <section key={severity}>
               <Stack gap={3}>
@@ -99,6 +107,7 @@ export function CheckPage(handle: Handle<CheckPageProps>) {
                           </a>
                         </>
                       )
+
                     const location =
                       item.file === undefined ? null : (
                         <>
@@ -109,6 +118,7 @@ export function CheckPage(handle: Handle<CheckPageProps>) {
                           </code>
                         </>
                       )
+
                     return (
                       <li
                         key={`${item.code}-${item.taskId ?? ""}-${item.file ?? ""}-${item.line ?? ""}`}

@@ -62,6 +62,7 @@ describe("taskLines", () => {
       }),
       done,
     )
+
     expect(taskLines([finished], plain)).toEqual(["  05  Set up CI  2026-09-10"])
   })
 
@@ -77,6 +78,7 @@ describe("taskLines", () => {
       }),
       done,
     )
+
     expect(taskLines([cancelled], plain)).toEqual([
       "  06  Drop apps/ support  2026-09-10 cancelled",
     ])
