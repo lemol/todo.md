@@ -1,6 +1,6 @@
 import { Context, type Effect } from "effect"
-import type { Diagnostic, StoreError, Task, TaskId, TaskRef } from "../spec/index.ts"
-import type { TaskState, TaskView } from "./views.ts"
+import type { Diagnostic, StoreError, Task, TaskId } from "../spec/index.ts"
+import type { TaskState } from "./views.ts"
 
 /** Foreign dependency detail for `show`. */
 export interface ResolvedDependency {
@@ -29,7 +29,5 @@ export class DependencyResolver extends Context.Service<
     readonly diagnostics: (
       tasks: ReadonlyArray<Task>,
     ) => Effect.Effect<ReadonlyArray<Diagnostic>, StoreError>
-    /** Open tasks (as views) newly unblocked when `completed` finishes. */
-    readonly unblocked: (completed: TaskRef) => Effect.Effect<ReadonlyArray<TaskView>, StoreError>
   }
 >()("@lemol/todo-md/core/DependencyResolver") {}

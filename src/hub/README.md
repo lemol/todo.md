@@ -19,6 +19,7 @@ process builds its own `Hub` over the shared home.
 | `HubChange` | Events emitted by `hub.changes`: `changed`, `synced`, `registry`. |
 | `Overview`, `OverviewQuery`, `OverviewEntry`, `OverviewTask`, `OverviewError` | Cross-project query types. |
 | `formatRef`, `parseRef`, `TaskRef` | Qualified task reference helpers (`<project>:<id>`). |
+| `makeDependencyResolver(project, deps)` | The `DependencyResolver` each `hub.todo` service gets: readiness and diagnostics for `<project>:<id>` entries across registered projects, warning (never failing) on unresolvable ones, with cross-project cycle detection. |
 | `fsSource`, `FsConfig` | Local lists: `{ path }`, an absolute path (or `~/…`). Opens an `FsTodoStore` that caches parses in `<home>/cache`. |
 | `watchList(root, { ignore? })` | Watches a list directory recursively (debounced 100 ms, ignoring locks and tmp files). `ignore` skips further event paths, as [`git`](../git) does for `.git`. |
 | `projectInput(target, { cwd, source?, name?, branch?, list? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`, plus `branch` and `list` when given; anything else is `fs` with `{ path }` resolved against `cwd`. An explicit `source` other than `fs` or `git` gets an empty config. |

@@ -539,4 +539,37 @@ describe("todo add with cross-project dependencies", () => {
       "s/TODO.md": "# Slash Usage\n",
     }),
   )
+
+  effectTest(
+    "rejects an anchor in another project instead of retargeting",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      const home = `${root}/home`
+      yield* runTodo(["projects", "add", "w", "--name", "workspace"], { home })
+      yield* runTodo(["projects", "add", "s", "--name", "slash-usage"], { home })
+      yield* runTodo(["add", "Seed task", "--project", "slash-usage", "--quick"], { home })
+
+      // From workspace's own directory, without --project: must fail, not add to slash-usage.
+      const retarget = yield* runTodo(
+        ["add", "Anchor probe", "--quick", "--before", "slash-usage:1"],
+        { home, cwd: "w" },
+      )
+      expect(retarget.code).toBe(2)
+      expect(retarget.stderr).toContain("anchor project slash-usage contradicts workspace")
+
+      const flagged = yield* runTodo(
+        ["add", "Anchor probe", "--quick", "--project", "workspace", "--before", "slash-usage:1"],
+        { home },
+      )
+      expect(flagged.code).toBe(2)
+      expect(flagged.stderr).toContain("anchor project slash-usage contradicts workspace")
+
+      expect(yield* (yield* Disk).read("s/TODO.md")).not.toContain("Anchor probe")
+      expect(yield* (yield* Disk).read("w/TODO.md")).not.toContain("Anchor probe")
+    }),
+    diskWith({
+      "w/TODO.md": "# Workspace\n",
+      "s/TODO.md": "# Slash Usage\n",
+    }),
+  )
 })

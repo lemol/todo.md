@@ -206,7 +206,7 @@ can report them (for example `todo check`). The model-level checks are:
 | Code                   | Severity | Condition                                         |
 | ---------------------- | -------- | ------------------------------------------------- |
 | `duplicate-id`         | error    | Two tasks share an ID.                            |
-| `unknown-dependency`   | error    | `dependsOn` refers to an ID that doesn't exist.   |
+| `unknown-dependency`   | error    | `dependsOn` refers to an ID that doesn't exist. A foreign `<project>:<id>` whose task is missing reports the same code as a warning. |
 | `unresolvable-project` | warning  | `dependsOn` refers to `<project>:<id>` whose project cannot be resolved here. Foreign failures warn, never fail the list. |
 | `self-dependency`      | error    | A task depends on itself.                         |
 | `dependency-cycle`     | error    | Dependencies form a cycle.                        |

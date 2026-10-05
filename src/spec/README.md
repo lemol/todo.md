@@ -17,6 +17,7 @@ module depends on.
 | `TodoStore`         | The adapter contract: a `Context.Service` with one method per spec operation.           |
 | `MemoryTodoStore`   | The in-memory reference implementation of `TodoStore`.                                  |
 | Helpers             | `findCycle`, `validate` (schema decode → `ValidationError`), `ensureAcyclic`, `unique`, for adapters and `core`. |
+| `TaskRef`, `parseRef`, `formatRef`, `isValidName` | Task references as typed: `<project>:<id>`, or a bare ID in the current project. |
 | `makeLock(root, options?)`, `Lock`, `defaultLockOptions`, `lockFile` | A directory's advisory lock: `<root>/.todo.lock`, created exclusively. `makeLock` returns a `Lock`, a function that runs an effect while holding it and fails with `StoreError` after `timeout`. It lives here so every adapter can take it: `fs` (and so the hub and git, through it) and `jira`, which may not import `fs`. |
 
 The `@lemol/todo-md/spec/testing` entry point is for tests only:

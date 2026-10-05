@@ -64,6 +64,12 @@ describe("parseMetadataLine", () => {
     expect(parsed?.fields.dependsOn).toEqual(["1", "slash-usage:2", "work:PROJ-7"])
     expect(parsed?.diagnostics).toEqual([])
   })
+
+  test("normalizes padded numeric IDs in qualified depends_on", () => {
+    const parsed = parseMetadataLine("#bug depends_on:upstream:01,work:PROJ-07")
+    expect(parsed?.fields.dependsOn).toEqual(["upstream:1", "work:PROJ-07"])
+    expect(parsed?.diagnostics).toEqual([])
+  })
 })
 
 describe("formatMetadataLine", () => {

@@ -273,6 +273,14 @@ describe("formatTaskFile", () => {
     expect(formatted).toContain("depends_on: [1, slash-usage:2]")
     expect(formatted).not.toContain(".nan")
   })
+
+  test("normalizes padded numeric IDs in qualified frontmatter depends_on", () => {
+    const file =
+      "---\ntitle: Task with padded foreign dependency\ndepends_on: [upstream:01]\n---\nBody\n"
+    const parsed = parseTaskFile(file, "test.md")
+    expect(parsed.dependsOn).toEqual(["upstream:1"])
+    expect(parsed.diagnostics).toEqual([])
+  })
 })
 
 describe("updateTaskFile", () => {

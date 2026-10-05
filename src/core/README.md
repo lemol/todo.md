@@ -15,7 +15,8 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 | `list(filter?)` | A `Listing`: title, description, every section (ungrouped first) with its matching open tasks, and matching done tasks (most recent first) when `status` is `"done"` or `"all"`. |
 | `next(filter?)` | Ready open tasks in priority order (spec §1.3): "what should I work on?" |
 | `show(id)` | A `TaskDetail`: the task with its state, each dependency's title and state (`"unknown"` for missing IDs), and the open tasks it blocks. |
-| `check()` | The store's diagnostics plus the model checks of spec §1.6 (`duplicate-id`, `unknown-dependency`, `self-dependency`, `dependency-cycle`, `cancelled-dependency`), skipping any the store already reported. |
+| `get(id)`, `tasks()` | Raw tasks straight from the store, without derived board state (for resolvers that must not recurse). |
+| `check()` | The store's diagnostics plus the model checks of spec §1.6 (`duplicate-id`, `unknown-dependency`, `unresolvable-project`, `self-dependency`, `dependency-cycle`, `cancelled-dependency`), skipping any the store already reported. |
 | `complete(id)` | A `Completion`: the done task, and the open tasks it made ready. |
 | `cancel(id, reason)` | Abandons an open task, recording why (spec §1.4). Does not unblock dependents. |
 | `remove(id, { force? })` | Fails with `HasDependents` while open tasks depend on the task, unless `force`. |
@@ -49,6 +50,12 @@ Adapter-agnostic todo.md logic. Frontends (the CLI now, a web app later) use
 **Cycles.** Rejecting a new self-dependency or cycle is the store's job
 (spec §1.6, covered by the conformance suite), so `core` does not repeat it.
 `check()` reports cycles that already exist, for example from hand edits.
+
+**Foreign dependencies.** `TodoService.layer` optionally takes a
+`DependencyResolver`, which resolves `<project>:<id>` entries for
+`next`/`show`/`check`. Without one, foreign entries stay unsatisfied and
+`check()` reports them as `unresolvable-project` warnings (spec §1.3); the
+hub provides the resolver.
 
 The pure building blocks are exported too: `viewOf`, `boardOf`,
 `inPriorityOrder`, `matches`, `modelDiagnostics` and `mergeDiagnostics`.

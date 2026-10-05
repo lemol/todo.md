@@ -7,7 +7,6 @@ import {
   parseRef,
   type Task,
   type TaskId,
-  type TaskRef,
 } from "../spec/index.ts"
 import type { Project } from "./projects.ts"
 
@@ -52,15 +51,6 @@ const showDetail = (
 > =>
   Effect.mapError(service.show(id), () => "missing" as const) as Effect.Effect<
     { readonly view: { readonly task: Task; readonly state: "ready" | "blocked" | "done" } },
-    unknown,
-    never
-  >
-
-const nextViews = (
-  service: AnyService,
-): Effect.Effect<ReadonlyArray<{ readonly task: Task; readonly state: string }>, unknown, never> =>
-  Effect.mapError(service.next(), () => "missing" as const) as Effect.Effect<
-    ReadonlyArray<{ readonly task: Task; readonly state: string }>,
     unknown,
     never
   >
@@ -211,42 +201,6 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
         return diagnostics as ReadonlyArray<Diagnostic>
       }).pipe(Effect.orElseSucceed(() => [] as ReadonlyArray<Diagnostic>)) as Effect.Effect<
         ReadonlyArray<Diagnostic>,
-        never,
-        never
-      >,
-
-    unblocked: (completed: TaskRef) =>
-      Effect.gen(function* () {
-        const completedKey =
-          completed.project !== undefined
-            ? qualifiedKey(completed.project, completed.id)
-            : qualifiedKey(currentProject, completed.id)
-        const projects = yield* Effect.option(deps.registered)
-        if (projects._tag === "None") return []
-        const out: Array<{ readonly task: Task; readonly state: string }> = []
-        for (const project of projects.value) {
-          const service = yield* Effect.option(deps.serviceOf(project))
-          if (service._tag === "None") continue
-          const ready = yield* Effect.option(nextViews(service.value))
-          if (ready._tag === "None") continue
-          for (const view of ready.value as ReadonlyArray<{
-            readonly task: Task
-            readonly state: string
-          }>) {
-            if (view.state !== "ready") continue
-            const waits = view.task.dependsOn.some((dep: string) => {
-              const ref = parseRef(dep)
-              if (ref.project === undefined) {
-                return project.name === currentProject && ref.id === completed.id
-              }
-              return qualifiedKey(ref.project, ref.id) === completedKey
-            })
-            if (waits) out.push(view)
-          }
-        }
-        return out
-      }).pipe(Effect.orElseSucceed(() => [])) as Effect.Effect<
-        ReadonlyArray<{ readonly task: Task; readonly state: string }>,
         never,
         never
       >,

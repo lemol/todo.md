@@ -413,8 +413,10 @@ interface SyncOutcome {
   `withTodo` becomes `hub.resolve` then `hub.todo`.
 - **`--project <name>`** global flag; exclusive with `--dir` (exit 2).
 - **Qualified references** wherever a task ID is taken (`todo done
-  mionso:12`). A reference whose project contradicts `--project`, or
-  anchors and dependencies in another project, are usage errors.
+  mionso:12`). A reference whose project contradicts `--project`, or an
+  anchor in another project, is a usage error. Dependencies may name
+  another project (`--depends-on other:7`) and are resolved through the
+  hub (task 35).
 - **New commands:**
   - `todo projects` (`ls`): name, source, location, open and ready counts,
     sync status;
@@ -521,6 +523,5 @@ docs and acceptance criteria. `bun run check` passing is always one of them.
 
 - SQLite, until cross-project search needs it.
 - Scanning root directories for lists.
-- Cross-project dependencies.
 - Markdown → ADF, creating and deleting Jira issues.
 - A progress UI for long clones in the web app.

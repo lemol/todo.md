@@ -63,8 +63,8 @@ export const add = Command.make(
       "depends-on",
       "A task that must be done first; repeat for several (<project>:<id> works too)",
     ),
-    before: optional("before", "Place it before this task (<project>:<id> works too)"),
-    after: optional("after", "Place it after this task (<project>:<id> works too)"),
+    before: optional("before", "Place it before this task (same project only)"),
+    after: optional("after", "Place it after this task (same project only)"),
   },
   Effect.fn(function* (flags) {
     if (Option.isSome(flags.group) && flags.noGroup) {
@@ -101,54 +101,49 @@ export const add = Command.make(
     const dependsOn = flags.dependsOn.map(refOf)
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
-    const refProject = yield* projectOfRefs([...Option.toArray(before), ...Option.toArray(after)])
     // Its own file by default, so a long task does not swamp TODO.md (§2.9).
     const wantsFile = flags.file || !(flags.inline || flags.quick)
     const toStoredId = (projectName: string) => (ref: TaskRef) =>
       ref.project !== undefined && ref.project !== projectName
         ? formatRef(ref.project, ref.id)
         : ref.id
-    yield* withTodo(
-      (todo, project) =>
-        Effect.gen(function* () {
-          for (const anchor of [...Option.toArray(before), ...Option.toArray(after)]) {
-            if (anchor.project !== undefined && anchor.project !== project.name) {
-              return yield* new UsageError({
-                message: `anchor project ${anchor.project} contradicts ${project.name}`,
-              })
-            }
+    yield* withTodo((todo, project) =>
+      Effect.gen(function* () {
+        for (const anchor of [...Option.toArray(before), ...Option.toArray(after)]) {
+          if (anchor.project !== undefined && anchor.project !== project.name) {
+            return yield* new UsageError({
+              message: `anchor project ${anchor.project} contradicts ${project.name}`,
+            })
           }
-          const task = yield* todo.add(
-            {
-              title: flags.title.join(" "),
-              ...(flags.tag.length > 0 ? { tags: flags.tag } : {}),
-              ...(dependsOn.length > 0
-                ? { dependsOn: dependsOn.map(toStoredId(project.name)) }
-                : {}),
-              ...some("assignee", flags.assignee),
-              ...(description === undefined ? {} : { description }),
-            },
-            {
-              ...some("group", flags.group),
-              ...some(
-                "before",
-                Option.map(before, (ref) => ref.id),
-              ),
-              ...some(
-                "after",
-                Option.map(after, (ref) => ref.id),
-              ),
-            },
-          )
-          // A store with nowhere to put a task file keeps the task as it is;
-          // an explicit --file says so rather than pretending it worked.
-          if (wantsFile && (todo.capabilities.promote || flags.file)) yield* todo.promote(task.id)
-          yield* output(project, task, () => [
-            `Added ${label(task)}${task.group === undefined ? "" : ` to ${task.group}`}`,
-          ])
-          yield* warnUnpushed(project)
-        }),
-      { project: refProject },
+        }
+        const task = yield* todo.add(
+          {
+            title: flags.title.join(" "),
+            ...(flags.tag.length > 0 ? { tags: flags.tag } : {}),
+            ...(dependsOn.length > 0 ? { dependsOn: dependsOn.map(toStoredId(project.name)) } : {}),
+            ...some("assignee", flags.assignee),
+            ...(description === undefined ? {} : { description }),
+          },
+          {
+            ...some("group", flags.group),
+            ...some(
+              "before",
+              Option.map(before, (ref) => ref.id),
+            ),
+            ...some(
+              "after",
+              Option.map(after, (ref) => ref.id),
+            ),
+          },
+        )
+        // A store with nowhere to put a task file keeps the task as it is;
+        // an explicit --file says so rather than pretending it worked.
+        if (wantsFile && (todo.capabilities.promote || flags.file)) yield* todo.promote(task.id)
+        yield* output(project, task, () => [
+          `Added ${label(task)}${task.group === undefined ? "" : ` to ${task.group}`}`,
+        ])
+        yield* warnUnpushed(project)
+      }),
     )
   }),
 ).pipe(
@@ -444,8 +439,8 @@ export const mv = Command.make(
       Flag.withDefault(false),
       Flag.withDescription("Move to the end of the ungrouped tasks"),
     ),
-    before: optional("before", "Move right before this task (<project>:<id> works too)"),
-    after: optional("after", "Move right after this task (<project>:<id> works too)"),
+    before: optional("before", "Move right before this task (same project only)"),
+    after: optional("after", "Move right after this task (same project only)"),
     top: Flag.Boolean("top").pipe(
       Flag.withDefault(false),
       Flag.withDescription("Move to the top of its group"),
