@@ -254,16 +254,17 @@ describe("FsTodoStore writes the todo.md format", () => {
     "comment refuses comment body with unescaped depth-2 or depth-3 headings",
     Effect.gen(function* () {
       const store = yield* TodoStore
+      const disk = yield* Disk
+      const beforeTodo = yield* disk.read("TODO.md")
+      const beforeTree = yield* disk.tree()
 
-      yield* failsWith(store.comment("1", { author: "lemol", body: "## ATX 2" }), "ValidationError")
-      yield* failsWith(
-        store.comment("1", { author: "lemol", body: "### ATX 3" }),
-        "ValidationError",
-      )
-      yield* failsWith(
-        store.comment("1", { author: "lemol", body: "Setext\n---" }),
-        "ValidationError",
-      )
+      for (const body of ["## ATX 2", "### ATX 3", "Setext\n---"]) {
+        yield* failsWith(store.comment("1", { author: "lemol", body }), "ValidationError")
+
+        expect(yield* disk.read("TODO.md")).toBe(beforeTodo)
+        expect(yield* disk.tree()).toEqual(beforeTree)
+        expect((yield* store.get("1")).comments).toEqual([])
+      }
 
       const valid = yield* store.comment("1", {
         author: "lemol",

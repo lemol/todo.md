@@ -458,10 +458,16 @@ describe("todo comment", () => {
   effectTest(
     "refuses comment body with unescaped depth-2 heading",
     Effect.gen(function* () {
+      const disk = yield* Disk
+      const beforeTodo = yield* disk.read("TODO.md")
+      const beforeTree = yield* disk.tree()
       const result = yield* todo("comment", "1", "##", "Broken", "Heading")
 
       expect(result.code).not.toBe(0)
       expect(result.stderr).toContain("comment body must not contain unescaped headings")
+      expect(yield* disk.read("TODO.md")).toBe(beforeTodo)
+      expect(yield* disk.tree()).toEqual(beforeTree)
+      expect((yield* showJson("1")).comments).toEqual([])
     }),
     diskWith(acme),
   )
