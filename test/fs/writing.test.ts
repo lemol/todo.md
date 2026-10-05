@@ -4,7 +4,7 @@ import { TestClock } from "effect/testing"
 import { itemLinesFor } from "../../src/fs/writing.ts"
 import { defaultConfig } from "../../src/markdown/index.ts"
 import { type Task, TodoStore } from "../../src/spec/index.ts"
-import { effectTest } from "../../src/spec/testing.ts"
+import { effectTest, failsWith } from "../../src/spec/testing.ts"
 import { Disk, diskWith, filesOnDisk, listWith, md } from "./helpers.ts"
 
 const todo = md(
@@ -246,6 +246,31 @@ describe("FsTodoStore writes the todo.md format", () => {
       expect(yield* disk.read("TODO.md")).toBe(
         todo.replace("- [ ] [02 - Add rate limiting](./backend/02-add-rate-limiting.md)\n", ""),
       )
+    }),
+    list(),
+  )
+
+  effectTest(
+    "comment refuses comment body with unescaped depth-2 or depth-3 headings",
+    Effect.gen(function* () {
+      const store = yield* TodoStore
+
+      yield* failsWith(store.comment("1", { author: "lemol", body: "## ATX 2" }), "ValidationError")
+      yield* failsWith(
+        store.comment("1", { author: "lemol", body: "### ATX 3" }),
+        "ValidationError",
+      )
+      yield* failsWith(
+        store.comment("1", { author: "lemol", body: "Setext\n---" }),
+        "ValidationError",
+      )
+
+      const valid = yield* store.comment("1", {
+        author: "lemol",
+        body: "#### Allowed 4\n```\n## In fence\n```",
+      })
+
+      expect(valid.body).toBe("#### Allowed 4\n```\n## In fence\n```")
     }),
     list(),
   )

@@ -12,6 +12,7 @@ import {
   formatLinkedItem,
   formatTaskFile,
   groupSlug,
+  hasUnescapedHeading,
   insertItem,
   joinPath,
   linkedItemFor,
@@ -485,44 +486,50 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
         ),
 
       comment: (id, input) =>
-        validate(CommentInput, input).pipe(
-          Effect.flatMap((valid) =>
-            mutate((snapshot) =>
-              Effect.gen(function* () {
-                const task = yield* findTask(snapshot, id)
-                const comment: Comment = {
-                  author: valid.author,
-                  body: valid.body,
-                  at: yield* DateTime.now,
+        Effect.gen(function* () {
+          const valid = yield* validate(CommentInput, input)
+
+          if (hasUnescapedHeading(valid.body)) {
+            return yield* new ValidationError({
+              issues: ["comment body must not contain unescaped headings"],
+            })
+          }
+
+          return yield* mutate((snapshot) =>
+            Effect.gen(function* () {
+              const task = yield* findTask(snapshot, id)
+              const comment: Comment = {
+                author: valid.author,
+                body: valid.body,
+                at: yield* DateTime.now,
+              }
+
+              const done = snapshot.done.find((candidate) => candidate.id === id)
+              const entry = snapshot.entries.find((candidate) => candidate.id === id)
+
+              if (done !== undefined) {
+                yield* files.write(done.path, prependComment(done.source, comment))
+              } else if (
+                entry?.item.linked &&
+                entry.item.path !== undefined &&
+                entry.source !== undefined
+              ) {
+                yield* files.write(entry.item.path, prependComment(entry.source, comment))
+              } else if (entry !== undefined) {
+                // An inline task, or a link to a missing file: (re)write the file with the comment.
+                const withComment: Task = { ...task, comments: [comment, ...task.comments] }
+                const path = entry.item.linked ? entry.item.path : undefined
+                const lines = yield* itemLinesFor(files, snapshot.todo.config, withComment, path)
+
+                if (!entry.item.linked) {
+                  yield* writeTodo(replaceItem(snapshot.todo, entry.item, lines))
                 }
+              }
 
-                const done = snapshot.done.find((candidate) => candidate.id === id)
-                const entry = snapshot.entries.find((candidate) => candidate.id === id)
-
-                if (done !== undefined) {
-                  yield* files.write(done.path, prependComment(done.source, comment))
-                } else if (
-                  entry?.item.linked &&
-                  entry.item.path !== undefined &&
-                  entry.source !== undefined
-                ) {
-                  yield* files.write(entry.item.path, prependComment(entry.source, comment))
-                } else if (entry !== undefined) {
-                  // An inline task, or a link to a missing file: (re)write the file with the comment.
-                  const withComment: Task = { ...task, comments: [comment, ...task.comments] }
-                  const path = entry.item.linked ? entry.item.path : undefined
-                  const lines = yield* itemLinesFor(files, snapshot.todo.config, withComment, path)
-
-                  if (!entry.item.linked) {
-                    yield* writeTodo(replaceItem(snapshot.todo, entry.item, lines))
-                  }
-                }
-
-                return comment
-              }),
-            ),
-          ),
-        ),
+              return comment
+            }),
+          )
+        }),
 
       promote: (id) =>
         mutate((snapshot) =>

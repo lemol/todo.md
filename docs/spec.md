@@ -585,9 +585,11 @@ point: `complete` writes it first, and `reopen` deletes it last.
   is already file-backed, or done and so already in its done file, is left
   alone.
 - **comment:**
-  1. Promote the task if it is inline.
-  2. Create the `## Comments` section at the end of the file if missing.
-  3. Insert the new comment directly below the heading, followed by a blank
+  1. Refuse comment bodies containing unescaped level-1 to level-3 headings with
+     ValidationError (§2.6).
+  2. Promote the task if it is inline.
+  3. Create the `## Comments` section at the end of the file if missing.
+  4. Insert the new comment directly below the heading, followed by a blank
      line.
 
 **Canonical forms.** Lines that a writer creates or rewrites use these forms:

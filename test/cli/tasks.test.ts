@@ -454,6 +454,17 @@ describe("todo comment", () => {
     }),
     diskWith(acme),
   )
+
+  effectTest(
+    "refuses comment body with unescaped depth-2 heading",
+    Effect.gen(function* () {
+      const result = yield* todo("comment", "1", "##", "Broken", "Heading")
+
+      expect(result.code).not.toBe(0)
+      expect(result.stderr).toContain("comment body must not contain unescaped headings")
+    }),
+    diskWith(acme),
+  )
 })
 
 describe("todo comment -", () => {

@@ -3,6 +3,7 @@ import { DateTime } from "effect"
 import {
   formatTaskFile,
   formatTimestamp,
+  hasUnescapedHeading,
   parseCommentHeading,
   parseTaskFile,
   prependComment,
@@ -377,5 +378,24 @@ describe("prependComment", () => {
         "Done.",
       ),
     )
+  })
+})
+
+describe("hasUnescapedHeading", () => {
+  test("detects unescaped ATX and setext headings", () => {
+    expect(hasUnescapedHeading("## Heading 2")).toBe(true)
+    expect(hasUnescapedHeading("### Heading 3")).toBe(true)
+    expect(hasUnescapedHeading("# Heading 1")).toBe(true)
+    expect(hasUnescapedHeading("Heading\n---")).toBe(true)
+    expect(hasUnescapedHeading("Heading\n===")).toBe(true)
+  })
+
+  test("allows depth 4 or deeper, code fences, inline code, and escapes", () => {
+    expect(hasUnescapedHeading("#### Heading 4")).toBe(false)
+    expect(hasUnescapedHeading("```\n## Code\n### Code\n```")).toBe(false)
+    expect(hasUnescapedHeading("~~~\n## Code\n~~~")).toBe(false)
+    expect(hasUnescapedHeading("Use `## Code` here")).toBe(false)
+    expect(hasUnescapedHeading("\\## Not a heading")).toBe(false)
+    expect(hasUnescapedHeading("Text\n\n---\n\nMore text")).toBe(false)
   })
 })
