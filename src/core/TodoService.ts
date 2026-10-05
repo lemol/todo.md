@@ -13,7 +13,6 @@ import {
   type TaskInput,
   type TaskNotFound,
   type TaskPatch,
-  type TaskRef,
   TodoStore,
   Unsupported,
   type ValidationError,
@@ -245,15 +244,11 @@ export class TodoService extends Context.Service<
           Effect.gen(function* () {
             const task = yield* store.complete(id)
             const b = yield* board
-            const local = inPriorityOrder(b.list)
+            const unblocked = inPriorityOrder(b.list)
               .filter((t) => t.dependsOn.includes(id))
               .map(view(b))
               .filter((v) => v.state === "ready")
-            if (resolver === undefined) return { task, unblocked: local }
-            const ref: TaskRef = { id }
-            const foreign = (yield* resolver.unblocked(ref)).filter((v) => v.state === "ready")
-            const seen = new Set(local.map((v) => v.task.id))
-            return { task, unblocked: [...local, ...foreign.filter((v) => !seen.has(v.task.id))] }
+            return { task, unblocked }
           }),
 
         reopen: (id) => store.reopen(id),

@@ -493,3 +493,41 @@ describe("todo comment -", () => {
     diskWith(acme),
   )
 })
+
+describe("todo add with cross-project dependencies", () => {
+  effectTest(
+    "does not retarget and holds task back until the foreign task is done",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      const home = `${root}/home`
+      yield* runTodo(["projects", "add", "w", "--name", "workspace"], { home })
+      yield* runTodo(["projects", "add", "s", "--name", "slash-usage"], { home })
+
+      const addResult = yield* runTodo(
+        [
+          "add",
+          "Dependent Task",
+          "--project",
+          "workspace",
+          "--quick",
+          "--depends-on",
+          "slash-usage:1",
+        ],
+        { home },
+      )
+      expect(addResult.code).toBe(0)
+      expect(addResult.stdout).toContain("Added 01  Dependent Task")
+
+      const nextBefore = yield* runTodo(["next", "--project", "workspace"], { home })
+      expect(nextBefore.stdout).toBe("Nothing is ready.")
+
+      yield* runTodo(["add", "Blocking Task", "--project", "slash-usage", "--quick"], { home })
+      const doneResult = yield* runTodo(["done", "slash-usage:1"], { home })
+      expect(doneResult.stdout).toContain("workspace:01  Dependent Task")
+    }),
+    diskWith({
+      "w/TODO.md": "# Workspace\n",
+      "s/TODO.md": "# Slash Usage\n",
+    }),
+  )
+})

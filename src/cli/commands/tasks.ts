@@ -1,5 +1,7 @@
 import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/cli"
+import type { TaskView } from "../../core/index.ts"
+import { formatRef, Hub, type TaskRef } from "../../hub/index.ts"
 import { type Placement, type TaskPatch, unique } from "../../spec/index.ts"
 import {
   author,
@@ -99,21 +101,30 @@ export const add = Command.make(
     const dependsOn = flags.dependsOn.map(refOf)
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
-    const refProject = yield* projectOfRefs([
-      ...dependsOn,
-      ...Option.toArray(before),
-      ...Option.toArray(after),
-    ])
+    const refProject = yield* projectOfRefs([...Option.toArray(before), ...Option.toArray(after)])
     // Its own file by default, so a long task does not swamp TODO.md (§2.9).
     const wantsFile = flags.file || !(flags.inline || flags.quick)
+    const toStoredId = (projectName: string) => (ref: TaskRef) =>
+      ref.project !== undefined && ref.project !== projectName
+        ? formatRef(ref.project, ref.id)
+        : ref.id
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
+          for (const anchor of [...Option.toArray(before), ...Option.toArray(after)]) {
+            if (anchor.project !== undefined && anchor.project !== project.name) {
+              return yield* new UsageError({
+                message: `anchor project ${anchor.project} contradicts ${project.name}`,
+              })
+            }
+          }
           const task = yield* todo.add(
             {
               title: flags.title.join(" "),
               ...(flags.tag.length > 0 ? { tags: flags.tag } : {}),
-              ...(dependsOn.length > 0 ? { dependsOn: dependsOn.map((ref) => ref.id) } : {}),
+              ...(dependsOn.length > 0
+                ? { dependsOn: dependsOn.map(toStoredId(project.name)) }
+                : {}),
               ...some("assignee", flags.assignee),
               ...(description === undefined ? {} : { description }),
             },
@@ -224,12 +235,17 @@ export const edit = Command.make(
     const id = refOf(flags.id)
     const dependsOn = flags.dependsOn.map(refOf)
     const drop = flags.dropDependency.map(refOf)
-    const refProject = yield* projectOfRefs([id, ...dependsOn, ...drop])
+    const refProject = yield* projectOfRefs([id])
+    const toStoredId = (projectName: string) => (ref: TaskRef) =>
+      ref.project !== undefined && ref.project !== projectName
+        ? formatRef(ref.project, ref.id)
+        : ref.id
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const current = (yield* todo.show(id.id)).view.task
-          const dropped = new Set(drop.map((ref) => ref.id))
+          const stored = toStoredId(project.name)
+          const dropped = new Set(drop.map(stored))
           const patch: TaskPatch = {
             ...some("title", flags.title),
             ...(description === undefined ? {} : { description }),
@@ -246,7 +262,7 @@ export const edit = Command.make(
               ? {
                   dependsOn: unique([
                     ...current.dependsOn.filter((d) => !dropped.has(d)),
-                    ...dependsOn.map((ref) => ref.id),
+                    ...dependsOn.map(stored),
                   ]),
                 }
               : {}),
@@ -288,6 +304,41 @@ export const edit = Command.make(
   ]),
 )
 
+/** Ready tasks in other registered projects that wait on one of `completed`. */
+const newlyReadyInOtherProjects = (
+  completed: ReadonlyArray<TaskRef>,
+  current: string,
+): Effect.Effect<
+  ReadonlyArray<{ readonly project: string; readonly view: TaskView }>,
+  never,
+  Hub
+> =>
+  Effect.catch(
+    Effect.gen(function* () {
+      const hub = yield* Hub
+      const keys = new Set(completed.map((ref) => formatRef(ref.project ?? current, ref.id)))
+      if (keys.size === 0)
+        return [] as ReadonlyArray<{ readonly project: string; readonly view: TaskView }>
+      const infos = yield* hub.projects()
+      const out: Array<{ readonly project: string; readonly view: TaskView }> = []
+      for (const info of infos) {
+        if (!info.registered || info.name === current) continue
+        const service = yield* Effect.option(hub.todo(info.name))
+        if (service._tag === "None") continue
+        const ready = yield* Effect.option(service.value.next())
+        if (ready._tag === "None") continue
+        for (const view of ready.value) {
+          if (view.state !== "ready") continue
+          if (view.task.dependsOn.some((dep) => keys.has(dep)))
+            out.push({ project: info.name, view })
+        }
+      }
+      return out as ReadonlyArray<{ readonly project: string; readonly view: TaskView }>
+    }),
+    () =>
+      Effect.succeed([] as ReadonlyArray<{ readonly project: string; readonly view: TaskView }>),
+  )
+
 export const done = Command.make(
   "done",
   {
@@ -303,7 +354,10 @@ export const done = Command.make(
       (todo, project) =>
         Effect.gen(function* () {
           const completions = yield* Effect.forEach(refs, (ref) => todo.complete(ref.id))
-          yield* output(project, completions, (style) => renderCompletions(completions, style))
+          const cross = yield* newlyReadyInOtherProjects(refs, project.name)
+          yield* output(project, completions, (style) =>
+            renderCompletions(completions, style, cross),
+          )
           yield* warnUnpushed(project)
         }),
       { project: refProject },
@@ -419,14 +473,17 @@ export const mv = Command.make(
     const id = refOf(flags.id)
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
-    const refProject = yield* projectOfRefs([
-      id,
-      ...Option.toArray(before),
-      ...Option.toArray(after),
-    ])
+    const refProject = yield* projectOfRefs([id])
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
+          for (const anchor of [...Option.toArray(before), ...Option.toArray(after)]) {
+            if (anchor.project !== undefined && anchor.project !== project.name) {
+              return yield* new UsageError({
+                message: `anchor project ${anchor.project} contradicts ${project.name}`,
+              })
+            }
+          }
           const current = (yield* todo.show(id.id)).view.task
           const placed = yield* Effect.gen(function* () {
             if (flags.top) {

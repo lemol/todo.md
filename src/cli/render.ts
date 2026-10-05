@@ -16,7 +16,19 @@ import { describeError } from "./errors.ts"
 import type { Style } from "./style.ts"
 
 /** A task ID as people read it: numeric IDs padded like the file format (`7` → `07`). */
-export const showId = (id: string): string => (/^\d+$/.test(id) ? id.padStart(2, "0") : id)
+export const showId = (id: string): string => {
+  const colon = id.indexOf(":")
+  if (colon > 0) {
+    const head = id.slice(0, colon)
+    const tail = id.slice(colon + 1)
+    return /^\d+$/.test(tail) ? `${head}:${tail.padStart(2, "0")}` : id
+  }
+  return /^\d+$/.test(id) ? id.padStart(2, "0") : id
+}
+
+/** `project:07  Title`: how cross-project messages name a task. */
+export const qualifiedLabel = (project: string, task: Task): string =>
+  `${formatRef(project, showId(task.id))}  ${task.title}`
 
 /** `07  Title`: how every message names a task. */
 export const label = (task: Task): string => `${showId(task.id)}  ${task.title}`
@@ -187,15 +199,22 @@ export const syncLine = (outcome: SyncResult | SyncFailure): string =>
 export const renderCompletions = (
   completions: ReadonlyArray<Completion>,
   style: Style,
+  cross: ReadonlyArray<{ readonly project: string; readonly view: TaskView }> = [],
 ): string[] => {
   const completed = new Set(completions.map((c) => c.task.id))
   const ready = new Map<string, TaskView>()
   for (const view of completions.flatMap((c) => c.unblocked)) {
     if (!completed.has(view.task.id)) ready.set(view.task.id, view)
   }
+  const crossLines =
+    cross.length === 0
+      ? []
+      : cross.map(({ project, view }) => `  ${qualifiedLabel(project, view.task)}`)
   return [
     ...completions.map((c) => `Done ${label(c.task)}`),
-    ...(ready.size === 0 ? [] : ["Now ready:", ...taskLines([...ready.values()], style)]),
+    ...(ready.size === 0 && crossLines.length === 0
+      ? []
+      : ["Now ready:", ...taskLines([...ready.values()], style), ...crossLines]),
   ]
 }
 
