@@ -1,8 +1,10 @@
-import { type Diagnostic, findCycle, type Task, type TaskId } from "../spec/index.ts"
+import { type Diagnostic, findCycle, parseRef, type Task, type TaskId } from "../spec/index.ts"
 
 /**
  * The model-level checks of spec §1.6 over every task, open and done:
  * duplicate IDs, dependencies on unknown IDs, self-dependencies and cycles.
+ * Foreign `<project>:<id>` dependencies are never local errors: without a
+ * hub resolver they are `unresolvable-project` warnings (spec §1.3).
  */
 export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diagnostic> => {
   const diagnostics: Diagnostic[] = []
@@ -23,6 +25,25 @@ export const modelDiagnostics = (tasks: ReadonlyArray<Task>): ReadonlyArray<Diag
   )
   for (const task of tasks) {
     for (const dependency of task.dependsOn) {
+      const ref = parseRef(dependency)
+      if (ref.project !== undefined) {
+        if (dependency === task.id) {
+          diagnostics.push({
+            severity: "error",
+            code: "self-dependency",
+            message: `task ${task.id} depends on itself`,
+            taskId: task.id,
+          })
+        } else {
+          diagnostics.push({
+            severity: "warning",
+            code: "unresolvable-project",
+            message: `task ${task.id} depends on unresolvable project ${ref.project}`,
+            taskId: task.id,
+          })
+        }
+        continue
+      }
       if (dependency === task.id) {
         diagnostics.push({
           severity: "error",

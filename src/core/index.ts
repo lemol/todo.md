@@ -1,5 +1,6 @@
 export * from "./check.ts"
 export * from "./errors.ts"
 export * from "./filter.ts"
+export * from "./resolver.ts"
 export * from "./TodoService.ts"
 export * from "./views.ts"

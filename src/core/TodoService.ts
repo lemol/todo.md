@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 import {
   type Capabilities,
   type Comment,
@@ -13,6 +13,7 @@ import {
   type TaskInput,
   type TaskNotFound,
   type TaskPatch,
+  type TaskRef,
   TodoStore,
   Unsupported,
   type ValidationError,
@@ -20,6 +21,7 @@ import {
 import { mergeDiagnostics, modelDiagnostics } from "./check.ts"
 import { HasDependents } from "./errors.ts"
 import { matches, type TaskFilter } from "./filter.ts"
+import { DependencyResolver } from "./resolver.ts"
 import {
   allTasks,
   boardOf,
@@ -120,9 +122,23 @@ export class TodoService extends Context.Service<
     TodoService,
     Effect.gen(function* () {
       const store = yield* TodoStore
-      const board = Effect.map(Effect.all([store.load(), store.listDone()]), ([list, done]) =>
-        boardOf(list, done),
-      )
+      const resolverOption = yield* Effect.serviceOption(DependencyResolver)
+      const resolver = Option.getOrUndefined(resolverOption)
+      const foreignIdsOf = (tasks: ReadonlyArray<Task>): ReadonlyArray<TaskId> => [
+        ...new Set(tasks.flatMap((task) => task.dependsOn).filter((id) => id.includes(":"))),
+      ]
+      const board = Effect.gen(function* () {
+        const [list, done] = yield* Effect.all([store.load(), store.listDone()])
+        const base = boardOf(list, done)
+        if (resolver === undefined) return base
+        const foreignIds = foreignIdsOf([...inPriorityOrder(list), ...done])
+        if (foreignIds.length === 0) return base
+        const satisfied = yield* resolver.satisfied(foreignIds)
+        return {
+          ...base,
+          satisfiedIds: new Set([...base.satisfiedIds, ...satisfied]),
+        }
+      })
 
       /** Fails early when the store lacks a capability (spec §1.5). */
       const requires = (capability: keyof Capabilities, operation: string) =>
@@ -171,19 +187,28 @@ export class TodoService extends Context.Service<
             const task = yield* store.get(id)
             const b = yield* board
             const byId = new Map(allTasks(b).map((t) => [t.id, t] as const))
+            const foreignIds = task.dependsOn.filter((dependency) => !byId.has(dependency))
+            const resolved =
+              resolver !== undefined && foreignIds.length > 0
+                ? yield* resolver.resolve(foreignIds)
+                : new Map()
             return {
               view: view(b)(task),
               dependencies: task.dependsOn.map((dependency) => {
                 const found = byId.get(dependency)
+                if (found !== undefined) {
+                  return {
+                    id: dependency,
+                    title: found.title,
+                    state:
+                      found.outcome === "cancelled" ? ("cancelled" as const) : view(b)(found).state,
+                  }
+                }
+                const foreign = resolved.get(dependency)
                 return {
                   id: dependency,
-                  title: found?.title,
-                  state:
-                    found === undefined
-                      ? ("unknown" as const)
-                      : found.outcome === "cancelled"
-                        ? ("cancelled" as const)
-                        : view(b)(found).state,
+                  title: foreign?.title,
+                  state: foreign?.state ?? ("unknown" as const),
                 }
               }),
               blocks: inPriorityOrder(b.list)
@@ -195,7 +220,11 @@ export class TodoService extends Context.Service<
         check: () =>
           Effect.gen(function* () {
             const [diagnostics, b] = yield* Effect.all([store.diagnostics(), board])
-            return mergeDiagnostics(diagnostics, modelDiagnostics(allTasks(b)))
+            const model = modelDiagnostics(allTasks(b))
+            if (resolver === undefined) return mergeDiagnostics(diagnostics, model)
+            const local = model.filter((d) => d.code !== "unresolvable-project")
+            const foreign = yield* resolver.diagnostics(allTasks(b))
+            return mergeDiagnostics(diagnostics, [...local, ...foreign])
           }),
 
         add: (input, placement = {}) =>
@@ -216,11 +245,15 @@ export class TodoService extends Context.Service<
           Effect.gen(function* () {
             const task = yield* store.complete(id)
             const b = yield* board
-            const unblocked = inPriorityOrder(b.list)
+            const local = inPriorityOrder(b.list)
               .filter((t) => t.dependsOn.includes(id))
               .map(view(b))
               .filter((v) => v.state === "ready")
-            return { task, unblocked }
+            if (resolver === undefined) return { task, unblocked: local }
+            const ref: TaskRef = { id }
+            const foreign = (yield* resolver.unblocked(ref)).filter((v) => v.state === "ready")
+            const seen = new Set(local.map((v) => v.task.id))
+            return { task, unblocked: [...local, ...foreign.filter((v) => !seen.has(v.task.id))] }
           }),
 
         reopen: (id) => store.reopen(id),

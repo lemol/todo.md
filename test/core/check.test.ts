@@ -58,6 +58,18 @@ describe("modelDiagnostics", () => {
     ]
     expect(modelDiagnostics(tasks)).toEqual([])
   })
+
+  test("treats unresolvable foreign dependency as warning, not error", () => {
+    const diagnostics = modelDiagnostics([task({ id: "1", dependsOn: ["slash-usage:1"] })])
+    expect(diagnostics).toEqual([
+      {
+        severity: "warning",
+        code: "unresolvable-project",
+        message: "task 1 depends on unresolvable project slash-usage",
+        taskId: "1",
+      },
+    ])
+  })
 })
 
 test("mergeDiagnostics skips model diagnostics the store already reported", () => {
