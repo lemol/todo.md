@@ -262,6 +262,17 @@ describe("formatTaskFile", () => {
     })
     expect(source.match(/^outcome:.*$/gm)).toEqual(["outcome: completed"])
   })
+
+  test("round-trips qualified foreign dependencies without NaN", () => {
+    const file =
+      "---\ntitle: Task with foreign dependency\ndepends_on: [1, slash-usage:2]\n---\nBody\n"
+    const parsed = parseTaskFile(file, "test.md")
+    expect(parsed.dependsOn).toEqual(["1", "slash-usage:2"])
+    expect(parsed.diagnostics).toEqual([])
+    const formatted = formatTaskFile(parsed as TaskFileContent)
+    expect(formatted).toContain("depends_on: [1, slash-usage:2]")
+    expect(formatted).not.toContain(".nan")
+  })
 })
 
 describe("updateTaskFile", () => {

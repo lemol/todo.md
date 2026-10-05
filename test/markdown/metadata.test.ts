@@ -58,6 +58,12 @@ describe("parseMetadataLine", () => {
     expect(parsed?.diagnostics.map((d) => d.code)).toEqual(["reserved-field", "reserved-field"])
     expect(parsed?.fields.extra).toEqual({})
   })
+
+  test("accepts qualified foreign task IDs in depends_on", () => {
+    const parsed = parseMetadataLine("#bug depends_on:1,slash-usage:2,work:PROJ-7")
+    expect(parsed?.fields.dependsOn).toEqual(["1", "slash-usage:2", "work:PROJ-7"])
+    expect(parsed?.diagnostics).toEqual([])
+  })
 })
 
 describe("formatMetadataLine", () => {

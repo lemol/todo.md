@@ -1,4 +1,4 @@
-import type { TaskId } from "../spec/index.ts"
+import { parseRef, type TaskId } from "../spec/index.ts"
 
 const digits = /^\d+$/
 
@@ -8,6 +8,16 @@ export const isId = (value: string): boolean => digits.test(value)
 /** The model form of an ID: digits without leading zeros (`"07"` → `"7"`). */
 export const parseId = (value: string): TaskId | undefined =>
   digits.test(value) ? value.replace(/^0+(?=\d)/, "") : undefined
+
+/**
+ * The model form of a dependency entry: digits (`"07"` → `"7"`) or a
+ * qualified `<project>:<id>` foreign reference, kept unchanged.
+ */
+export const parseDependencyId = (value: string): TaskId | undefined => {
+  const ref = parseRef(value)
+  if (ref.project !== undefined) return value
+  return parseId(value)
+}
 
 /** The written form of an ID: zero-padded to at least 2 digits (`"7"` → `"07"`). */
 export const formatId = (id: TaskId): string => id.padStart(2, "0")

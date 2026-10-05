@@ -2,7 +2,7 @@ import { DateTime, Option } from "effect"
 import { type Comment, type Diagnostic, type TaskId, unique } from "../spec/index.ts"
 import { headingText, lineSpan, parseAst } from "./ast.ts"
 import { formatFrontmatter, readFrontmatter, setFrontmatterFields } from "./frontmatter.ts"
-import { parseId } from "./ids.ts"
+import { parseDependencyId } from "./ids.ts"
 import { isBlank, joinLines, type Lines, spliceLines, splitLines, trimBlock } from "./lines.ts"
 
 /** What a task file holds (spec §2.6). */
@@ -122,7 +122,7 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
     typeof value === "number" && Number.isSafeInteger(value) && value >= 0
       ? String(value)
       : typeof value === "string"
-        ? parseId(value)
+        ? parseDependencyId(value)
         : undefined,
   )
   const completedText = stringField("completed_at")
@@ -189,6 +189,7 @@ const commentLines = (comment: Comment): string[] => [
 ]
 
 /** The frontmatter entries of `content`, in canonical order (spec §2.6). */
+const toYamlId = (id: TaskId): number | string => (/^\d+$/.test(id) ? Number(id) : id)
 const entries = (content: Partial<TaskFileContent>): Array<readonly [string, unknown]> => [
   ...(content.title === undefined ? [] : [["title", content.title] as const]),
   ...(content.tags === undefined || content.tags.length === 0
@@ -197,7 +198,7 @@ const entries = (content: Partial<TaskFileContent>): Array<readonly [string, unk
   ...(content.assignee === undefined ? [] : [["assignee", content.assignee] as const]),
   ...(content.dependsOn === undefined || content.dependsOn.length === 0
     ? []
-    : [["depends_on", content.dependsOn.map(Number)] as const]),
+    : [["depends_on", content.dependsOn.map(toYamlId)] as const]),
   ...Object.entries(content.extra ?? {}).filter(([key]) => !standardKeys.has(key)),
   ...(content.group === undefined ? [] : [["group", content.group] as const]),
   ...(content.completedAt === undefined
@@ -259,7 +260,7 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
     fields.tags = changes.tags.length === 0 ? undefined : [...changes.tags]
   if (changes.assignee !== undefined) fields.assignee = changes.assignee ?? undefined
   if (changes.dependsOn !== undefined) {
-    fields.depends_on = changes.dependsOn.length === 0 ? undefined : changes.dependsOn.map(Number)
+    fields.depends_on = changes.dependsOn.length === 0 ? undefined : changes.dependsOn.map(toYamlId)
   }
   if (changes.extra !== undefined) {
     for (const key of Object.keys(current.extra)) fields[key] = undefined

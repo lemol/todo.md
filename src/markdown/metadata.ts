@@ -1,6 +1,6 @@
 import { parse as parseYaml } from "yaml"
 import { type Diagnostic, type TaskId, unique } from "../spec/index.ts"
-import { parseId } from "./ids.ts"
+import { parseDependencyId } from "./ids.ts"
 
 /** The fields a metadata line can carry (spec §2.5). */
 export interface InlineFields {
@@ -75,7 +75,7 @@ export const parseMetadataLine = (line: string): ParsedMetadata | undefined => {
     } else if (key === "assignee") {
       assignees.push(value)
     } else if (key === "depends_on") {
-      const ids = value.split(",").map(parseId)
+      const ids = value.split(",").map(parseDependencyId)
       if (ids.every((id) => id !== undefined)) {
         dependsOn.push(...ids)
       } else {
