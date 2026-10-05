@@ -33,6 +33,7 @@ export const syncAllAction =
       const back = backOf(context, routes.dashboard.href())
       const outcomes = await options.runtime.runPromise(Effect.flatMap(Hub, (hub) => hub.syncAll()))
       const failed = outcomes.some((outcome) => "error" in outcome)
+
       setFlash(context, {
         message: syncSummary(outcomes),
         tone: failed ? "error" : "info",

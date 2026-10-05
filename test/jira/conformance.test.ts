@@ -51,6 +51,7 @@ const layer: Layer.Layer<TodoStore> = Layer.effect(
 
     yield* sync
     const store = Context.get(yield* Layer.build(source.open(project)), TodoStore)
+
     behind.set(store, { jira, sync, next: 1 })
 
     return store
@@ -69,6 +70,7 @@ const seed = (tasks: ReadonlyArray<SeedTask>) =>
 
     const now = DateTime.formatIso(yield* DateTime.now)
     const keys = tasks.map(() => `PROJ-${fixture.next++}`)
+
     tasks.forEach((task, index) => {
       fixture.jira.put(
         anIssue(keys[index] ?? "", {

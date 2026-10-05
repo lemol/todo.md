@@ -47,6 +47,7 @@ describe("slugOf", () => {
 describe("taskFromIssue: the task itself", () => {
   test("takes the id from the key and the title from the summary", () => {
     const task = map(issue())
+
     expect(task.id).toBe("PROJ-7")
     expect(task.title).toBe("Rework auth")
   })
@@ -84,6 +85,7 @@ describe("taskFromIssue: the task itself", () => {
 
   test("slugs the assignee and keeps the display name in extra", () => {
     const task = map(issue({ assignee: { accountId: "5b10a2", displayName: "Ana Silva" } }))
+
     expect(task.assignee).toBe("ana-silva")
     expect(task.extra.assignee_name).toBe("Ana Silva")
     expect(task.extra.assignee_account).toBe("5b10a2")
@@ -91,6 +93,7 @@ describe("taskFromIssue: the task itself", () => {
 
   test("has no assignee when the issue is unassigned", () => {
     const task = map(issue({ assignee: null }))
+
     expect(task.assignee).toBeUndefined()
     expect(task.extra.assignee_name).toBeUndefined()
   })

@@ -186,10 +186,12 @@ export const promote = Command.make(
   Effect.fn(function* ({ id }) {
     const ref = refOf(id)
     const refProject = yield* projectOfRefs([ref])
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const task = yield* todo.promote(ref.id)
+
           yield* output(project, task, () => [`${label(task)} now has its own file`])
           yield* warnUnpushed(project)
         }),
@@ -377,11 +379,13 @@ export const done = Command.make(
   Effect.fn(function* ({ ids }) {
     const refs = ids.map(refOf)
     const refProject = yield* projectOfRefs(refs)
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const completions = yield* Effect.forEach(refs, (ref) => todo.complete(ref.id))
           const cross = yield* newlyReadyInOtherProjects(refs, project.name)
+
           yield* output(project, completions, (style) =>
             renderCompletions(completions, style, cross),
           )
@@ -415,10 +419,12 @@ export const cancel = Command.make(
     const ref = refOf(id)
     const text = yield* textOf("reason", reason)
     const refProject = yield* projectOfRefs([ref])
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const cancelled = yield* todo.cancel(ref.id, text)
+
           yield* output(project, cancelled, (style) => renderCancellation(cancelled, style))
           yield* warnUnpushed(project)
         }),
@@ -447,10 +453,12 @@ export const reopen = Command.make(
   Effect.fn(function* ({ id }) {
     const ref = refOf(id)
     const refProject = yield* projectOfRefs([ref])
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const task = yield* todo.reopen(ref.id)
+
           yield* output(project, task, () => [`Reopened ${label(task)}`])
           yield* warnUnpushed(project)
         }),
@@ -503,6 +511,7 @@ export const mv = Command.make(
     const before = Option.map(flags.before, refOf)
     const after = Option.map(flags.after, refOf)
     const refProject = yield* projectOfRefs([id])
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
@@ -574,6 +583,7 @@ export const rm = Command.make(
   Effect.fn(function* ({ id, force }) {
     const ref = refOf(id)
     const refProject = yield* projectOfRefs([ref])
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
@@ -609,10 +619,12 @@ export const comment = Command.make(
     const refProject = yield* projectOfRefs([ref])
     const by = yield* author(flags.author)
     const body = yield* wordsText("comment", flags.text)
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const added = yield* todo.comment(ref.id, { author: by, body })
+
           yield* output(project, added, () => [`Commented on ${showId(ref.id)}`])
           yield* warnUnpushed(project)
         }),

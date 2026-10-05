@@ -27,6 +27,7 @@ describe("changes", () => {
       const watchers = yield* makeWatchers
       const hub = yield* hubOn([memorySource({ kind: "probe", changes: watchers.changes })])
       const { events, first } = yield* listen(hub, watchers.started)
+
       expect(first).toBe("probe")
       yield* watchers.emit("probe")
       expect(yield* Queue.take(events)).toEqual({ kind: "changed", project: "probe" })
@@ -39,10 +40,12 @@ describe("changes", () => {
     Effect.gen(function* () {
       const watchers = yield* makeWatchers
       const hub = yield* hubOn([memorySource({ kind: "probe", changes: watchers.changes })])
+
       yield* (yield* hub.todo("probe")).add({ title: "Unwatched" })
       yield* hub.projects()
       expect(yield* Queue.size(watchers.started)).toBe(0)
       const { fiber, first } = yield* listen(hub, watchers.started)
+
       expect(first).toBe("probe")
       yield* Fiber.interrupt(fiber)
       expect(yield* Queue.take(watchers.stopped)).toBe("probe")
@@ -60,6 +63,7 @@ describe("changes", () => {
       ])
 
       const { events } = yield* listen(hub, watchers.started)
+
       yield* (yield* hub.todo("probe")).add({ title: "Watched by its source" })
       yield* (yield* hub.todo("m")).add({ title: "Reported by the hub" })
       expect(yield* Queue.take(events)).toEqual({ kind: "changed", project: "m" })
@@ -74,6 +78,7 @@ describe("changes", () => {
       const watchers = yield* makeWatchers
       const hub = yield* hubOn([memorySource({ kind: "probe", changes: watchers.changes })])
       const { events } = yield* listen(hub, watchers.started)
+
       yield* hub.add({ name: "two", source: "probe", config: {} })
       expect(yield* Queue.take(watchers.started)).toBe("two")
       expect(yield* Queue.take(events)).toEqual({ kind: "registry" })
@@ -109,12 +114,14 @@ describe("changes", () => {
       ])
 
       const subscription = yield* Effect.timeoutOption(hub.subscribeChanges, "1 second")
+
       expect(yield* Queue.size(brokenStarted)).toBe(1)
       expect(Option.isSome(subscription)).toBe(true)
 
       if (Option.isNone(subscription)) return
 
       const events = yield* Queue.unbounded<HubChange>()
+
       yield* subscription.value.pipe(
         Stream.runForEach((change) => Queue.offer(events, change)),
         Effect.forkScoped,
@@ -134,6 +141,7 @@ describe("changes", () => {
       ]
 
       const events = yield* Queue.unbounded<HubChange>()
+
       yield* watching.changes.pipe(
         Stream.runForEach((change) => Queue.offer(events, change)),
         Effect.forkScoped,
@@ -156,6 +164,7 @@ describe("changes", () => {
       const disk = yield* Disk
       const hub = yield* hubOn([fsSource])
       const events = yield* Queue.unbounded<HubChange>()
+
       yield* hub.changes.pipe(
         Stream.runForEach((change) => Queue.offer(events, change)),
         Effect.forkScoped,
@@ -190,6 +199,7 @@ describe("changes", () => {
       }
 
       const hub = yield* hubOn([source])
+
       yield* hub.changes.pipe(Stream.runDrain, Effect.forkScoped)
       yield* hub.todo("m")
       const seen = yield* eventually(

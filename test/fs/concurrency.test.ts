@@ -23,6 +23,7 @@ test("concurrent changes from separate stores do not lose writes", () =>
         { concurrency: "unbounded" },
       )
       const ids = (yield* store.load()).ungrouped.map((task) => Number(task.id))
+
       expect(ids.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     }).pipe(Effect.provide(listWith({ "TODO.md": md("# T") }))),
   ))

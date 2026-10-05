@@ -15,6 +15,7 @@ describe("normalize", () => {
     )
 
     const result = normalize(todo, { usedIds: ["12"], titles: new Map() })
+
     expect(result.assigned).toEqual(["13", "14"])
     expect(result.text).toBe(
       md(
@@ -30,6 +31,7 @@ describe("normalize", () => {
   test("records checked items that already had IDs", () => {
     const todo = parseTodoFile(md("- [x] 03 - A", "- [ ] 04 - B"))
     const result = normalize(todo, { usedIds: [], titles: new Map() })
+
     expect(result.assigned).toEqual([])
     expect(result.checked).toEqual(["3"])
   })
@@ -37,6 +39,7 @@ describe("normalize", () => {
   test("assigns sequential IDs from 1 when there are no used IDs", () => {
     const todo = parseTodoFile(md("- [ ] First", "- [ ] Second", "- [ ] Third"))
     const result = normalize(todo, { usedIds: [], titles: new Map() })
+
     expect(result.assigned).toEqual(["1", "2", "3"])
     expect(result.text).toBe(md("- [ ] 01 - First", "- [ ] 02 - Second", "- [ ] 03 - Third"))
   })
@@ -44,6 +47,7 @@ describe("normalize", () => {
   test("syncs link text with task file titles", () => {
     const todo = parseTodoFile(md("- [ ] [07 - Old title](./07-add-rate-limiting.md)"))
     const titles = new Map([["07-add-rate-limiting.md", "Add rate limiting"]])
+
     expect(normalize(todo, { usedIds: [], titles }).text).toBe(
       md("- [ ] [07 - Add rate limiting](./07-add-rate-limiting.md)"),
     )
@@ -52,6 +56,7 @@ describe("normalize", () => {
   test("leaves a normalized list untouched", () => {
     const text = md("# T", "", "* [ ] 3 - Kept as written", "  #tag")
     const result = normalize(parseTodoFile(text), { usedIds: [], titles: new Map() })
+
     expect(result).toEqual({ text, assigned: [], checked: [] })
   })
 })

@@ -43,6 +43,7 @@ describe("parseMetadataLine", () => {
 
   test("reports reserved fields, several assignees and invalid dependencies", () => {
     const parsed = parseMetadataLine("title:x @a @b depends_on:x")
+
     expect(parsed?.diagnostics.map((d) => d.code)).toEqual([
       "reserved-field",
       "invalid-metadata",
@@ -55,18 +56,21 @@ describe("parseMetadataLine", () => {
 
   test("reports outcome and cancelled_reason as reserved fields", () => {
     const parsed = parseMetadataLine("outcome:cancelled cancelled_reason:x")
+
     expect(parsed?.diagnostics.map((d) => d.code)).toEqual(["reserved-field", "reserved-field"])
     expect(parsed?.fields.extra).toEqual({})
   })
 
   test("accepts qualified foreign task IDs in depends_on", () => {
     const parsed = parseMetadataLine("#bug depends_on:1,slash-usage:2,work:PROJ-7")
+
     expect(parsed?.fields.dependsOn).toEqual(["1", "slash-usage:2", "work:PROJ-7"])
     expect(parsed?.diagnostics).toEqual([])
   })
 
   test("normalizes padded numeric IDs in qualified depends_on", () => {
     const parsed = parseMetadataLine("#bug depends_on:upstream:01,work:PROJ-07")
+
     expect(parsed?.fields.dependsOn).toEqual(["upstream:1", "work:PROJ-07"])
     expect(parsed?.diagnostics).toEqual([])
   })
@@ -82,6 +86,7 @@ describe("formatMetadataLine", () => {
     }
 
     const line = formatMetadataLine(fields)
+
     expect(line).toBe("#bug @lemol depends_on:1,2 estimate:3 size:m")
     expect(parseMetadataLine(line)?.fields).toEqual(fields)
   })

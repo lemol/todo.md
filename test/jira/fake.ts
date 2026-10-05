@@ -139,6 +139,7 @@ const project = (issue: RawIssue, fields: ReadonlyArray<string>, commentPageSize
     }
 
     const comments = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []
+
     picked.comment = {
       startAt: 0,
       maxResults: commentPageSize,
@@ -250,6 +251,7 @@ export const makeFakeJira = (
 
       if (path === "/search/jql") {
         const jql = url.searchParams.get("jql") ?? ""
+
         searches.push(jql)
         const matching = [...issues.values()].filter((issue) => isDone(issue) === asksForDone(jql))
         const from = Number(url.searchParams.get("nextPageToken") ?? "0")
@@ -317,6 +319,7 @@ export const makeFakeJira = (
             }
 
             const existing = (issue.fields.comment as ReadonlyArray<unknown> | undefined) ?? []
+
             edited({ comment: [...existing, created] })
 
             return answer(201, created)

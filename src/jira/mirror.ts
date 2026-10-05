@@ -79,6 +79,7 @@ const write = (dir: string, mirror: Mirror): Effect.Effect<void, StoreError, Sou
 
     const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
     const temporary = `${file}.${token.toString(36)}.tmp`
+
     yield* fs.makeDirectory(dir, { recursive: true }).pipe(
       Effect.andThen(fs.writeFileString(temporary, `${text}\n`)),
       Effect.andThen(fs.rename(temporary, file)),
@@ -146,6 +147,7 @@ export const patchMirror = (dir: string, task: Task): Effect.Effect<void, StoreE
 
       const now = yield* DateTime.now
       const next = placed(current.value, task)
+
       yield* write(dir, { ...next, patched: { ...current.value.patched, [task.id]: now } })
     }),
   )
@@ -183,6 +185,7 @@ export const writeMirror = (
       }, mirror)
 
       const { patched: _, ...rest } = merged
+
       yield* write(dir, newer.length === 0 ? rest : { ...rest, patched: Object.fromEntries(newer) })
     }),
   )

@@ -37,6 +37,7 @@ export const init = Command.make(
     const fallback = Option.getOrElse(yield* Dir, () => "todo")
     const target = Option.getOrElse(dir, () => fallback)
     const root = path.resolve(cwd, target)
+
     yield* initList(root, { title: Option.getOrElse(title, () => path.basename(cwd)) })
     yield* output(undefined, { root }, () => [
       `Created ${path.join(path.relative(cwd, root), "TODO.md")}`,
@@ -105,6 +106,7 @@ export const fmt = Command.make(
     if (Option.isNone(root)) return yield* new NoListFound({ cwd: info.location })
 
     const report = yield* FsTodoStore.normalize(root.value)
+
     yield* output(info, report, () => [summarize(report)])
   }),
 ).pipe(

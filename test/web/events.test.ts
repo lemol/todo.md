@@ -4,6 +4,7 @@ import { makeWatchers } from "../hub/helpers.ts"
 import { makeRouter } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
+
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
@@ -12,6 +13,7 @@ test("emits a changed event for the source change and unsubscribes on abort", as
   const watchers = await Effect.runPromise(makeWatchers)
   const harness = await makeRouter({ changes: watchers.changes })
   const { hubRuntime } = harness
+
   cleanup.push(async () => {
     await harness.close()
   })
@@ -25,6 +27,7 @@ test("emits a changed event for the source change and unsubscribes on abort", as
 
   expect(response.headers.get("content-type")).toContain("text/event-stream")
   const body = response.body
+
   expect(body).not.toBeNull()
 
   if (body === null) throw new Error("expected SSE response body")
@@ -35,6 +38,7 @@ test("emits a changed event for the source change and unsubscribes on abort", as
   // watcher; emit immediately to prove the public boundary has no first-event race.
   await hubRuntime.runPromise(watchers.emit("acme"))
   const event = await reader.read()
+
   expect(event.done).toBe(false)
   expect(new TextDecoder().decode(event.value)).toBe('event: changed\ndata: {"project":"acme"}\n\n')
 

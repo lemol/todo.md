@@ -49,6 +49,7 @@ export const git = (cwd: string, ...args: string[]): string => {
 export const writeIn = (repo: string, files: Readonly<Record<string, string>>): void => {
   for (const [relative, text] of Object.entries(files)) {
     const file = join(repo, relative)
+
     mkdirSync(dirname(file), { recursive: true })
     writeFileSync(file, text)
   }
@@ -115,12 +116,15 @@ const templateFor = (files: Readonly<Record<string, string>>): string => {
   if (templateHome === undefined) {
     templateHome = mkdtempSync(join(tmpdir(), "todo-md-git-templates-"))
     const home = templateHome
+
     process.on("exit", () => rmSync(home, { recursive: true, force: true }))
   }
 
   const remote = join(templateHome, `remote-${templates.size}.git`)
+
   git(templateHome, "init", "--bare", `--initial-branch=${defaultBranch}`, remote)
   const seed = join(templateHome, `seed-${templates.size}`)
+
   git(templateHome, "clone", remote, seed)
   writeIn(seed, files)
   commitAndPush(seed, "seed")
@@ -140,6 +144,7 @@ export const remoteIn = (
   name = "remote.git",
 ): string => {
   const remote = join(root, name)
+
   cpSync(templateFor(files), remote, { recursive: true })
 
   return remote
@@ -164,6 +169,7 @@ export const fixture = (options: FixtureOptions = {}): Layer.Layer<GitFixture, n
       const remote = seededRemote(root, options.files ?? { "TODO.md": md("# Conformance") })
       const name = options.name ?? "repo"
       const dir = join(root, "home", "projects", name)
+
       mkdirSync(dir, { recursive: true })
       const source = gitSourceWith(yield* makeGit({ env: {} }))
       const config: GitConfig = {
@@ -187,6 +193,7 @@ export const fixture = (options: FixtureOptions = {}): Layer.Layer<GitFixture, n
         project,
         other: (label = "other") => {
           const path = join(root, label)
+
           git(root, "clone", remote, path)
 
           return path

@@ -16,6 +16,7 @@ describe("normalizeList", () => {
     "numbers new items, syncs link text and completes ticked items",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* TestClock.setTime(Date.parse("2026-09-12T10:31:00Z"))
       expect(yield* normalizeDisk).toEqual({ assigned: ["4"], finished: [], swept: ["2"] })
       expect(yield* disk.read("TODO.md")).toBe(
@@ -56,6 +57,7 @@ describe("normalizeList", () => {
     "finishes an interrupted completion",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       expect(yield* normalizeDisk).toEqual({ assigned: [], finished: ["2"], swept: [] })
       expect(yield* disk.tree()).toEqual(["TODO.md", "done/backend/02-add-rate-limiting.md"])
       expect(yield* disk.read("TODO.md")).toBe(md("## Backend"))
@@ -75,6 +77,7 @@ describe("normalizeList", () => {
     "sweeps file-backed checked items to done and removes their task file",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* TestClock.setTime(Date.parse("2026-09-12T10:31:00Z"))
       expect(yield* normalizeDisk).toEqual({ assigned: [], finished: [], swept: ["2"] })
       expect(yield* disk.read("TODO.md")).toBe(md("## Backend"))
@@ -105,6 +108,7 @@ describe("normalizeList", () => {
     "changes nothing in a normalized list",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       expect(yield* normalizeDisk).toEqual({ assigned: [], finished: [], swept: [] })
       expect(yield* disk.read("TODO.md")).toBe(md("# T", "", "- [ ] 01 - A"))
       expect(yield* disk.tree()).toEqual(["TODO.md"])

@@ -10,6 +10,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const task = yield* store.add({ title: "Write changelog" })
+
       equal(task.title, "Write changelog")
       equal(task.status, "open")
       equal(task.description, "")
@@ -40,6 +41,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
       })
 
       const stored = yield* store.get(task.id)
+
       equal(stored.description, "Token bucket per API key.")
       equal(stored.tags, ["api", "security"])
       equal(stored.assignee, "lemol")
@@ -55,6 +57,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
       const a = yield* store.add({ title: "A" })
       const b = yield* store.add({ title: "B" })
       const c = yield* store.add({ title: "C" })
+
       equal(new Set([a.id, b.id, c.id]).size, 3)
       equal(yield* layout, [["", [a.id, b.id, c.id]]])
     }),
@@ -65,6 +68,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const task = yield* store.add({ title: "Tagged", tags: ["api", "security", "api"] })
+
       equal((yield* store.get(task.id)).tags, ["api", "security"])
     }),
   },
@@ -73,6 +77,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
     requires: ["add"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       yield* failsWith(store.add({ title: "" }), "ValidationError")
       yield* failsWith(store.add({ title: "two\nlines" }), "ValidationError")
       yield* failsWith(store.add({ title: "Tagged", tags: [""] }), "ValidationError")
@@ -87,6 +92,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
       const a = yield* store.add({ title: "A" }, { group: "Backend" })
       const b = yield* store.add({ title: "B" }, { group: "Frontend" })
       const c = yield* store.add({ title: "C" }, { group: "Backend" })
+
       equal(c.group, "Backend")
       equal(yield* layout, [
         ["", []],
@@ -104,6 +110,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
       const c = yield* store.add({ title: "C" })
       const b = yield* store.add({ title: "B" }, { after: a.id })
       const z = yield* store.add({ title: "Z" }, { before: a.id })
+
       equal(yield* layout, [["", [z.id, a.id, b.id, c.id]]])
     }),
   },
@@ -114,6 +121,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" }, { group: "Backend" })
       const b = yield* store.add({ title: "B" }, { before: a.id })
+
       equal(b.group, "Backend")
       yield* failsWith(
         store.add({ title: "C" }, { group: "Frontend", before: a.id }),
@@ -131,6 +139,7 @@ export const addingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const a = yield* store.add({ title: "A" })
+
       yield* failsWith(store.add({ title: "B" }, { after: "does-not-exist" }), "TaskNotFound")
       yield* failsWith(store.add({ title: "B" }, { before: a.id, after: a.id }), "ValidationError")
       equal(yield* layout, [["", [a.id]]])

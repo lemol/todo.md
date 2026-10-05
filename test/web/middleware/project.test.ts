@@ -43,9 +43,11 @@ class FakeContext {
 
 test("loads the project's runtime, capabilities and info onto the context", async () => {
   const { runtime, home } = makeHubRuntime()
+
   await runtime.runPromise(
     Effect.gen(function* () {
       const hub = yield* Hub
+
       yield* hub.add({ name: "m", source: "memory", config: {} })
     }),
   )

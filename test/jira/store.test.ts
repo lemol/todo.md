@@ -37,6 +37,7 @@ describe("the Jira store: reading", () => {
       (store) =>
         Effect.gen(function* () {
           const list = yield* store.load()
+
           expect(list.title).toBe("work")
           expect(list.description).toBe("")
           expect(list.groups).toEqual([])
@@ -73,6 +74,7 @@ describe("the Jira store: reading", () => {
     opened([anIssue("PROJ-1", { summary: "From the mirror" })], (store, { jira }) =>
       Effect.gen(function* () {
         const before = jira.requests.length
+
         expect((yield* store.get("PROJ-1")).title).toBe("From the mirror")
         expect(jira.requests.length).toBe(before)
       }),
@@ -85,6 +87,7 @@ describe("the Jira store: reading", () => {
     opened([], (store) =>
       Effect.sync(() => {
         const allowed = Object.entries(store.capabilities).filter(([, on]) => on)
+
         expect(allowed.map(([name]) => name)).toEqual(["comments"])
       }),
     ),
@@ -139,6 +142,7 @@ describe("the Jira store: get", () => {
       (store) =>
         Effect.gen(function* () {
           const task = yield* store.get("PROJ-5")
+
           expect(task.comments.map((one) => one.body)).toEqual(["Note 3", "Note 2", "Note 1"])
         }),
       { fake: { commentPageSize: 1 } },
@@ -190,6 +194,7 @@ describe("the Jira store: complete and reopen", () => {
     opened([anIssue("PROJ-1"), anIssue("PROJ-2")], (store, { jira, dir }) =>
       Effect.gen(function* () {
         const done = yield* store.complete("PROJ-1")
+
         expect(done.status).toBe("done")
         expect(done.outcome).toBe("completed")
         expect(done.completedAt).toBeDefined()
@@ -225,6 +230,7 @@ describe("the Jira store: complete and reopen", () => {
       Effect.gen(function* () {
         jira.workflow("To Do", [{ id: "21", name: "Start", to: statuses.inProgress }])
         const error = yield* Effect.flip(store.complete("PROJ-1"))
+
         expect(error._tag).toBe("StoreError")
         expect(error.message).toContain("available: Start")
         expect(error.message).toContain("done_transition")
@@ -242,6 +248,7 @@ describe("the Jira store: complete and reopen", () => {
       (store) =>
         Effect.gen(function* () {
           const error = yield* Effect.flip(store.complete("PROJ-1"))
+
           expect(error.message).toContain("no transition is named Ship it")
           expect(error.message).toContain("available: Start, Done")
         }),
@@ -268,6 +275,7 @@ describe("the Jira store: complete and reopen", () => {
       (store, { jira, dir }) =>
         Effect.gen(function* () {
           const reopened = yield* store.reopen("PROJ-1")
+
           expect(reopened.status).toBe("open")
           expect(reopened.completedAt).toBeUndefined()
           expect(yield* sides(dir)).toEqual({ open: ["PROJ-1"], done: ["PROJ-2"] })
@@ -322,12 +330,14 @@ describe("the Jira store: update", () => {
     opened([anIssue("PROJ-1", { labels: ["old"] })], (store, { jira, dir }) =>
       Effect.gen(function* () {
         const updated = yield* store.update("PROJ-1", { title: "Renamed", tags: ["a", "b", "a"] })
+
         expect(updated.title).toBe("Renamed")
         expect(updated.tags).toEqual(["a", "b"])
         expect(writes(jira).map((request) => [request.method, request.body])).toEqual([
           ["PUT", { fields: { summary: "Renamed", labels: ["a", "b"] } }],
         ])
         const mirror = Option.getOrThrow(yield* readMirror(dir))
+
         expect(mirror.open.map((task) => task.title)).toEqual(["Renamed"])
       }),
     ),
@@ -346,6 +356,7 @@ describe("the Jira store: update", () => {
         Effect.gen(function* () {
           const before = jira.requests.length
           const error = yield* Effect.flip(store.update("PROJ-1", { title: "New", ...patch }))
+
           expect(error._tag).toBe("ValidationError")
           expect(error._tag === "ValidationError" ? error.issues : []).toEqual([
             `${field} is read-only for Jira projects`,
@@ -389,6 +400,7 @@ describe("the Jira store: comment", () => {
           },
         ])
         const mirror = Option.getOrThrow(yield* readMirror(dir))
+
         expect(mirror.open[0]?.comments.map((one) => one.author)).toEqual(["test-user"])
       }),
     ),
@@ -444,11 +456,13 @@ describe("the Jira store: read-only", () => {
 
           for (const call of calls) {
             const error = yield* Effect.flip(call)
+
             expect(error._tag).toBe("StoreError")
             expect(error.message).toContain("work is read-only (read_only")
           }
 
           const comment = yield* Effect.flip(store.comment("PROJ-1", { author: "me", body: "Hi." }))
+
           expect(comment._tag).toBe("Unsupported")
           expect(jira.requests.length).toBe(before)
           expect(yield* sides(dir)).toEqual({ open: ["PROJ-1"], done: ["PROJ-2"] })

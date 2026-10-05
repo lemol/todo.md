@@ -44,6 +44,7 @@ const seed = (tasks: ReadonlyArray<SeedTask>) =>
     for (const task of tasks) {
       const { placement, done, ...input } = task
       const added = yield* base.add(input, placement)
+
       created.push(done === true ? yield* base.complete(added.id) : added)
     }
 

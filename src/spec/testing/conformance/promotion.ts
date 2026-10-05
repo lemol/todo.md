@@ -23,6 +23,7 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
       })
 
       const before = yield* store.get(id)
+
       equal(yield* store.promote(id), before)
       equal(yield* store.get(id), before)
     }),
@@ -35,6 +36,7 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
       const store = yield* TodoStore
       const [{ id }] = yield* given({ title: "Rotate the token" })
       const promoted = yield* store.promote(id)
+
       equal(yield* store.promote(id), promoted)
     }),
   },
@@ -46,6 +48,7 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
       const store = yield* TodoStore
       const [task] = yield* given({ title: "Ship it" })
       const done = yield* store.complete(task.id)
+
       equal(yield* store.promote(task.id), done)
     }),
   },
@@ -54,6 +57,7 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
     requires: ["promote"],
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       yield* failsWith(store.promote("does-not-exist"), "TaskNotFound")
     }),
   },
@@ -66,6 +70,7 @@ export const promotionCases: ReadonlyArray<ConformanceCase> = [
       if (store.capabilities.promote) return
 
       const [task] = yield* given({ title: "Task" })
+
       yield* failsWith(store.promote(task.id), "Unsupported")
     }),
   },

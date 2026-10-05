@@ -81,6 +81,7 @@ export const makeChanges = (
             // Acquire the source stream before announcing readiness. This makes
             // the hub subscription handshake observable to callers.
             const pull = yield* Stream.toPull(project.changes)
+
             yield* Deferred.succeed(ready, undefined)
             yield* Stream.runForEach(Stream.fromPull(Effect.succeed(pull)), () =>
               publish({ kind: "changed", project: project.name }),
@@ -113,6 +114,7 @@ export const makeChanges = (
 
             keys.set(project.name, project.key)
             const ready = yield* Deferred.make<void>()
+
             yield* FiberMap.run(fibers, project.name, { startImmediately: true })(
               watch(project, ready),
             )
@@ -153,6 +155,7 @@ export const makeChanges = (
     const subscribe = Effect.gen(function* () {
       // Subscribe before starting watchers, so their first events are not missed.
       const subscription = yield* PubSub.subscribe(pubsub)
+
       yield* RcRef.get(watchers)
 
       return Stream.fromSubscription(subscription)

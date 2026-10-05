@@ -66,6 +66,7 @@ describe("setFrontmatterFields", () => {
 
   test("replaces a multi-line value", () => {
     const block = ["tags:", "  - api", "  - security", "title: X"].join("\n")
+
     expect(setFrontmatterFields(block, { tags: ["bug"] })).toEqual(["tags: [bug]", "title: X"])
   })
 

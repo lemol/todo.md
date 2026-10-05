@@ -57,6 +57,7 @@ test("maps typed failures but lets defects reject", async () => {
 
   const context = { get: () => fakeRuntime }
   const typed = await runTodo(context, () => Effect.fail(new TaskNotFound({ id: "7" })))
+
   expect(typed).toEqual({ ok: false, error: expect.any(TaskNotFound) })
 
   await expect(runTodo(context, () => Effect.die("boom"))).rejects.toBe("boom")

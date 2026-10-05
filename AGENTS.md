@@ -54,8 +54,8 @@ bun src/cli/bin.ts web --dir todo  # run the local web app
 - **Minimal diffs.** Writers must produce minimal diffs (spec §2.10): splice
   text, never re-serialize a whole Markdown file.
 - **Blank lines carry structure.** Separate value consts from function
-  consts; leave a blank line after a multi-line const, around every `if`,
-  loop, `switch` and `try`, and before `return`. An `if` whose body spans
+  consts; leave a blank line after a multi-line const and between consts
+  and a following call, around every `if`, loop, `switch` and `try`, and before `return`. An `if` whose body spans
   lines takes braces; a one-line `if (x) return y` does not. oxlint enforces
   this (`.oxlintrc.json`, local rules in `lint/style.js`) and oxfmt formats
   (`.oxfmtrc.json`); `bun run fix` applies both.

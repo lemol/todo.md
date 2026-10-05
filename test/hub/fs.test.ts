@@ -22,6 +22,7 @@ describe("fsSource", () => {
     "finds the list at path/todo first, then at path, without walking up",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       expect(yield* inBun(listRootOf(`${root}/both`))).toEqual(Option.some(`${root}/both/todo`))
       expect(yield* inBun(listRootOf(`${root}/flat`))).toEqual(Option.some(`${root}/flat`))
       expect(yield* inBun(listRootOf(`${root}/flat/src`))).toEqual(Option.none())
@@ -60,6 +61,7 @@ describe("fsSource.changes", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const events = yield* Queue.unbounded<void>()
+
       yield* changesOf(disk.root).pipe(
         Stream.runForEach(() => Queue.offer(events, undefined)),
         Effect.provide(BunServices.layer),
@@ -97,6 +99,7 @@ describe("fsSource.changes", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const events = yield* Queue.unbounded<void>()
+
       yield* watchList(disk.root, { ignore: (path) => path.split(/[\\/]/).includes(".git") }).pipe(
         Stream.runForEach(() => Queue.offer(events, undefined)),
         Effect.provide(BunServices.layer),

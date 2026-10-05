@@ -93,6 +93,7 @@ export const assetOptions = (rootDir: string, remixPackageDir: string, uiPackage
   ]
 
   const uniqueContainers = [...new Set(containers)]
+
   uniqueContainers.forEach((dir, index) => {
     mounts[index === 0 ? "npm" : `npm${index + 1}`] = relative(base, dir)
   })

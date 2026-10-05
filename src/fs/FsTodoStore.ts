@@ -249,6 +249,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
 
                 yield* ensureAcyclic([...allTasks(snapshot), task])
                 const lines = yield* itemLinesFor(files, snapshot.todo.config, task)
+
                 yield* writeTodo(insertItem(snapshot.todo, target.group, target.index, lines))
 
                 return task
@@ -263,6 +264,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             mutate((snapshot) =>
               Effect.gen(function* () {
                 const updated = applyPatch(yield* findTask(snapshot, id), valid)
+
                 yield* ensureAcyclic(
                   allTasks(snapshot).map((task) => (task.id === id ? updated : task)),
                 )
@@ -282,6 +284,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
 
                 if (!item.linked) {
                   const lines = yield* itemLinesFor(files, snapshot.todo.config, updated)
+
                   yield* writeTodo(replaceItem(snapshot.todo, item, lines))
                 } else if (item.path !== undefined) {
                   yield* files.write(
@@ -329,6 +332,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                   dirname(item.path) === groupDir(tasksDir, entry.section.name)
                 ) {
                   const path = joinPath(groupDir(tasksDir, target.group), basename(item.path))
+
                   yield* files.move(item.path, path)
                   lines = linkedItemFor(task, path)
                 }
@@ -388,6 +392,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             const path = taskPath(snapshot.todo.config.tasksDir, group, id, reopened.title)
             // The done file is the commit point, so it is deleted last (spec §2.10).
             const end = (section ?? snapshot.todo.sections[0])?.items.length ?? 0
+
             yield* writeTodo(insertItem(snapshot.todo, group, end, linkedItemFor(reopened, path)))
             yield* files.write(
               path,
@@ -543,6 +548,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
 
             const path = taskPath(snapshot.todo.config.tasksDir, task.group, task.id, task.title)
             const lines = yield* itemLinesFor(files, snapshot.todo.config, task, path)
+
             yield* writeTodo(replaceItem(snapshot.todo, entry.item, lines))
 
             return task

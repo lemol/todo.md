@@ -15,12 +15,15 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       yield* TestClock.setTime(at)
       const [task] = yield* given({ title: "Ship it" })
       const done = yield* store.complete(task.id)
+
       equal(done.status, "done")
       equal(millis(done.completedAt), at)
       const stored = yield* store.get(task.id)
+
       equal(stored.status, "done")
       equal(millis(stored.completedAt), at)
       equal(yield* layout, [["", []]])
@@ -37,6 +40,7 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [task] = yield* given({ title: "Ship it", placement: { group: "Backend" } })
+
       yield* store.complete(task.id)
       equal((yield* store.get(task.id)).group, "Backend")
     }),
@@ -48,6 +52,7 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
       const store = yield* TodoStore
       const [a] = yield* given({ title: "A" })
       const [b] = yield* given({ title: "B", dependsOn: [a.id] })
+
       yield* store.complete(b.id)
       yield* failsWith(store.complete(b.id), "InvalidTransition")
     }),
@@ -58,6 +63,7 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a, b, c] = yield* given({ title: "A" }, { title: "B" }, { title: "C" })
+
       yield* store.complete(a.id)
       yield* TestClock.adjust("1 minute")
       yield* store.complete(c.id)
@@ -75,8 +81,10 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a, b] = yield* given({ title: "A" }, { title: "B" })
+
       yield* store.complete(a.id)
       const reopened = yield* store.reopen(a.id)
+
       equal(reopened.status, "open")
       equal(reopened.completedAt, undefined)
       equal(yield* layout, [["", [b.id, a.id]]])
@@ -110,6 +118,7 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a, b] = yield* given({ title: "A" }, { title: "B", done: true })
+
       yield* store.remove(a.id)
       yield* store.remove(b.id)
       yield* failsWith(store.get(a.id), "TaskNotFound")
@@ -127,6 +136,7 @@ export const lifecycleCases: ReadonlyArray<ConformanceCase> = [
       if (store.capabilities.remove) return
 
       const [task] = yield* given({ title: "Task" })
+
       yield* failsWith(store.remove(task.id), "Unsupported")
     }),
   },

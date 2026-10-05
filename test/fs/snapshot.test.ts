@@ -19,6 +19,7 @@ describe("readSnapshot", () => {
     "reads items with their task files, done files and the IDs in use",
     Effect.gen(function* () {
       const s = yield* snapshot
+
       expect(s.entries.map(entryTask).map((t) => [t.id, t.title, t.group, t.tags])).toEqual([
         ["1", "Write changelog", undefined, []],
         ["2", "Add rate limiting", "Backend", ["api"]],
@@ -53,6 +54,7 @@ describe("readSnapshot", () => {
     "fails when the list has no TODO.md",
     Effect.gen(function* () {
       const error = yield* Effect.flip(snapshot)
+
       expect(error.message).toContain("no TODO.md")
     }),
     diskWith({}),
@@ -125,6 +127,7 @@ describe("isInterrupted", () => {
     Effect.gen(function* () {
       const s = yield* snapshot
       const [first, second] = s.entries
+
       expect(first && isInterrupted(s, first)).toBe(true)
       expect(second && isInterrupted(s, second)).toBe(false)
     }),

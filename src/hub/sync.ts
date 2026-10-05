@@ -37,6 +37,7 @@ export const makeSyncer = (publish: (change: HubChange) => Effect.Effect<void>) 
     if (existing !== undefined) return existing
 
     const lock = Semaphore.makeUnsafe(1)
+
     locks.set(name, lock)
 
     return lock

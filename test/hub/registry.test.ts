@@ -28,6 +28,7 @@ describe("the registry file", () => {
     "a missing file is an empty registry, and reading creates nothing",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk
+
       expect(yield* registry.entries).toEqual([])
       expect(yield* (yield* Disk).tree()).toEqual([])
     }),
@@ -38,6 +39,7 @@ describe("the registry file", () => {
     "entries come back in file order with their fields",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk
+
       expect(yield* registry.entries).toEqual([
         { name: "a", value: { source: "fs", path: "/code/a" } },
         { name: "b", value: { source: "memory" } },
@@ -50,6 +52,7 @@ describe("the registry file", () => {
     "the first write creates the home and the file",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk
+
       yield* registry.update((edit) => Effect.sync(() => edit.add("app", { source: "memory" })))
       expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
         md("projects:", "  app:", "    source: memory"),
@@ -62,6 +65,7 @@ describe("the registry file", () => {
     "add, rename and delete keep comments and order",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk
+
       yield* registry.update((edit) =>
         Effect.sync(() => {
           edit.add("c", { source: "memory", title: "C" })
@@ -90,6 +94,7 @@ describe("the registry file", () => {
     "delete finds a key that is not a string, like has does",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk
+
       yield* registry.update((edit) =>
         Effect.sync(() => {
           expect(edit.has("2024")).toBe(true)
@@ -120,6 +125,7 @@ describe("the registry file", () => {
     "adding to an emptied registry writes a block map",
     Effect.gen(function* () {
       const registry = yield* registryOnDisk
+
       yield* registry.update((edit) => Effect.sync(() => edit.add("a", { source: "memory" })))
       expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
         md("projects:", "  a:", "    source: memory"),
@@ -159,6 +165,7 @@ describe("the registry file", () => {
       Effect.gen(function* () {
         const registry = yield* registryOnDisk
         const error = yield* Effect.flip(registry.entries)
+
         expect(error._tag).toBe("RegistryError")
         expect(error.message).toContain("projects.yaml")
       }),
@@ -172,6 +179,7 @@ test("concurrent updates from two registries over one home all land", () =>
   Effect.runPromise(
     Effect.gen(function* () {
       const [one, two] = [yield* registryOnDisk, yield* registryOnDisk]
+
       yield* Effect.all(
         Array.from({ length: 10 }, (_, i) =>
           (i % 2 === 0 ? one : two).update((edit) =>
@@ -181,6 +189,7 @@ test("concurrent updates from two registries over one home all land", () =>
         { concurrency: "unbounded" },
       )
       const names = (yield* one.entries).map((entry) => entry.name).sort()
+
       expect(names).toEqual(["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"])
     }).pipe(Effect.provide(diskWith({}))),
   ))

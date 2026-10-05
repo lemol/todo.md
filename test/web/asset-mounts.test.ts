@@ -16,6 +16,7 @@ const layout = () => {
   const dir = mkdtempSync(join(tmpdir(), "todo-assets-"))
   const remixDir = join(dir, ".bun", "remix@1", "node_modules", "remix")
   const leftpadDir = join(dir, ".bun", "leftpad@1", "node_modules", "leftpad")
+
   mkdirSync(join(remixDir, "node_modules"), { recursive: true })
   mkdirSync(leftpadDir, { recursive: true })
   writeFileSync(
@@ -37,9 +38,11 @@ const layout = () => {
   // file lives in the sibling entry, outside the npm mount.
   symlinkSync(leftpadDir, join(remixDir, "node_modules", "leftpad"))
   const todoDir = join(dir, ".bun", "todo@1", "node_modules", "todo")
+
   mkdirSync(join(dir, ".bun", "todo@1", "node_modules"), { recursive: true })
   symlinkSync(remixDir, join(dir, ".bun", "todo@1", "node_modules", "remix"))
   const uiDir = join(dir, ".bun", "@lemol+ui@1", "node_modules", "@lemol", "ui")
+
   mkdirSync(uiDir, { recursive: true })
   writeFileSync(
     join(uiDir, "package.json"),
@@ -57,6 +60,7 @@ const layout = () => {
   symlinkSync(uiDir, join(todoDir, "node_modules", "@lemol", "ui"))
 
   const rootDir = join(todoDir, "src", "web")
+
   mkdirSync(join(rootDir, "app", "actions", "public"), { recursive: true })
   writeFileSync(join(rootDir, "app", "routes.ts"), "export const routes = {}\n")
   writeFileSync(
@@ -70,6 +74,7 @@ const layout = () => {
 test("builds the asset server inside a bun store layout", async () => {
   const { rootDir, remixDir, uiDir } = layout()
   const server = createAssetServer(assetOptions(rootDir, remixDir, uiDir))
+
   await server.close()
 })
 
@@ -79,6 +84,7 @@ test("compiles an entry importing through a sibling store entry", async () => {
 
   try {
     const entry = await server.getScriptEntry("app/actions/public/entry.ts")
+
     expect(entry.href).toMatch(/\/assets\//)
     expect(entry.preloads.length).toBeGreaterThan(0)
     expect((await server.fetch(new Request(`http://localhost${entry.href}`)))?.status).toBe(200)

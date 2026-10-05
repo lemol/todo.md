@@ -28,6 +28,7 @@ export const itemLinesFor = (
     if (path === undefined && fitsInline(task)) return inlineItemFor(task)
 
     const target = path ?? taskPath(config.tasksDir, task.group, task.id, task.title)
+
     yield* files.write(target, formatTaskFile(taskFileFor(task)))
 
     return linkedItemFor(task, target)

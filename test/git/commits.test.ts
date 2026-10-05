@@ -26,6 +26,7 @@ describe("every mutation is one commit", () => {
       const store = yield* TodoStore
       const { clone } = yield* GitFixture
       const added = yield* store.add({ title: "Ship it" })
+
       yield* store.update("1", { title: "Write the changelog" })
       yield* store.move("1", { group: "Backend" })
       yield* store.comment("2", { author: "lemol", body: "Started." })
@@ -55,6 +56,7 @@ describe("every mutation is one commit", () => {
     Effect.gen(function* () {
       const store = yield* TodoStore
       const { clone, remote } = yield* GitFixture
+
       yield* store.add({ title: "Ship it" })
       yield* store.complete("1")
       expect(made(remote, defaultBranch)).toEqual(made(clone))
@@ -67,6 +69,7 @@ describe("every mutation is one commit", () => {
     Effect.gen(function* () {
       const store = yield* TodoStore
       const { clone } = yield* GitFixture
+
       yield* store.load()
       yield* store.get("1")
       yield* store.listDone()

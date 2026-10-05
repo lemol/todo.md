@@ -59,6 +59,7 @@ describe("running git", () => {
     Effect.gen(function* () {
       const fresh = recording({ code: 0 })
       const git = yield* Effect.provide(makeGit({ env: {} }), fresh.layer)
+
       yield* git("/work", ["status"])
       expect(fresh.runs[0]).toMatchObject({
         command: "git",
@@ -86,11 +87,13 @@ describe("running git", () => {
     Effect.gen(function* () {
       const ok = recording({ code: 0, stdout: "main\n", stderr: "a warning" })
       const git = yield* Effect.provide(makeGit(), ok.layer)
+
       expect(yield* git("/work", ["rev-parse", "--abbrev-ref", "HEAD"])).toBe("main\n")
 
       const bad = recording({ code: 128, stderr: "fatal: not a git repository\n" })
       const broken = yield* Effect.provide(makeGit(), bad.layer)
       const failure = yield* Effect.flip(broken("/work", ["log"]))
+
       expect(failure).toBeInstanceOf(GitError)
       expect(failure.code).toBe(128)
       expect(failure.stderr).toBe("fatal: not a git repository")

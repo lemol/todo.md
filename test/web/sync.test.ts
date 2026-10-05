@@ -5,12 +5,14 @@ import { memorySource } from "../../src/hub/testing.ts"
 import { makeRouter } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
+
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
 const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
   const app = await makeRouter(options)
+
   cleanup.push(app.close)
 
   return app
@@ -63,6 +65,7 @@ describe("sync", () => {
     })
 
     const response = await postApp(app.router, "/sync", { back: "/" })
+
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/")
     const html = await (
@@ -83,6 +86,7 @@ describe("sync", () => {
     })
 
     const response = await postApp(app.router, "/p/ok/sync", { back: "/projects" })
+
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/projects")
     const html = await (
@@ -123,6 +127,7 @@ describe("sync", () => {
     })
 
     const response = await postApp(app.router, "/sync", { back: "//evil.example" })
+
     expect(response.headers.get("Location")).toBe("/")
   })
 })

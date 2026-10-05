@@ -17,6 +17,7 @@ describe("Hub.layer", () => {
       })
 
       const exit = yield* Effect.exit(Layer.build(layer.pipe(Layer.provide(BunServices.layer))))
+
       expect(Exit.hasDies(exit)).toBe(true)
     }),
   )
@@ -27,6 +28,7 @@ describe("sourceKinds", () => {
     "lists every loaded source kind in hub order",
     Effect.gen(function* () {
       const hub = yield* hubOn([fsSource, memorySource()])
+
       expect(yield* hub.sourceKinds()).toEqual(["fs", "memory"])
     }),
     diskWith({}),
@@ -43,6 +45,7 @@ describe("dashboard", () => {
       const counting = memorySource({
         status: (project) => {
           const reads = (statusReads.get(project.name) ?? 0) + 1
+
           statusReads.set(project.name, reads)
 
           return Effect.succeed({ ahead: reads })
@@ -50,10 +53,12 @@ describe("dashboard", () => {
       })
 
       const hub = yield* hubOn([counting])
+
       yield* hub.add({ name: "a", source: "memory", config: { title: "A" } })
       yield* hub.add({ name: "b", source: "memory", config: { title: "B" } })
       statusReads.clear()
       const snapshot = yield* hub.dashboard()
+
       expect([...statusReads].sort()).toEqual([
         ["a", 1],
         ["b", 1],
@@ -114,6 +119,7 @@ describe("dashboard", () => {
       registryReads = 0
       const snapshot = yield* hub.dashboard()
       const entry = snapshot.overview.projects[0]
+
       expect(entry).toBeDefined()
 
       if (entry === undefined || !("listing" in entry)) return
@@ -132,6 +138,7 @@ describe("projects", () => {
     "an empty home has no projects",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect(yield* hub.projects()).toEqual([])
     }),
     diskWith({}),
@@ -142,6 +149,7 @@ describe("projects", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn([fsSource, memorySource()])
       const projects = yield* hub.projects()
+
       expect(projects.map(({ name, location, status }) => [name, location, status])).toEqual([
         [
           "work",
@@ -224,6 +232,7 @@ describe("projects", () => {
     "an unreadable registry fails with RegistryError",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect((yield* Effect.flip(hub.projects()))._tag).toBe("RegistryError")
     }),
     diskWith({ ".todo-md/projects.yaml": "projects: [\n" }),
@@ -237,6 +246,7 @@ describe("add", () => {
       const disk = yield* Disk
       const hub = yield* hubOn([fsSource])
       const info = yield* hub.add({ source: "fs", config: { path: `${disk.root}/app` } })
+
       expect(info).toEqual({
         name: "app",
         source: "fs",
@@ -260,6 +270,7 @@ describe("add", () => {
       const disk = yield* Disk
       const hub = yield* hubOn([fsSource])
       const info = yield* hub.add({ source: "fs", config: { path: "~/app" } })
+
       expect(info.location).toBe(`${disk.root}/app`)
       expect(yield* disk.read(".todo-md/projects.yaml")).toBe(
         md("projects:", "  app:", "    source: fs", "    path: ~/app"),
@@ -273,12 +284,15 @@ describe("add", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
       const invalid = yield* Effect.flip(hub.add({ name: "My App", source: "memory", config: {} }))
+
       expect(invalid._tag).toBe("RegistryError")
       expect(invalid.message).toContain("invalid project name My App")
       yield* hub.add({ name: "app", source: "memory", config: {} })
       const taken = yield* Effect.flip(hub.add({ name: "app", source: "memory", config: {} }))
+
       expect(taken.message).toBe("a project named app already exists")
       const unnamed = yield* Effect.flip(hub.add({ source: "memory", config: {} }))
+
       expect(unnamed.message).toBe("a name is required")
       expect((yield* hub.projects()).map((project) => project.name)).toEqual(["app"])
     }),
@@ -290,11 +304,14 @@ describe("add", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn([fsSource])
       const unknown = yield* Effect.flip(hub.add({ name: "w", source: "jira", config: {} }))
+
       expect(unknown._tag).toBe("SourceUnavailable")
       const relative = yield* Effect.flip(hub.add({ source: "fs", config: { path: "app" } }))
+
       expect(relative._tag).toBe("InvalidProjectConfig")
       expect(relative.message).toContain("must be an absolute path")
       const notAMap = yield* Effect.flip(hub.add({ name: "x", source: "fs", config: "app" }))
+
       expect(notAMap._tag).toBe("InvalidProjectConfig")
     }),
     diskWith({}),
@@ -312,6 +329,7 @@ describe("add", () => {
       })
 
       const hub = yield* hubOn([source])
+
       yield* hub.add({ name: "x", source: "memory", config: {} })
       expect(yield* disk.read(".todo-md/projects/x/marker")).toBe("x")
     }),
@@ -328,6 +346,7 @@ describe("add", () => {
 
       const hub = yield* hubOn([source])
       const error = yield* Effect.flip(hub.add({ name: "x", source: "memory", config: {} }))
+
       expect(error).toBeInstanceOf(SourceError)
       expect(yield* hub.projects()).toEqual([])
       expect(yield* disk.exists(".todo-md/projects/x")).toBe(false)
@@ -339,9 +358,11 @@ describe("add", () => {
     "refuses a leftover data directory without deleting it",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* disk.write(".todo-md/projects/x/keep", "keep")
       const hub = yield* hubOn([memorySource()])
       const error = yield* Effect.flip(hub.add({ name: "x", source: "memory", config: {} }))
+
       expect(error._tag).toBe("RegistryError")
       expect(error.message).toContain("already exists")
       expect(yield* disk.exists(".todo-md/projects/x/keep")).toBe(true)
@@ -356,12 +377,14 @@ describe("add", () => {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource])
       const opened = yield* hub.resolve({ dir: `${root}/lists/acme`, cwd: root })
+
       expect(opened.registered).toBe(false)
       expect((yield* hub.projects()).map((info) => info.name)).toEqual([opened.name])
 
       yield* hub.add({ name: "work", source: "fs", config: { path: `${root}/lists/acme` } })
 
       const after = yield* hub.projects()
+
       expect(after.map((info) => info.name)).toEqual(["work"])
       expect(after[0]?.registered).toBe(true)
     }),
@@ -398,8 +421,10 @@ test("concurrent adds of one name keep the winner's directory", () =>
 
       expect(results.filter(Exit.isSuccess)).toHaveLength(1)
       const projects = yield* one.projects()
+
       expect(projects.map((project) => project.name)).toEqual(["x"])
       const disk = yield* Disk
+
       expect(yield* disk.exists(".todo-md/projects/x/marker")).toBe(true)
     }).pipe(Effect.scoped, Effect.provide(diskWith({}))),
   ))
@@ -417,8 +442,10 @@ describe("remove", () => {
       })
 
       const hub = yield* hubOn([source])
+
       yield* hub.add({ name: "x", source: "memory", config: {} })
       const error = yield* Effect.flip(hub.remove("x"))
+
       expect(error.message).toBe("ahead 1")
       expect((yield* hub.projects()).map((project) => project.name)).toEqual(["x"])
       expect(yield* disk.exists(".todo-md/projects/x")).toBe(true)
@@ -433,6 +460,7 @@ describe("remove", () => {
     "removes a broken entry, and fails for an unknown one",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.remove("work")
       expect(yield* hub.projects()).toEqual([])
       expect((yield* Effect.flip(hub.remove("nope")))._tag).toBe("ProjectNotFound")
@@ -446,6 +474,7 @@ describe("remove", () => {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource()])
       const error = yield* Effect.flip(hub.remove("work"))
+
       expect(error._tag).toBe("SourceError")
       expect(error.message).toContain("use --force")
       expect(yield* disk.exists(".todo-md/projects/work/clone/TODO.md")).toBe(true)
@@ -463,6 +492,7 @@ describe("remove", () => {
     "drops the cached project",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* hub.todo("x")
       yield* hub.remove("x")
@@ -475,8 +505,10 @@ describe("remove", () => {
     "an entry with an invalid name loses only its entry, never a directory",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* disk.write("victim/keep", "keep")
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.remove("../../victim")
       yield* hub.remove("..")
       expect(yield* hub.projects()).toEqual([])
@@ -546,6 +578,7 @@ describe("remove", () => {
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/x/marker", "x")
       const error = yield* Effect.flip(hub.remove("x"))
+
       expect(error._tag).toBe("RegistryError")
       expect(error.message).toContain(`${disk.root}/.todo-md/projects/.removed-x-`)
       expect(error.message).toContain("the entry x is removed")
@@ -563,6 +596,7 @@ describe("remove", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "x", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/x/marker", "x")
       // A directory where the registry writes its temporary file makes the write fail.
@@ -585,10 +619,12 @@ describe("rename", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "old", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/old/marker", "kept")
       yield* hub.todo("old")
       const info = yield* hub.rename("old", "new")
+
       expect(info.name).toBe("new")
       expect(yield* disk.read(".todo-md/projects/new/marker")).toBe("kept")
       expect(yield* disk.exists(".todo-md/projects/old")).toBe(false)
@@ -602,6 +638,7 @@ describe("rename", () => {
     "refuses an unknown project, an invalid name and a taken name",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "a", source: "memory", config: {} })
       yield* hub.add({ name: "b", source: "memory", config: {} })
       expect((yield* Effect.flip(hub.rename("zzz", "c")))._tag).toBe("ProjectNotFound")
@@ -619,10 +656,12 @@ describe("rename", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "a", source: "memory", config: {} })
       yield* disk.write(".todo-md/projects/a/marker", "a")
       yield* disk.write(".todo-md/projects/b/keep", "keep")
       const error = yield* Effect.flip(hub.rename("a", "b"))
+
       expect(error._tag).toBe("RegistryError")
       expect(error.message).toBe(
         `${disk.root}/.todo-md/projects/b already exists; remove it or choose another name`,
@@ -638,9 +677,11 @@ describe("rename", () => {
     "repairs an entry with an invalid name without moving any directory",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* disk.write("victim/keep", "keep")
       const hub = yield* hubOn([memorySource()])
       const info = yield* hub.rename("../../victim", "fixed")
+
       expect(info).toMatchObject({ name: "fixed", status: { result: "never" } })
       expect(yield* disk.read("victim/keep")).toBe("keep")
       expect(yield* disk.exists(".todo-md/projects/fixed")).toBe(false)
@@ -658,6 +699,7 @@ describe("todo", () => {
     "evaluates cross-project dependencies across registered projects",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "upstream", source: "memory", config: {} })
       yield* hub.add({ name: "downstream", source: "memory", config: {} })
       const upstream = yield* hub.todo("upstream")
@@ -670,10 +712,12 @@ describe("todo", () => {
       })
 
       const nextBefore = yield* downstream.next()
+
       expect(nextBefore.some((v) => v.task.id === t2.id)).toBe(false)
 
       yield* upstream.complete(t1.id)
       const nextAfter = yield* downstream.next()
+
       expect(nextAfter.some((v) => v.task.id === t2.id)).toBe(true)
     }),
     diskWith({}),
@@ -683,6 +727,7 @@ describe("todo", () => {
     "detects cross-project cycles without infinite recursion and reports diagnostic",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "project-a", source: "memory", config: {} })
       yield* hub.add({ name: "project-b", source: "memory", config: {} })
       const a = yield* hub.todo("project-a")
@@ -692,15 +737,19 @@ describe("todo", () => {
       const tB = yield* b.add({ title: "Task B", dependsOn: ["project-a:1"] })
 
       const nextA = yield* a.next()
+
       expect(nextA.some((v) => v.task.id === tA.id)).toBe(false)
       const nextB = yield* b.next()
+
       expect(nextB.some((v) => v.task.id === tB.id)).toBe(false)
       const listA = yield* a.list()
       const viewA = listA.sections.flatMap((s) => s.tasks).find((v) => v.task.id === tA.id)
+
       expect(viewA?.state).toBe("blocked")
 
       const diagsA = yield* a.check()
       const cycleDiagA = diagsA.find((d) => d.code === "dependency-cycle")
+
       expect(cycleDiagA).toBeDefined()
       expect(cycleDiagA?.severity).toBe("error")
       expect(cycleDiagA?.message).toContain("project-a:1")
@@ -708,6 +757,7 @@ describe("todo", () => {
 
       const diagsB = yield* b.check()
       const cycleDiagB = diagsB.find((d) => d.code === "dependency-cycle")
+
       expect(cycleDiagB).toBeDefined()
     }),
     diskWith({}),
@@ -717,13 +767,16 @@ describe("todo", () => {
     "hub check warns on unknown foreign ID and unresolvable project",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "app", source: "memory", config: {} })
       yield* hub.add({ name: "dep", source: "memory", config: {} })
       const app = yield* hub.todo("app")
+
       yield* app.add({ title: "Needs missing task", dependsOn: ["dep:999"] })
       yield* app.add({ title: "Needs unknown project", dependsOn: ["nonexistent:1"] })
 
       const diags = yield* app.check()
+
       expect(diags.some((d) => d.code === "unknown-dependency" && d.severity === "warning")).toBe(
         true,
       )
@@ -737,6 +790,7 @@ describe("todo", () => {
     "returns services over the same store each time",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({
         name: "m",
         source: "memory",
@@ -744,6 +798,7 @@ describe("todo", () => {
       })
       yield* (yield* hub.todo("m")).add({ title: "Added" })
       const listing = yield* (yield* hub.todo("m")).list()
+
       expect(listing.title).toBe("Memory")
       expect(listing.sections[0]?.tasks.map((view) => view.task.title)).toEqual(["Seeded", "Added"])
     }),
@@ -755,8 +810,10 @@ describe("todo", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([fsSource])
+
       yield* hub.add({ name: "app", source: "fs", config: { path: `${disk.root}/app` } })
       const todo = yield* hub.todo("app")
+
       yield* todo.add({ title: "Ship it" })
       expect(yield* disk.read("app/todo/TODO.md")).toBe(md("# App", "", "- [ ] 01 - Ship it"))
       expect((yield* todo.next()).map((view) => view.task.title)).toEqual(["Ship it"])
@@ -769,8 +826,10 @@ describe("todo", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([fsSource])
+
       yield* hub.add({ name: "app", source: "fs", config: { path: `${disk.root}/app` } })
       const error = yield* Effect.flip(hub.todo("app"))
+
       expect(error.message).toBe(`no TODO.md at ${disk.root}/app`)
       yield* disk.write("app/TODO.md", md("# App"))
       expect((yield* (yield* hub.todo("app")).list()).title).toBe("App")
@@ -782,6 +841,7 @@ describe("todo", () => {
     "fails with ProjectNotFound for an unknown name",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect(yield* Effect.flip(hub.todo("nope"))).toMatchObject({
         _tag: "ProjectNotFound",
         name: "nope",
@@ -795,6 +855,7 @@ describe("todo", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([fsSource])
+
       expect((yield* (yield* hub.todo("app")).list()).title).toBe("A")
       yield* disk.write(
         ".todo-md/projects.yaml",
@@ -814,6 +875,7 @@ describe("todo", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.todo("m")
       yield* disk.write(".todo-md/projects.yaml", md("projects:"))
       expect((yield* Effect.flip(hub.todo("m")))._tag).toBe("ProjectNotFound")
@@ -827,6 +889,7 @@ test("concurrent adds from two hubs over one home both land", () =>
   Effect.runPromise(
     Effect.gen(function* () {
       const [one, two] = [yield* hubOn([memorySource()]), yield* hubOn([memorySource()])]
+
       yield* Effect.all(
         Array.from({ length: 10 }, (_, i) =>
           (i % 2 === 0 ? one : two).add({ name: `p${i}`, source: "memory", config: {} }),
@@ -834,6 +897,7 @@ test("concurrent adds from two hubs over one home both land", () =>
         { concurrency: "unbounded" },
       )
       const names = (yield* one.projects()).map((project) => project.name).sort()
+
       expect(names).toEqual(["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"])
     }).pipe(Effect.scoped, Effect.provide(diskWith({}))),
   ))

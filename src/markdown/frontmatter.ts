@@ -30,6 +30,7 @@ const isScalarList = (value: unknown): value is ReadonlyArray<unknown> =>
 /** One `key: value` entry as YAML lines; lists of scalars use flow style (`[a, b]`). */
 const entry = (key: string, value: unknown): string[] => {
   const doc = new Document({})
+
   doc.set(key, isScalarList(value) ? doc.createNode(value, { flow: true }) : value)
 
   return doc.toString({ flowCollectionPadding: false }).replace(/\n$/, "").split("\n")
@@ -85,6 +86,7 @@ export const setFrontmatterFields = (
 
     const valueRange = (pair?.value as { range?: [number, number, number] } | null)?.range
     const end = Math.max((valueRange ?? keyRange)[1] - 1, keyRange[0])
+
     edits.push({
       start: lineOf(keyRange[0]),
       end: lineOf(end),

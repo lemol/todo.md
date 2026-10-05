@@ -10,12 +10,14 @@ describe("splitLines / joinLines", () => {
     ["a\n\n", ["a", ""]],
   ])("round-trips %j", (text, lines) => {
     const split = splitLines(text)
+
     expect(split.lines).toEqual(lines)
     expect(joinLines(split)).toBe(text)
   })
 
   test("keeps CRLF line endings", () => {
     const text = spliceLines(splitLines("a\r\nc\r\n"), 1, 0, ["b"])
+
     expect(joinLines(text)).toBe("a\r\nb\r\nc\r\n")
   })
 })

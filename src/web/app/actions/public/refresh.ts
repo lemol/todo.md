@@ -41,6 +41,7 @@ export const createLiveRegionRefresher = () => {
   return async (load: LiveRegionLoader, apply: LiveRegionApply): Promise<void> => {
     abort?.abort()
     const controller = new AbortController()
+
     abort = controller
     const current = ++generation
 

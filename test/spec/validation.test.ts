@@ -22,6 +22,7 @@ describe("validate", () => {
 
   test("fails with ValidationError", async () => {
     const error = await Effect.runPromise(Effect.flip(validate(Label, "")))
+
     expect(error).toBeInstanceOf(ValidationError)
     expect(error.issues).toHaveLength(1)
   })

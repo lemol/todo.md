@@ -52,14 +52,17 @@ describe("jira projects from the CLI", () => {
         expect(added.code).toBe(0)
 
         const listed = yield* run("--project", "work", "ls")
+
         expect(listed.code).toBe(0)
         expect(listed.stdout).toContain("Rework auth")
         expect(listed.stdout).not.toContain("Ship it")
 
         const shown = yield* run("show", "work:PROJ-1")
+
         expect(shown.stdout).toContain("Tokens expire.")
 
         const projects = yield* run("projects")
+
         expect(projects.stdout).toContain("jira")
         expect(projects.stdout).toContain(jira.site)
       }),
@@ -87,6 +90,7 @@ describe("jira projects from the CLI", () => {
         )
         jira.put(anIssue("PROJ-2"), anIssue("PROJ-3", {}, { done: true }))
         const synced = yield* run("sync", "work")
+
         expect(synced.code).toBe(0)
         expect(synced.stdout).toContain("2 open, 1 done")
         expect((yield* run("--project", "work", "ls")).stdout).toContain("PROJ-2")
@@ -115,12 +119,14 @@ describe("jira projects from the CLI", () => {
         )
 
         const done = yield* run("done", "work:PROJ-1")
+
         expect(done.stderr).toBe("")
         expect(done.code).toBe(0)
         expect(jira.issue("PROJ-1")?.fields.status).toMatchObject({ name: "Done" })
         expect((yield* run("--project", "work", "ls")).stdout).not.toContain("Rework auth")
 
         const reopened = yield* run("reopen", "work:PROJ-1")
+
         expect(reopened.code).toBe(0)
         expect((yield* run("--project", "work", "ls")).stdout).toContain("Rework auth")
 
@@ -136,6 +142,7 @@ describe("jira projects from the CLI", () => {
         expect(commented.stderr).toBe("")
         expect(commented.code).toBe(0)
         const shown = yield* run("show", "work:PROJ-1")
+
         expect(shown.stdout).toContain("Tokens expire")
         expect(shown.stdout).toContain("test-user")
 
@@ -155,6 +162,7 @@ describe("jira projects from the CLI", () => {
           labels: ["api", "backend"],
         })
         const listed = (yield* run("--project", "work", "ls")).stdout
+
         expect(listed).toContain("Rework sessions")
         expect(listed).toContain("backend")
       }),
@@ -181,6 +189,7 @@ describe("jira projects from the CLI", () => {
           "JIRA_TOKEN",
         )
         const refused = yield* run("edit", "work:PROJ-1", "--description", "More.")
+
         expect(refused.code).not.toBe(0)
         expect(refused.stderr).toContain("description is read-only for Jira projects")
         expect(jira.requests.filter((request) => request.method !== "GET")).toEqual([])
@@ -213,9 +222,11 @@ describe("jira projects from the CLI", () => {
         expect(added.code).toBe(0)
 
         const done = yield* run("done", "work:PROJ-1")
+
         expect(done.code).not.toBe(0)
         expect(done.stderr).toContain("work is read-only")
         const commented = yield* run("comment", "work:PROJ-1", "Hi", "--author", "ana")
+
         expect(commented.code).not.toBe(0)
         expect(jira.requests.filter((request) => request.method !== "GET")).toEqual([])
         expect((yield* run("--project", "work", "ls")).stdout).toContain("Rework auth")
@@ -284,9 +295,11 @@ describe("jira projects from the CLI", () => {
       Effect.gen(function* () {
         const { root } = yield* Disk
         const wrong = yield* run("projects", "add", root, "--email", "tester@acme.test")
+
         expect(wrong.code).toBe(2)
         expect(wrong.stderr).toContain("--email")
         const readOnly = yield* run("projects", "add", root, "--read-only")
+
         expect(readOnly.code).toBe(2)
         expect(readOnly.stderr).toContain("--read-only")
       }),

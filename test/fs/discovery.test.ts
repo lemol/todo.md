@@ -12,6 +12,7 @@ describe("findListRoot", () => {
     "prefers todo/TODO.md over TODO.md at the same level, walking up from below",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       expect(yield* find(`${root}/src/deep`)).toEqual(Option.some(`${root}/todo`))
       expect(yield* find(`${root}/todo`)).toEqual(Option.some(`${root}/todo`))
     }),
@@ -22,6 +23,7 @@ describe("findListRoot", () => {
     "finds TODO.md at the root when there is no todo/ directory",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       expect(yield* find(`${root}/src`)).toEqual(Option.some(root))
     }),
     listWith({ "TODO.md": md("# Root"), "src/file.ts": "" }),
@@ -31,6 +33,7 @@ describe("findListRoot", () => {
     "returns Option.none() when no list exists",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       expect(yield* find(root)).toEqual(Option.none())
     }),
     diskWith({ "src/file.ts": "" }),
@@ -42,6 +45,7 @@ describe("initList", () => {
     "creates the directory and a TODO.md with the title",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* initList(`${disk.root}/new/todo`, { title: "New", description: "Backlog." }).pipe(
         Effect.provide(BunServices.layer),
       )

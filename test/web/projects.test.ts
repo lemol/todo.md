@@ -13,12 +13,14 @@ import { anIssue, makeFakeJira } from "../jira/fake.ts"
 import { makeRouter } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
+
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
 const open = async (options: Parameters<typeof makeRouter>[0] = {}) => {
   const app = await makeRouter(options)
+
   cleanup.push(app.close)
 
   return app
@@ -55,6 +57,7 @@ describe("projects page", () => {
   test("the add form lists every loaded source kind", async () => {
     const app = await open({ extraSources: [fsSource] })
     const html = await (await fetchApp(app.router, "/projects")).text()
+
     expect(html).toContain('<option value="memory"')
     expect(html).toContain('<option value="fs"')
   })
@@ -68,6 +71,7 @@ describe("projects page", () => {
     })
 
     const html = await (await fetchApp(app.router, "/projects")).text()
+
     expect(html).toContain("acme")
     expect(html).toContain("work")
     expect(html).toContain("memory")
@@ -86,8 +90,10 @@ describe("projects page", () => {
     })
 
     const response = await fetchApp(app.router, "/projects?sort=name&dir=desc")
+
     expect(response.status).toBe(200)
     const html = await response.text()
+
     expect(html).toContain('aria-sort="descending"')
     expect(html).toContain("sort=name&amp;dir=asc")
     expect(html).toContain("sort=source&amp;dir=asc")
@@ -99,20 +105,25 @@ describe("projects page", () => {
   test("adds a project and redirects to its board", async () => {
     const app = await open({ extraSources: [fsSource] })
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+
     writeFileSync(join(dir, "TODO.md"), "# New\n\n- [ ] First\n")
     const response = await postApp(app.router, "/projects", { target: dir, name: "new" })
+
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/p/new")
     const listed = await (await fetchApp(app.router, "/projects")).text()
+
     expect(listed).toContain("new")
   })
 
   test("a relative target resolves against the router's cwd, not the process's", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "todo-md-cwd-"))
+
     mkdirSync(join(cwd, "list"))
     writeFileSync(join(cwd, "list", "TODO.md"), "# Relative\n")
     const app = await open({ extraSources: [fsSource], cwd })
     const response = await postApp(app.router, "/projects", { target: "list", name: "rel" })
+
     expect(response.status).toBe(303)
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain(join(cwd, "list"))
   })
@@ -138,6 +149,7 @@ describe("projects page", () => {
     expect(added.headers.get("Location")).toBe("/p/acme-git")
 
     const board = await (await fetchApp(app.router, "/p/acme-git")).text()
+
     expect(board).toContain("Seeded")
 
     await postApp(app.router, "/p/acme-git/tasks", { title: "From the browser" })
@@ -146,9 +158,11 @@ describe("projects page", () => {
 
   test("the add form carries git's optional fields, and refuses them elsewhere", async () => {
     const app = await open({ extraSources: [fsSource] })
+
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain('name="branch"')
 
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+
     writeFileSync(join(dir, "TODO.md"), "# Local\n")
     const refused = await postApp(app.router, "/projects", {
       target: dir,
@@ -162,6 +176,7 @@ describe("projects page", () => {
 
   test("adds a jira project from its site and credentials, and the dashboard lists it", async () => {
     const { jira, layer } = makeFakeJira()
+
     jira.put(anIssue("PROJ-1", { summary: "Rework auth" }))
     const source = await Effect.runPromise(
       JiraSource.make({ env: { JIRA_TOKEN: "s3cret" } }).pipe(
@@ -171,6 +186,7 @@ describe("projects page", () => {
     )
 
     const app = await open({ extraSources: [source] })
+
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain('name="token_env"')
 
     const added = await postApp(app.router, "/projects", {
@@ -188,12 +204,14 @@ describe("projects page", () => {
 
     expect(await (await fetchApp(app.router, "/p/work")).text()).toContain("Rework auth")
     const dashboard = await (await fetchApp(app.router, "/")).text()
+
     expect(dashboard).toContain("work")
     expect(dashboard).toContain("Rework auth")
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain(jira.site)
 
     // Only the title and tags are Jira's to change from here.
     const form = await (await fetchApp(app.router, "/p/work/tasks/PROJ-1/edit")).text()
+
     expect(form).toContain('name="tags"')
     expect(form).not.toContain('name="description"')
     expect(form).not.toContain('name="assignee"')
@@ -213,6 +231,7 @@ describe("projects page", () => {
   test("refuses jira's fields on a project of another source", async () => {
     const app = await open({ extraSources: [fsSource] })
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+
     writeFileSync(join(dir, "TODO.md"), "# Local\n")
     const refused = await postApp(app.router, "/projects", {
       target: dir,
@@ -227,10 +246,13 @@ describe("projects page", () => {
   test("a duplicate name re-renders the form with 422", async () => {
     const app = await open({ extraSources: [fsSource] })
     const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+
     writeFileSync(join(dir, "TODO.md"), "# Dup\n")
     const response = await postApp(app.router, "/projects", { target: dir, name: "acme" })
+
     expect(response.status).toBe(422)
     const html = await response.text()
+
     expect(html).toContain("already exists")
     expect(html).toContain(`value="${dir}"`)
   })
@@ -238,6 +260,7 @@ describe("projects page", () => {
   test("a missing target is rejected without touching the registry", async () => {
     const app = await open()
     const response = await postApp(app.router, "/projects", { target: "", name: "x" })
+
     expect(response.status).toBe(422)
     expect(await response.text()).toContain("A path or URL is required")
   })
@@ -245,6 +268,7 @@ describe("projects page", () => {
   test("renames a project and flashes the result", async () => {
     const app = await open()
     const response = await postApp(app.router, "/projects/acme/rename", { to: "acme2" })
+
     expect(response.status).toBe(303)
     expect(response.headers.get("Location")).toBe("/projects")
     const html = await (
@@ -262,6 +286,7 @@ describe("projects page", () => {
   test("an invalid new name re-renders with 422", async () => {
     const app = await open()
     const response = await postApp(app.router, "/projects/acme/rename", { to: "Not A Name" })
+
     expect(response.status).toBe(422)
     expect(await response.text()).toContain("invalid project name")
   })
@@ -275,8 +300,10 @@ describe("projects page", () => {
     })
 
     const response = await postApp(app.router, "/projects/work/remove", {})
+
     expect(response.status).toBe(303)
     const html = await (await fetchApp(app.router, "/projects")).text()
+
     expect(html).not.toContain(">work<")
   })
 
@@ -298,13 +325,16 @@ describe("projects page", () => {
     })
 
     const refused = await postApp(app.router, "/projects/stub/remove", {})
+
     expect(refused.status).toBe(422)
     const html = await refused.text()
+
     expect(html).toContain("1 unpushed commit")
     expect(html).toContain("Remove anyway")
     expect(html).toContain('name="force"')
 
     const forced = await postApp(app.router, "/projects/stub/remove", { force: "1" })
+
     expect(forced.status).toBe(303)
     expect(await (await fetchApp(app.router, "/projects")).text()).not.toContain(">stub<")
   })

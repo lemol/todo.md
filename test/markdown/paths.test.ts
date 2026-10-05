@@ -68,6 +68,7 @@ describe("slug", () => {
 
   test("cuts long slugs at a word boundary within 60 characters", () => {
     const long = slug("word ".repeat(30), "task")
+
     expect(long.length).toBeLessThanOrEqual(60)
     expect(long.endsWith("-")).toBe(false)
     expect(long).toBe(Array(12).fill("word").join("-"))

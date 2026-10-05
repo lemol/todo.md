@@ -343,6 +343,7 @@ const make = (options: HubOptions) =>
             if (!owned) return Effect.void
 
             const open = unregistered.byList(list)
+
             unregistered.forgetList(list)
 
             return open === undefined ? Effect.void : forget(open.name)
@@ -383,6 +384,7 @@ const make = (options: HubOptions) =>
           }
 
           const dir = dirOf(name)
+
           yield* fs
             .makeDirectory(path.dirname(dir), { recursive: true })
             .pipe(Effect.mapError(ioError(`could not create ${path.dirname(dir)}`)))
@@ -474,6 +476,7 @@ const make = (options: HubOptions) =>
 
                 const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
                 const to = path.join(projectsDir, `.removed-${name}-${token.toString(36)}`)
+
                 yield* fs.rename(dir, to).pipe(Effect.mapError(move))
                 moved = to
 

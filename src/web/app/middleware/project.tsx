@@ -76,6 +76,7 @@ export const loadProject =
     }
 
     const { info, todo } = result.success
+
     context.set(projectInfoContext, info)
     context.set(authorContext, options.author)
     context.set(capabilitiesContext, todo.capabilities)

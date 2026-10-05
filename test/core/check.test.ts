@@ -64,6 +64,7 @@ describe("modelDiagnostics", () => {
 
   test("treats unresolvable foreign dependency as warning, not error", () => {
     const diagnostics = modelDiagnostics([task({ id: "1", dependsOn: ["slash-usage:1"] })])
+
     expect(diagnostics).toEqual([
       {
         severity: "warning",

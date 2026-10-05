@@ -49,6 +49,7 @@ export const writeGitState = (dir: string, state: Omit<GitState, "version">) =>
     const encoded = yield* Schema.encodeEffect(GitState)({ version: 1, ...state })
     const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
     const temporary = `${file}.${token.toString(36)}.tmp`
+
     yield* fs.makeDirectory(dir, { recursive: true })
     yield* fs.writeFileString(temporary, `${JSON.stringify(encoded, null, 2)}\n`).pipe(
       Effect.andThen(fs.rename(temporary, file)),
@@ -61,6 +62,7 @@ export const clearGitState = (dir: string): Effect.Effect<void, never, SourceEnv
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const file = (yield* Path.Path).join(dir, gitStateFile)
+
     yield* Effect.ignore(fs.remove(file))
   })
 

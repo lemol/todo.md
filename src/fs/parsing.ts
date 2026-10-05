@@ -40,6 +40,7 @@ const hash = (text: string): string => {
 
   for (let i = 0; i < text.length; i++) {
     const c = text.charCodeAt(i)
+
     h1 = Math.imul(h1 ^ c, 2654435761)
     h2 = Math.imul(h2 ^ c, 1597334677)
   }
@@ -158,6 +159,7 @@ export const makeParser = (
       const text = JSON.stringify({ version: taskFileParserVersion, root, entries })
       const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
       const temporary = `${file}.${token.toString(36)}.tmp`
+
       yield* fs.makeDirectory(cacheDir, { recursive: true })
       yield* fs.writeFileString(temporary, text).pipe(
         Effect.andThen(fs.rename(temporary, file)),

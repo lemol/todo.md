@@ -25,6 +25,7 @@ describe("todo add", () => {
 
       expect(result).toEqual({ code: 0, stdout: "Added 06  Ship it to Backend", stderr: "" })
       const disk = yield* Disk
+
       expect(yield* disk.read("TODO.md")).toContain(
         "- [ ] [06 - Ship it](./backend/06-ship-it.md)\n",
       )
@@ -52,6 +53,7 @@ describe("todo add", () => {
 
       expect(inline.code).toBe(0)
       const text = yield* (yield* Disk).read("TODO.md")
+
       expect(text).toContain("- [ ] 06 - Write notes\n")
       expect(text).toContain("- [ ] 07 - Bump deps\n  #ops\n")
     }),
@@ -75,11 +77,13 @@ describe("todo add", () => {
     "makes you decide where it goes and what it is",
     Effect.gen(function* () {
       const placed = yield* todo("add", "Try it")
+
       expect(placed.code).toBe(2)
       expect(placed.stderr).toBe(
         "error: say where it goes: --group <name>, --no-group, --before or --after",
       )
       const described = yield* todo("add", "Try it", "--no-group")
+
       expect(described.code).toBe(2)
       expect(described.stderr).toContain("say what it is: --description <text>")
 
@@ -168,6 +172,7 @@ describe("todo add --description -", () => {
     "says so when nothing was piped in, rather than writing an empty description",
     Effect.gen(function* () {
       const result = yield* todo("add", "Record it", "--no-group", "--description", "-")
+
       expect(result.code).toBe(2)
       expect(result.stderr).toBe(
         "error: --description - got nothing on stdin; pipe the text in, or use --no-description for none",
@@ -183,12 +188,14 @@ describe("todo promote", () => {
     "moves an inline task into its own file and leaves a link",
     Effect.gen(function* () {
       const result = yield* todo("promote", "3")
+
       expect(result).toEqual({
         code: 0,
         stdout: "03  Fix login redirect now has its own file",
         stderr: "",
       })
       const disk = yield* Disk
+
       expect(yield* disk.read("backend/03-fix-login-redirect.md")).toBe(
         md(
           "---",
@@ -259,6 +266,7 @@ describe("todo edit", () => {
     "refuses an empty or contradictory edit with a usage error",
     Effect.gen(function* () {
       const empty = yield* todo("edit", "3")
+
       expect(empty.code).toBe(2)
       expect(empty.stderr).toBe(
         "error: nothing to change; pass --title, --tag, --assignee or another change",
@@ -302,6 +310,7 @@ describe("todo done and reopen", () => {
       )
       expect(yield* (yield* Disk).exists("done/backend/02-add-rate-limiting.md")).toBe(true)
       const both = JSON.parse((yield* todo("done", "1", "4", "--json")).stdout)
+
       expect(both.map((c: { task: { id: string } }) => c.task.id)).toEqual(["1", "4"])
     }),
     diskWith(acme),
@@ -329,10 +338,12 @@ describe("todo cancel", () => {
     "records the reason and takes the task off the list",
     Effect.gen(function* () {
       const result = yield* todo("cancel", "3", "--reason", "Superseded by d47fcd2.")
+
       expect(result.stdout).toBe(
         lines("Cancelled 03  Fix login redirect", "  Superseded by d47fcd2."),
       )
       const disk = yield* Disk
+
       expect(yield* disk.read("done/backend/03-fix-login-redirect.md")).toContain(
         "cancelled_reason: Superseded by d47fcd2.",
       )
@@ -360,6 +371,7 @@ describe("todo cancel", () => {
     "without a reason is a usage error",
     Effect.gen(function* () {
       const result = yield* todo("cancel", "3")
+
       expect(result.code).not.toBe(0)
       expect(result.stderr).toContain("--reason")
     }),
@@ -397,6 +409,7 @@ describe("todo mv", () => {
     "needs exactly one destination",
     Effect.gen(function* () {
       const none = yield* todo("mv", "3")
+
       expect(none.code).toBe(2)
       expect(none.stderr).toContain("say where to move it")
       expect((yield* todo("mv", "3", "--top", "--bottom")).code).toBe(2)
@@ -427,6 +440,7 @@ describe("todo comment", () => {
     "adds a comment, moving an inline task into its own file",
     Effect.gen(function* () {
       const result = yield* todo("comment", "1", "Draft", "it", "--author", "claude")
+
       expect(result).toEqual({ code: 0, stdout: "Commented on 01", stderr: "" })
       expect(yield* (yield* Disk).read("01-write-changelog.md")).toBe(
         md(
@@ -450,6 +464,7 @@ describe("todo comment", () => {
       yield* runTodo(["comment", "2", "From", "env"], { env: { TODO_MD_AUTHOR: "agent-7" } })
       yield* todo("comment", "2", "From", "user")
       const comments = (yield* showJson("2")).comments.map((c: { author: string }) => c.author)
+
       expect(comments).toEqual(["tester", "agent-7", "lemol"])
     }),
     diskWith(acme),
@@ -480,6 +495,7 @@ describe("todo comment -", () => {
     "reads the body from stdin, keeping what the shell would have run",
     Effect.gen(function* () {
       const result = yield* runTodo(["comment", "1", "-", "--author", "claude"], { stdin: body })
+
       expect(result).toEqual({ code: 0, stdout: "Commented on 01", stderr: "" })
       expect(yield* (yield* Disk).read("01-write-changelog.md")).toBe(
         md(
@@ -501,6 +517,7 @@ describe("todo comment -", () => {
     "says so when nothing was piped in, rather than commenting nothing",
     Effect.gen(function* () {
       const result = yield* todo("comment", "1", "-")
+
       expect(result.code).toBe(2)
       expect(result.stderr).toBe("error: comment - got nothing on stdin; pipe the text in")
       expect((yield* showJson("1")).comments).toEqual([])
@@ -526,6 +543,7 @@ describe("todo add with cross-project dependencies", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const home = `${root}/home`
+
       yield* runTodo(["projects", "add", "w", "--name", "workspace"], { home })
       yield* runTodo(["projects", "add", "s", "--name", "slash-usage"], { home })
 
@@ -546,19 +564,23 @@ describe("todo add with cross-project dependencies", () => {
       expect(addResult.stdout).toContain("Added 01  Dependent Task")
 
       const nextBefore = yield* runTodo(["next", "--project", "workspace"], { home })
+
       expect(nextBefore.stdout).toBe("Nothing is ready.")
 
       yield* runTodo(["add", "Blocking Task", "--project", "slash-usage", "--quick"], { home })
 
       const showResult = yield* runTodo(["show", "--project", "workspace", "01"], { home })
+
       expect(showResult.stdout).toContain("blocked by slash-usage:01")
       expect(showResult.stdout).toContain("slash-usage:01  Blocking Task  ready")
 
       const lsResult = yield* runTodo(["ls", "--project", "workspace"], { home })
+
       expect(lsResult.stdout).toContain("01  Dependent Task")
       expect(lsResult.stdout).toContain("blocked by slash-usage:01")
 
       const doneResult = yield* runTodo(["done", "slash-usage:1"], { home })
+
       expect(doneResult.stdout).toContain("workspace:01  Dependent Task")
     }),
     diskWith({
@@ -572,6 +594,7 @@ describe("todo add with cross-project dependencies", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const home = `${root}/home`
+
       yield* runTodo(["projects", "add", "w", "--name", "workspace"], { home })
       yield* runTodo(["projects", "add", "s", "--name", "slash-usage"], { home })
       yield* runTodo(["add", "Seed task", "--project", "slash-usage", "--quick"], { home })

@@ -34,6 +34,7 @@ describe("FsTodoStore and hand edits", () => {
     Effect.gen(function* () {
       const store = yield* TodoStore
       const disk = yield* Disk
+
       expect(yield* ids).toEqual(["1", "3"])
       expect((yield* store.get("2")).status).toBe("done")
       expect((yield* store.listDone()).map((task) => task.id)).toEqual(["2"])
@@ -52,6 +53,7 @@ describe("FsTodoStore and hand edits", () => {
     "the next change numbers new items, sweeps ticked ones and syncs link text",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).add({ title: "Added" })
       expect(yield* disk.read("TODO.md")).toBe(
         md(
@@ -77,6 +79,7 @@ describe("FsTodoStore and hand edits", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const report = yield* FsTodoStore.normalize(disk.root).pipe(Effect.provide(BunServices.layer))
+
       expect(report).toEqual({ assigned: ["4"], finished: [], swept: ["2"] })
     }),
     list(),
@@ -86,6 +89,7 @@ describe("FsTodoStore and hand edits", () => {
     Effect.gen(function* () {
       const store = yield* TodoStore
       const disk = yield* Disk
+
       expect((yield* store.load()).groups[0]?.tasks).toEqual([])
       expect((yield* store.get("2")).status).toBe("done")
       yield* store.add({ title: "Next" })

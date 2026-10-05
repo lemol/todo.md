@@ -50,6 +50,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "add writes a task file when the task cannot be inline",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).add(
         { title: "Review auth", tags: ["needs review"] },
         { group: "Backend" },
@@ -77,6 +78,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "complete writes an inline task to a done file and removes its item",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* at("2026-09-12T10:31:00Z")
       yield* (yield* TodoStore).complete("3")
       expect(yield* disk.read("done/backend/03-fix-login-redirect.md")).toBe(
@@ -103,6 +105,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "complete moves a task file to the done directory, keeping its text",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* at("2026-09-12T10:31:00Z")
       yield* (yield* TodoStore).complete("2")
       expect(yield* disk.read("done/backend/02-add-rate-limiting.md")).toBe(
@@ -120,6 +123,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "cancel writes an inline task to a done file with its outcome and reason, and removes its item",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* at("2026-09-12T10:31:00Z")
       yield* (yield* TodoStore).cancel("3", "Superseded by d47fcd2.")
       expect(yield* disk.read("done/backend/03-fix-login-redirect.md")).toBe(
@@ -148,6 +152,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     Effect.gen(function* () {
       const store = yield* TodoStore
       const disk = yield* Disk
+
       yield* store.complete("2")
       yield* store.reopen("2")
       expect(yield* disk.read("backend/02-add-rate-limiting.md")).toBe(rateLimiting)
@@ -163,6 +168,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "comment on an inline task moves it into a task file",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* at("2026-09-12T12:00:00Z")
       yield* (yield* TodoStore).comment("1", { author: "lemol", body: "Draft it." })
       expect(yield* disk.read("01-write-changelog.md")).toBe(
@@ -191,6 +197,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "move to another section moves the task file to that section's directory",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).move("2", {})
       expect(yield* disk.exists("backend/02-add-rate-limiting.md")).toBe(false)
       expect(yield* disk.read("02-add-rate-limiting.md")).toBe(rateLimiting)
@@ -210,6 +217,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "renameGroup renames the heading and the group's directory",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).renameGroup("Backend", "Server")
       expect(yield* disk.tree()).toEqual(["TODO.md", "server/02-add-rate-limiting.md"])
       expect(yield* disk.read("TODO.md")).toBe(
@@ -223,6 +231,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "update rewrites only the changed frontmatter and the link text",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).update("2", { title: "Add rate limits" })
       expect(yield* disk.read("backend/02-add-rate-limiting.md")).toBe(
         rateLimiting.replace(
@@ -241,6 +250,7 @@ describe("FsTodoStore writes the todo.md format", () => {
     "remove deletes the item and its task file",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).remove("2")
       expect(yield* disk.tree()).toEqual(["TODO.md"])
       expect(yield* disk.read("TODO.md")).toBe(
@@ -295,6 +305,7 @@ describe("itemLinesFor", () => {
       const files = yield* filesOnDisk
       const disk = yield* Disk
       const lines = yield* itemLinesFor(files, defaultConfig, baseTask)
+
       expect(lines).toEqual(["- [ ] 01 - Inline task", "  #work"])
       expect(yield* disk.tree()).toEqual([])
     }),

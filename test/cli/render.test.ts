@@ -140,6 +140,7 @@ test("renderDetail shows state, facts and dependencies", () => {
 
 test("renderCompletions lists each completed task, then the newly ready ones once", () => {
   const unblocked = viewOf(task({ id: "3", title: "Fix login redirect" }), new Set(["2"]))
+
   expect(
     renderCompletions(
       [

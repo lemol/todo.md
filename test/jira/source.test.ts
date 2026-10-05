@@ -42,6 +42,7 @@ describe("the Jira queries", () => {
     "defaults to my unfinished and recently finished issues",
     Effect.sync(() => {
       const queries = queriesOf({ ...valid, token_env: "T" })
+
       expect(queries.open).toBe(
         "assignee = currentUser() AND statusCategory != Done ORDER BY Rank ASC",
       )
@@ -103,8 +104,10 @@ describe("the Jira source: sync", () => {
           anIssue("PROJ-3", { summary: "Closed" }, { done: true }),
         )
         const outcome = yield* source.sync?.(project) ?? Effect.die("no sync")
+
         expect(outcome.summary).toBe("2 open, 1 done")
         const mirror = Option.getOrThrow(yield* readMirror(dir))
+
         expect(mirror.open.map((task) => task.id)).toEqual(["PROJ-1", "PROJ-2"])
         expect(mirror.open[0]?.description).toBe("Do it.")
         expect(mirror.done.map((task) => task.id)).toEqual(["PROJ-3"])
@@ -122,6 +125,7 @@ describe("the Jira source: sync", () => {
           jira.put(...[1, 2, 3, 4, 5].map((n) => anIssue(`PROJ-${n}`)))
           yield* source.sync?.(project) ?? Effect.die("no sync")
           const mirror = Option.getOrThrow(yield* readMirror(dir))
+
           expect(mirror.open).toHaveLength(5)
         }),
       { fake: { pageSize: 2 } },
@@ -154,6 +158,7 @@ describe("the Jira source: sync", () => {
         Effect.gen(function* () {
           jira.fail(failure)
           const error = yield* Effect.flip(source.sync?.(project) ?? Effect.die("no sync"))
+
           expect(error._tag).toBe("SyncError")
           expect(error.reason).toBe(reason)
           expect(error.project).toBe("work")
@@ -178,6 +183,7 @@ describe("the Jira source: sync", () => {
         jira.fail("serverError")
         yield* Effect.flip(source.sync?.(project) ?? Effect.die("no sync"))
         const mirror = Option.getOrThrow(yield* readMirror(dir))
+
         expect(mirror.open.map((task) => task.id)).toEqual(["PROJ-1"])
       }),
     ),
@@ -205,6 +211,7 @@ describe("the Jira source: prepare", () => {
       Effect.gen(function* () {
         jira.fail("auth")
         const error = yield* Effect.flip(source.prepare?.(project) ?? Effect.die("no prepare"))
+
         expect(error._tag).toBe("SourceError")
         expect(error.message).toContain("credentials")
         expect(yield* (yield* Disk).exists(`projects/work/${mirrorFile}`)).toBe(false)
@@ -219,9 +226,11 @@ describe("the Jira source: changes", () => {
     "emits when the mirror changes, and not when the hub writes its own state",
     Effect.gen(function* () {
       const events = yield* Queue.unbounded<void>()
+
       yield* withJira(({ jira, source, dir, project }) =>
         Effect.gen(function* () {
           const fs = yield* FileSystem.FileSystem
+
           yield* fs.makeDirectory(dir, { recursive: true })
           yield* Stream.runForEach(source.changes?.(project) ?? Stream.empty, () =>
             Queue.offer(events, undefined),

@@ -28,6 +28,7 @@ describe("the list lock", () => {
         const lock = yield* lockFor()
         const increment = Effect.gen(function* () {
           const value = Number(yield* files.read("counter.txt"))
+
           yield* Effect.sleep("2 millis")
           yield* files.write("counter.txt", String(value + 1))
         })
@@ -46,6 +47,7 @@ describe("the list lock", () => {
         yield* (yield* Disk).write(".todo.lock", "")
         const lock = yield* lockFor({ timeout: "100 millis" })
         const error = yield* Effect.flip(lock(Effect.void))
+
         expect(error._tag).toBe("StoreError")
         expect(error.message).toContain("locked by another process")
       }),
@@ -55,9 +57,11 @@ describe("the list lock", () => {
     run(
       Effect.gen(function* () {
         const disk = yield* Disk
+
         yield* disk.write(".todo.lock", "")
         yield* disk.setModified(".todo.lock", new Date(0))
         const lock = yield* lockFor({ timeout: "100 millis" })
+
         expect(yield* lock(Effect.succeed("ran"))).toBe("ran")
         expect(yield* disk.exists(".todo.lock")).toBe(false)
       }),
@@ -68,6 +72,7 @@ describe("the list lock", () => {
       Effect.gen(function* () {
         const disk = yield* Disk
         const lock = yield* lockFor()
+
         expect(yield* Effect.flip(lock(Effect.fail("boom")))).toBe("boom")
         expect(yield* disk.exists(".todo.lock")).toBe(false)
         yield* Effect.exit(lock(Effect.die("defect")))
@@ -96,6 +101,7 @@ describe("the list lock", () => {
       Effect.gen(function* () {
         const disk = yield* Disk
         const lock = yield* lockFor()
+
         yield* lock(
           Effect.gen(function* () {
             yield* disk.write(".todo.lock", "other-token")
@@ -112,6 +118,7 @@ describe("the list lock", () => {
         const disk = yield* Disk
         const files = yield* filesOnDisk
         const lock = yield* lockFor()
+
         yield* lock(files.remove(".todo.lock"))
         expect(yield* disk.exists(".todo.lock")).toBe(false)
       }),
@@ -122,6 +129,7 @@ describe("the list lock", () => {
       Effect.gen(function* () {
         const { root } = yield* Disk
         const lock = yield* makeLock(root).pipe(Effect.provide(BunServices.layer))
+
         expect(yield* lock(Effect.succeed("ok"))).toBe("ok")
       }),
     ))

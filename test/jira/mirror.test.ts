@@ -47,6 +47,7 @@ describe("the Jira mirror", () => {
 
       yield* writeMirror(root, written)
       const read = yield* readMirror(root)
+
       expect(Option.isSome(read)).toBe(true)
       expect(Option.getOrThrow(read)).toEqual(written)
     }),
@@ -57,6 +58,7 @@ describe("the Jira mirror", () => {
     "reads a directory without a mirror as none",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       expect(Option.isNone(yield* readMirror(root))).toBe(true)
     }),
     onDisk,
@@ -66,8 +68,10 @@ describe("the Jira mirror", () => {
     "fails with the file's name when the mirror is corrupt",
     Effect.gen(function* () {
       const { root, write } = yield* Disk
+
       yield* write(mirrorFile, "{ not json")
       const error = yield* Effect.flip(readMirror(root))
+
       expect(error._tag).toBe("StoreError")
       expect(error.message).toContain(mirrorFile)
     }),
@@ -78,6 +82,7 @@ describe("the Jira mirror", () => {
     "leaves no temporary file behind",
     Effect.gen(function* () {
       const { root, tree } = yield* Disk
+
       yield* writeMirror(root, {
         version: 1,
         syncedAt: at("2026-09-19T10:00:00.000Z"),
@@ -108,11 +113,14 @@ describe("the Jira mirror: patches", () => {
     "keeps an open task in place, and files a done one by completion time",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       yield* writeMirror(root, base)
       yield* patchMirror(root, task("PROJ-2", { title: "Renamed" }))
       const done = task("PROJ-1", { status: "done", completedAt: at("2026-09-17T12:00:00.000Z") })
+
       yield* patchMirror(root, done)
       const mirror = yield* current(root)
+
       expect(ids(mirror.open)).toEqual(["PROJ-2", "PROJ-3"])
       expect(mirror.open[0]?.title).toBe("Renamed")
       expect(ids(mirror.done)).toEqual(["PROJ-8", "PROJ-1", "PROJ-9"])
@@ -127,6 +135,7 @@ describe("the Jira mirror: patches", () => {
     "does nothing to a project that was never synced",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       yield* patchMirror(root, task("PROJ-1"))
       expect(Option.isNone(yield* readMirror(root))).toBe(true)
     }),
@@ -137,15 +146,18 @@ describe("the Jira mirror: patches", () => {
     "survives a sync that fetched the issue before the patch, and not one after",
     Effect.gen(function* () {
       const { root } = yield* Disk
+
       yield* TestClock.setTime(Date.parse("2026-09-19T10:00:00.000Z"))
       yield* writeMirror(root, base)
       const syncStarted = yield* DateTime.now
+
       yield* TestClock.adjust("1 second")
       yield* patchMirror(root, task("PROJ-1", { status: "done", completedAt: yield* DateTime.now }))
       yield* TestClock.adjust("1 second")
 
       // The sync fetched PROJ-1 while it was still open.
       const stale = { ...base, syncedAt: yield* DateTime.now }
+
       yield* writeMirror(root, stale, syncStarted)
       let mirror = yield* current(root)
       expect(ids(mirror.open)).toEqual(["PROJ-2", "PROJ-3"])
@@ -153,6 +165,7 @@ describe("the Jira mirror: patches", () => {
 
       // A sync that started after the patch saw it, and wins.
       const fresh = { ...base, syncedAt: yield* DateTime.now }
+
       yield* writeMirror(root, fresh, yield* DateTime.now)
       mirror = yield* current(root)
       expect(ids(mirror.open)).toEqual(["PROJ-1", "PROJ-2", "PROJ-3"])

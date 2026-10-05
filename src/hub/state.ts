@@ -53,6 +53,7 @@ export const writeState = (dir: string, state: Omit<SyncState, "version">) =>
     const encoded = yield* Schema.encodeEffect(SyncState)({ version: 1, ...state })
     const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
     const temporary = `${file}.${token.toString(36)}.tmp`
+
     yield* fs.makeDirectory(dir, { recursive: true })
     yield* fs.writeFileString(temporary, `${JSON.stringify(encoded, null, 2)}\n`).pipe(
       Effect.andThen(fs.rename(temporary, file)),

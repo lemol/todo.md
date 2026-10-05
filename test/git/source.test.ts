@@ -93,12 +93,14 @@ describe("the git source", () => {
     Effect.gen(function* () {
       const { other, clone } = yield* GitFixture
       const theirs = other()
+
       writeIn(theirs, { "NOTES.md": md("One.") })
       commitAndPush(theirs, "their first")
       writeIn(theirs, { "NOTES.md": md("Two.") })
       commitAndPush(theirs, "their second")
 
       const outcome = yield* syncing()
+
       expect(outcome.summary).toBe("pulled 2 commits")
       expect(outcome).toMatchObject({ ahead: 0, behind: 0 })
       expect(subjects(clone).slice(0, 2)).toEqual(["their second", "their first"])
@@ -112,6 +114,7 @@ describe("the git source", () => {
     Effect.gen(function* () {
       const { other, clone } = yield* GitFixture
       const theirs = other()
+
       writeIn(theirs, { "NOTES.md": md("Theirs.") })
       commitAndPush(theirs, "their change")
       writeIn(clone, { "MINE.md": md("Mine.") })
@@ -128,6 +131,7 @@ describe("the git source", () => {
     "refuses removal while commits are unpushed, and allows it when forced",
     Effect.gen(function* () {
       const { clone } = yield* GitFixture
+
       expect((yield* removing(false))._tag).toBe("Success")
 
       writeIn(clone, { "MINE.md": md("Mine.") })
@@ -135,6 +139,7 @@ describe("the git source", () => {
       git(clone, "commit", "-m", "my change")
 
       const refused = yield* removing(false)
+
       expect(refused._tag).toBe("Failure")
 
       if (refused._tag === "Failure") {
@@ -151,6 +156,7 @@ describe("the git source", () => {
     Effect.gen(function* () {
       const store_ = yield* TodoStore
       const { clone, remote, source, project } = yield* GitFixture
+
       expect(git(clone, "rev-parse", "--abbrev-ref", "HEAD").trim()).toBe(otherBranch)
       expect(source.location(project.config)).toBe(`${remote}#${otherBranch}`)
 
@@ -165,6 +171,7 @@ describe("the git source", () => {
     "stops watching, without failing, a project that is not cloned",
     Effect.gen(function* () {
       const { source, project } = yield* GitFixture
+
       expect(yield* inBun(Stream.runCollect(source.changes?.(project) ?? Stream.empty))).toEqual([])
     }),
     fixture({ files: { "TODO.md": todo }, prepared: false }),

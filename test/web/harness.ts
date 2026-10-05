@@ -47,6 +47,7 @@ export interface HubProject {
 /** A fresh hub home whose registry lists `projects`, written synchronously. */
 const homeFor = (projects: ReadonlyArray<HubProject>): string => {
   const home = join(tmpdir(), `todo-md-web-test-${crypto.randomUUID()}`)
+
   mkdirSync(home, { recursive: true })
   const body = projects
     .map((project) =>

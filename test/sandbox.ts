@@ -22,6 +22,7 @@ const guarded = [join(repo, "todo"), process.env.TODO_MD_HOME ?? join(homedir(),
 // Read before it is replaced, so the guard above watches the real home even
 // though nothing under test can now find it. Spawned processes inherit this.
 const home = mkdtempSync(join(tmpdir(), "todo-md-test-home-"))
+
 process.env.TODO_MD_HOME = home
 process.on("exit", () => rmSync(home, { recursive: true, force: true }))
 

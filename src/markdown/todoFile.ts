@@ -216,6 +216,7 @@ export const parseTodoFile = (source: string): TodoFile => {
       }
 
       const description = trimBlock(metadata === undefined ? body : body.slice(1))
+
       item = {
         start,
         end,

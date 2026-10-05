@@ -166,6 +166,7 @@ export const jiraSourceWith = (
       }).pipe(Effect.mapError((error) => asSyncError(project.name, error)))
 
       const syncedAt = yield* DateTime.now
+
       yield* writeMirror(dir, { version: 1, syncedAt, open, done }, startedAt).pipe(
         Effect.mapError(
           (error) =>
@@ -185,6 +186,7 @@ export const jiraSourceWith = (
     prepare: (project) =>
       Effect.gen(function* () {
         const client = yield* clientFor(project.config)
+
         yield* client.myself.pipe(
           Effect.mapError(
             (error) =>

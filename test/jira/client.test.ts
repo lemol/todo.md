@@ -41,6 +41,7 @@ describe("the Jira client: authentication", () => {
     withJira((jira) =>
       Effect.gen(function* () {
         const client = yield* clientWith()
+
         yield* client.myself
         expect(jira.lastAuthorization).toBe(`Basic ${btoa("tester@acme.test:s3cret")}`)
       }),
@@ -68,6 +69,7 @@ describe("the Jira client: authentication", () => {
       Effect.gen(function* () {
         const client = yield* clientWith({}, {})
         const error = yield* Effect.flip(client.myself)
+
         expect(error.reason).toBe("auth")
         expect(error.message).toContain("JIRA_TOKEN")
       }),
@@ -80,6 +82,7 @@ describe("the Jira client: authentication", () => {
       Effect.gen(function* () {
         const client = yield* clientWith({ tokenEnv: undefined, tokenCommand: "exit 3" }, {})
         const error = yield* Effect.flip(client.myself)
+
         expect(error.reason).toBe("auth")
       }),
     ),
@@ -92,6 +95,7 @@ describe("the Jira client: authentication", () => {
         jira.fail("serverError")
         const client = yield* clientWith()
         const error = yield* Effect.flip(client.myself)
+
         expect(error.message).not.toContain("s3cret")
       }),
     ),
@@ -104,6 +108,7 @@ describe("the Jira client: reading", () => {
     withJira(() =>
       Effect.gen(function* () {
         const client = yield* clientWith()
+
         expect((yield* client.myself).displayName).toBe("Test User")
       }),
     ),
@@ -116,9 +121,11 @@ describe("the Jira client: reading", () => {
         jira.put(anIssue("PROJ-1"))
         const client = yield* clientWith()
         const page = yield* client.search({ jql: "assignee = currentUser()" })
+
         expect(jira.searches).toEqual(["assignee = currentUser()"])
         expect(page.issues?.map((issue) => issue.key)).toEqual(["PROJ-1"])
         const asked = new URL(jira.requests.at(-1)?.url ?? "").searchParams.get("fields")
+
         expect(asked).toContain("summary")
         expect(asked).toContain("issuelinks")
       }),
@@ -133,6 +140,7 @@ describe("the Jira client: reading", () => {
           jira.put(anIssue("PROJ-1"), anIssue("PROJ-2"), anIssue("PROJ-3"))
           const client = yield* clientWith()
           const first = yield* client.search({ jql: "x" })
+
           expect(first.issues?.length).toBe(2)
           expect(first.nextPageToken).toBe("2")
           const second = yield* client.search({
@@ -153,6 +161,7 @@ describe("the Jira client: reading", () => {
       Effect.gen(function* () {
         jira.put(anIssue("PROJ-9", { summary: "Nine" }))
         const client = yield* clientWith()
+
         expect((yield* client.issue("PROJ-9")).fields?.summary).toBe("Nine")
       }),
     ),
@@ -173,6 +182,7 @@ describe("the Jira client: reading", () => {
             }),
           )
           const client = yield* clientWith()
+
           expect((yield* client.comments("PROJ-9")).map((one) => one.id)).toEqual(["1", "2", "3"])
         }),
       { commentPageSize: 1 },
@@ -193,6 +203,7 @@ describe("the Jira client: failures", () => {
           jira.fail(failure)
           const client = yield* clientWith()
           const error = yield* Effect.flip(client.myself)
+
           expect(error.reason).toBe(reason)
 
           if (part !== undefined) expect(error.message).toContain(part)
@@ -211,6 +222,7 @@ describe("the Jira client: failures", () => {
     withJira(() =>
       Effect.gen(function* () {
         const client = yield* clientWith()
+
         expect((yield* Effect.flip(client.issue("PROJ-404"))).reason).toBe("notFound")
       }),
     ),

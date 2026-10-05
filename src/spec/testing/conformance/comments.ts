@@ -13,6 +13,7 @@ export const commentCases: ReadonlyArray<ConformanceCase> = [
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
+
       yield* TestClock.setTime(at)
       const [task] = yield* given({ title: "Add rate limiting" })
       const first = yield* store.comment(task.id, {
@@ -24,6 +25,7 @@ export const commentCases: ReadonlyArray<ConformanceCase> = [
       yield* store.comment(task.id, { author: "claude", body: "Started on the token bucket." })
       equal(DateTime.toEpochMillis(first.at), at)
       const { comments } = yield* store.get(task.id)
+
       equal(
         comments.map((c) => c.body),
         ["Started on the token bucket.", "Do this after the login fix."],
@@ -50,6 +52,7 @@ export const commentCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [task] = yield* given({ title: "Ship it", done: true })
+
       yield* store.comment(task.id, { author: "lemol", body: "Shipped in 0.1." })
       equal((yield* store.get(task.id)).comments.length, 1)
     }),
@@ -61,6 +64,7 @@ export const commentCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [task] = yield* given({ title: "Task" })
+
       yield* failsWith(store.comment(task.id, { author: "le mol", body: "Hi." }), "ValidationError")
       yield* failsWith(store.comment(task.id, { author: "lemol", body: "" }), "ValidationError")
       yield* failsWith(

@@ -17,8 +17,10 @@ describe("sync", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource()])
+
       yield* hub.add({ name: "m", source: "memory", config: {} })
       const result = yield* hub.sync("m")
+
       expect(result).toMatchObject({ project: "m", summary: "nothing to sync" })
       expect(yield* disk.exists(".todo-md/projects/m/state.json")).toBe(false)
     }),
@@ -35,6 +37,7 @@ describe("sync", () => {
 
       yield* hub.add({ name: "m", source: "memory", config: {} })
       const result = yield* hub.sync("m")
+
       expect({ ...result, at: DateTime.formatIso(result.at) }).toEqual({
         project: "m",
         summary: "pulled 3",
@@ -49,6 +52,7 @@ describe("sync", () => {
         diverged: false,
       })
       const status = yield* hub.status("m")
+
       expect(status.result).toBe("ok")
       expect(status.lastSync && DateTime.formatIso(status.lastSync)).toBe(epoch)
     }),
@@ -59,8 +63,10 @@ describe("sync", () => {
     "a failed sync is recorded, then fails",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource({ sync: (p) => Effect.fail(failing(p.name)) })])
+
       yield* hub.add({ name: "m", source: "memory", config: {} })
       const error = yield* Effect.flip(hub.sync("m"))
+
       expect(error).toMatchObject({ _tag: "SyncError", reason: "diverged" })
       expect(yield* hub.status("m")).toMatchObject({
         result: "error",
@@ -76,6 +82,7 @@ describe("sync", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const hub = yield* hubOn([memorySource({ sync: () => Effect.succeed({ summary: "ok" }) })])
+
       yield* hub.sync("m")
       expect(yield* disk.exists(".todo-md/projects/m/state.json")).toBe(true)
     }),
@@ -95,6 +102,7 @@ describe("sync", () => {
       ])
 
       const { events } = yield* listen(hub, watchers.started)
+
       yield* hub.sync("good")
       expect(yield* Queue.take(events)).toEqual({ kind: "synced", project: "good" })
       yield* Effect.flip(hub.sync("bad"))
@@ -115,6 +123,7 @@ describe("sync", () => {
     "fails with ProjectNotFound for an unknown name",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect((yield* Effect.flip(hub.sync("nope")))._tag).toBe("ProjectNotFound")
     }),
     diskWith({}),
@@ -164,6 +173,7 @@ describe("syncAll", () => {
       ])
 
       const outcomes = yield* hub.syncAll()
+
       expect(
         outcomes.map((outcome) =>
           "error" in outcome
@@ -197,6 +207,7 @@ describe("autoSync", () => {
     "syncs every syncable project one interval after startup",
     Effect.gen(function* () {
       const synced = yield* Queue.unbounded<string>()
+
       yield* hubOn(
         [memorySource({ sync: (p) => Effect.as(Queue.offer(synced, p.name), { summary: "ok" }) })],
         { autoSync: "1 minute" },

@@ -29,6 +29,11 @@
         "blankLine": "always",
         "prev": "multiline-const",
         "next": "*"
+      },
+      {
+        "blankLine": "always",
+        "prev": "const",
+        "next": "expression"
       }
     ],
     "curly": ["error", "multi-line"],

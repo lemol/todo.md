@@ -67,6 +67,7 @@ const viaAdd = Effect.fn("given.viaAdd")(function* (tasks: ReadonlyArray<SeedTas
   for (const task of tasks) {
     const { placement, done, ...input } = task
     const added = yield* store.add(input, placement)
+
     created.push(done === true ? yield* store.complete(added.id) : added)
   }
 

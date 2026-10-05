@@ -222,6 +222,7 @@ export const output = (
     }
 
     const { color } = yield* CliContext
+
     yield* Console.log(human(styleFor(color)).join("\n"))
   })
 

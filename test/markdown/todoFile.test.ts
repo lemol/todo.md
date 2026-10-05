@@ -84,11 +84,13 @@ describe("parseTodoFile", () => {
 
   test("requires a space after the checkbox, as GFM does", () => {
     const parsed = parseTodoFile(md("- [x]text", "- [ ] 01 - Task"))
+
     expect(parsed.sections[0]?.items.map((i) => i.id)).toEqual(["1"])
   })
 
   test("reads a metadata line only when it directly follows the item", () => {
     const parsed = parseTodoFile(md("- [ ] 01 - T", "", "  #not-metadata"))
+
     expect(itemOf(parsed, "1")).toMatchObject({
       fields: { tags: [] },
       description: "#not-metadata",
@@ -97,6 +99,7 @@ describe("parseTodoFile", () => {
 
   test("reports items without an ID", () => {
     const parsed = parseTodoFile(md("# T", "", "- [ ] Buy milk"))
+
     expect(parsed.sections[0]?.items[0]).toMatchObject({ id: undefined, title: "Buy milk" })
     expect(parsed.diagnostics.map((d) => [d.code, d.line])).toEqual([["missing-id", 3]])
   })
@@ -121,11 +124,13 @@ describe("parseTodoFile", () => {
 
   test("unescapes link text and decodes angle-bracket targets", () => {
     const parsed = parseTodoFile(md("- [ ] [01 - Fix \\[x\\] bug](<./my task.md>)"))
+
     expect(itemOf(parsed, "1")).toMatchObject({ title: "Fix [x] bug", path: "my task.md" })
   })
 
   test("reports metadata problems on the metadata line", () => {
     const parsed = parseTodoFile(md("# T", "", "- [ ] 01 - T", "  @a @b"))
+
     expect(parsed.diagnostics).toEqual([
       {
         severity: "error",
@@ -140,11 +145,13 @@ describe("parseTodoFile", () => {
 
   test("reports duplicate groups by name or slug", () => {
     const parsed = parseTodoFile(md("## API & Auth", "", "## API Auth"))
+
     expect(parsed.diagnostics.map((d) => [d.code, d.line])).toEqual([["duplicate-group", 3]])
   })
 
   test("reports invalid configuration and keeps the defaults", () => {
     const parsed = parseTodoFile(md("---", "tasks_dir: ../elsewhere", "---", "# T"))
+
     expect(parsed.config).toEqual({ tasksDir: ".", doneDir: "done" })
     expect(parsed.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
   })

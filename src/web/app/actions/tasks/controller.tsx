@@ -298,6 +298,7 @@ export const createTasksController = (options: {
           }
 
           const unblocked = result.value.unblocked.map((view) => showId(view.task.id)).join(", ")
+
           setFlash(context, {
             message: `Completed ${showId(result.value.task.id)}.${
               unblocked === "" ? "" : ` Now ready: ${unblocked}`
@@ -461,6 +462,7 @@ export const createTasksController = (options: {
           const result = await runTodo(runtimeContext(context), (todo) =>
             Effect.gen(function* () {
               const { task } = (yield* todo.show(id)).view
+
               yield* todo.remove(id, { force })
 
               return task

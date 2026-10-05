@@ -160,6 +160,7 @@ export const makeRegistry = (
           const edited = Effect.gen(function* () {
             const doc = yield* read
             const result = yield* edit(editOf(doc))
+
             yield* write(doc)
 
             return result

@@ -267,6 +267,7 @@ export const layer = (options: Options = {}): Layer.Layer<TodoStore> =>
               }
 
               const next = replaceTask(state, updated)
+
               yield* ensureAcyclic(allTasks(next))
 
               return [updated, next] as const

@@ -36,6 +36,7 @@ const renderProjects = async (
 
   if (sort) {
     const statusString = (p: ProjectInfo) => (p.syncable ? statusText(p.status, now) : "—")
+
     sortedProjects.sort((a, b) => {
       let cmp = 0
 

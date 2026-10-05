@@ -24,14 +24,17 @@ describe("todo projects", () => {
       const home = `${root}/home`
 
       const added = yield* runTodo(["projects", "add", "a"], { home })
+
       expect(added.code).toBe(0)
       expect(added.stdout).toBe(`a  fs  ${root}/a  3 open · 3 ready  never synced`)
 
       const named = yield* runTodo(["projects", "add", "b", "--name", "bee"], { home })
+
       expect(named.code).toBe(0)
       expect(named.stdout).toBe(`bee  fs  ${root}/b  2 open · 2 ready  never synced`)
 
       const listed = yield* runTodo(["projects"], { home })
+
       expect(listed.code).toBe(0)
       expect(listed.stdout).toBe(
         lines(
@@ -40,20 +43,25 @@ describe("todo projects", () => {
         ),
       )
       const json = JSON.parse((yield* runTodo(["projects", "--json"], { home })).stdout)
+
       expect(json.map((info: { name: string }) => info.name)).toEqual(["a", "bee"])
 
       const duplicate = yield* runTodo(["projects", "add", "a"], { home })
+
       expect(duplicate.code).toBe(1)
       expect(duplicate.stderr).toContain("already exists")
 
       const renamed = yield* runTodo(["projects", "rename", "bee", "beta"], { home })
+
       expect(renamed.code).toBe(0)
       expect(renamed.stdout).toBe(`beta  fs  ${root}/b  2 open · 2 ready  never synced`)
 
       const removed = yield* runTodo(["projects", "rm", "beta"], { home })
+
       expect(removed).toEqual({ code: 0, stdout: "Removed project beta", stderr: "" })
 
       const gone = yield* runTodo(["projects", "rm", "beta"], { home })
+
       expect(gone.code).toBe(1)
       expect(gone.stderr).toBe("error: no project named beta")
 
@@ -68,6 +76,7 @@ describe("todo projects", () => {
       const { root } = yield* Disk
       const home = `${root}/home`
       const listed = yield* runTodo(["projects"], { home, cwd: "a" })
+
       expect(listed.code).toBe(0)
       expect(listed.stdout).toBe(
         `a (not registered)  fs  ${root}/a  3 open · 3 ready  never synced`,
@@ -83,20 +92,25 @@ describe("todo --project and qualified references", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const home = `${root}/home`
+
       yield* withAlpha(home)
 
       const listed = yield* runTodo(["--project", "a", "ls"], { home, cwd: "empty" })
+
       expect(listed.code).toBe(0)
       expect(listed.stdout).toContain("First")
 
       const done = yield* runTodo(["done", "a:03"], { home, cwd: "empty" })
+
       expect(done.code).toBe(0)
       expect(done.stdout).toContain("Done 03  Third")
 
       const clash = yield* runTodo(["--project", "a", "show", "b:01"], { home, cwd: "empty" })
+
       expect(clash.code).toBe(2)
 
       const both = yield* runTodo(["--project", "a", "--dir", "a", "ls"], { home, cwd: "empty" })
+
       expect(both).toEqual({
         code: 2,
         stdout: "",
@@ -111,12 +125,15 @@ describe("todo --project and qualified references", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const home = `${root}/home`
+
       yield* withAlpha(home)
 
       const registered = yield* runTodo(["ls", "--json"], { home, cwd: "a" })
+
       expect(JSON.parse(registered.stdout).project).toBe("a")
 
       const bare = yield* runTodo(["ls", "--json"], { home: `${root}/other-home`, cwd: "a" })
+
       expect("project" in JSON.parse(bare.stdout)).toBe(false)
     }),
     diskWith(alpha),
@@ -129,10 +146,12 @@ describe("todo ls --all and next --all", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const home = `${root}/home`
+
       yield* withAlpha(home)
       yield* runTodo(["projects", "add", "./ghost"], { home })
 
       const all = yield* runTodo(["ls", "--all"], { home, cwd: "empty" })
+
       expect(all.code).toBe(0)
       expect(all.stdout).toBe(
         lines(
@@ -151,6 +170,7 @@ describe("todo ls --all and next --all", () => {
       )
 
       const next = yield* runTodo(["next", "--all"], { home, cwd: "empty" })
+
       expect(next.code).toBe(0)
       expect(next.stdout).toContain("# a")
       expect(next.stdout).toContain("a:01  First")
@@ -175,6 +195,7 @@ describe("todo sync", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const home = `${root}/home`
+
       yield* withAlpha(home)
       expect(yield* runTodo(["sync"], { home, cwd: "a" })).toEqual({
         code: 0,
@@ -204,13 +225,16 @@ describe("todo sync", () => {
       })
 
       const synced = yield* runTodo(["sync", "mem"], { home, sources })
+
       expect(synced.code).toBe(1)
       expect(synced.stdout).toBe("mem: error (auth): bad token")
       expect(synced.stderr).toBe("error: sync failed for 1 project")
 
       const all = yield* runTodo(["sync", "--all", "--json"], { home, sources })
+
       expect(all.code).toBe(1)
       const outcomes = JSON.parse(all.stdout)
+
       expect(outcomes).toHaveLength(1)
       expect(outcomes[0].project).toBe("mem")
     }),

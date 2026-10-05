@@ -51,6 +51,7 @@ export const createAppRouter = (options: RouterOptions) => {
   })
 
   const controllerOptions = { runtime: options.runtime, author: options.author }
+
   router.map(
     routes.projects,
     createProjectsController({ runtime: options.runtime, cwd: options.cwd }),

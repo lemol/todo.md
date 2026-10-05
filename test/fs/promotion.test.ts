@@ -36,6 +36,7 @@ describe("FsTodoStore promotes tasks", () => {
     "promote writes the task file and links the item, leaving the rest byte-for-byte",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).promote("3")
       expect(yield* disk.read("backend/03-fix-login-redirect.md")).toBe(
         md(
@@ -61,6 +62,7 @@ describe("FsTodoStore promotes tasks", () => {
     "promote puts an ungrouped task's file in the tasks directory itself",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).promote("1")
       expect(yield* disk.exists("01-write-changelog.md")).toBe(true)
       expect(yield* disk.read("TODO.md")).toContain(
@@ -74,6 +76,7 @@ describe("FsTodoStore promotes tasks", () => {
     "promote leaves an already file-backed task alone, hand-written comments included",
     Effect.gen(function* () {
       const disk = yield* Disk
+
       yield* (yield* TodoStore).promote("2")
       expect(yield* disk.read("backend/02-add-rate-limiting.md")).toBe(rateLimiting)
       expect(yield* disk.read("TODO.md")).toBe(todo)
@@ -86,8 +89,10 @@ describe("FsTodoStore promotes tasks", () => {
     Effect.gen(function* () {
       const disk = yield* Disk
       const store = yield* TodoStore
+
       yield* store.complete("1")
       const before = yield* disk.tree()
+
       yield* store.promote("1")
       expect(yield* disk.tree()).toEqual(before)
     }),

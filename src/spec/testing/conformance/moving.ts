@@ -11,6 +11,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a, b, c] = yield* given({ title: "A" }, { title: "B" }, { title: "C" })
+
       yield* store.move(c.id, { before: a.id })
       equal(yield* layout, [["", [c.id, a.id, b.id]]])
       yield* store.move(c.id, { after: b.id })
@@ -29,6 +30,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
       )
 
       const moved = yield* store.move(a.id, { group: "Frontend" })
+
       equal(moved.group, "Frontend")
       equal((yield* store.get(a.id)).group, "Frontend")
       equal(yield* layout, [
@@ -45,6 +47,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a, u] = yield* given({ title: "A", placement: { group: "Backend" } }, { title: "U" })
+
       yield* store.move(a.id, {})
       equal((yield* store.get(a.id)).group, undefined)
       equal(yield* layout, [
@@ -60,6 +63,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a] = yield* given({ title: "A", placement: { group: "Backend" } })
+
       yield* store.move(a.id, { group: "Later" })
       equal(yield* layout, [
         ["", []],
@@ -75,6 +79,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a, done] = yield* given({ title: "A" }, { title: "Done", done: true })
+
       yield* failsWith(store.move(done.id, {}), "InvalidTransition")
       yield* failsWith(store.move("does-not-exist", {}), "TaskNotFound")
       yield* failsWith(store.move(a.id, { before: "does-not-exist" }), "TaskNotFound")

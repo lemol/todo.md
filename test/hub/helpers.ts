@@ -113,6 +113,7 @@ export const makeWatchers: Effect.Effect<Watchers> = Effect.gen(function* () {
       Stream.unwrap(
         Effect.gen(function* () {
           const subscription = yield* PubSub.subscribe(emitted)
+
           yield* Queue.offer(started, project.name)
 
           return Stream.fromSubscription(subscription).pipe(

@@ -52,6 +52,7 @@ describe("pushing", () => {
       const store = yield* TodoStore
       const { clone, remote, other } = yield* GitFixture
       const theirs = other()
+
       writeIn(theirs, { "NOTES.md": md("Theirs.") })
       commitAndPush(theirs, "their change")
 
@@ -72,13 +73,16 @@ describe("pushing", () => {
       const store = yield* TodoStore
       const { clone, dir, other } = yield* GitFixture
       const theirs = other()
+
       writeIn(theirs, { "TODO.md": md("# Acme API", "", "- [ ] 01 - Write the release notes") })
       commitAndPush(theirs, "their edit")
 
       const task = yield* store.update("1", { title: "Write the changelog" })
+
       expect(task.title).toBe("Write the changelog")
 
       const state = yield* inBun(readGitState(dir))
+
       expect(state.diverged).toBe(true)
       expect(state.lastPushError).toContain(clone)
       // No rebase is left in progress, and our commit is still here.
@@ -93,13 +97,16 @@ describe("pushing", () => {
     Effect.gen(function* () {
       const store = yield* TodoStore
       const { clone, dir, remote } = yield* GitFixture
+
       git(clone, "remote", "set-url", "origin", `${remote}-gone`)
 
       yield* store.add({ title: "Offline" })
 
       const [ahead] = counts(clone)
+
       expect(ahead).toBe("1")
       const state = yield* inBun(readGitState(dir))
+
       expect(state.lastPushError).toBeDefined()
       expect(state.diverged).toBeUndefined()
 
@@ -120,6 +127,7 @@ describe("pushing", () => {
       const store = yield* TodoStore
       const fixture = yield* GitFixture
       const { clone, dir, remote } = fixture
+
       git(clone, "remote", "set-url", "origin", `${remote}-gone`)
       yield* store.add({ title: "Offline" })
       git(clone, "remote", "set-url", "origin", remote)

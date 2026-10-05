@@ -34,6 +34,7 @@ export const web = Command.make(
     const path = yield* Path.Path
     // Fail fast with the CLI's tagged errors; startServer re-resolves the same project.
     const hub = yield* Hub
+
     yield* hub.resolve({
       ...(Option.isSome(project) ? { project: project.value } : {}),
       ...(Option.isSome(dir) ? { dir: path.resolve(cwd, dir.value) } : {}),
@@ -60,6 +61,7 @@ export const web = Command.make(
         )
 
         const url = `http://${host}:${started.port}/p/${started.project}`
+
         yield* output(undefined, { url }, () =>
           loopback(host)
             ? [url]

@@ -30,6 +30,7 @@ export const spliceLines = (
   insert: ReadonlyArray<string>,
 ): Lines => {
   const lines = [...text.lines]
+
   lines.splice(start, deleteCount, ...insert)
   const appended = insert.length > 0 && start + deleteCount >= text.lines.length
 

@@ -72,12 +72,14 @@ const renderTaskDetail = async (props: {
   )
 
 const cleanup: Array<() => Promise<void>> = []
+
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
 test("renders Markdown without raw HTML", () => {
   const html = markdownHtml("**safe** <script>alert(1)</script>")
+
   expect(html).toContain("<strong>safe</strong>")
   expect(html).not.toContain("<script>")
   expect(html).not.toContain("alert(1)")
@@ -115,6 +117,7 @@ test("compiles the browser entry with its workspace import map", async () => {
 
   try {
     const entry = await assets.getScriptEntry("app/actions/public/entry.ts")
+
     // `remix/*` subpaths are barrels, and the asset server rewrites named
     // imports through them to the implementation modules, so they reach the
     // browser as preloads rather than import-map entries.
@@ -150,6 +153,7 @@ test("the header carries the switcher, hub links and the live event list", async
 test("the sync badge carries the hub's words and a matching pastel", async () => {
   const now = DateTime.makeUnsafe("2026-09-16T12:00:00.000Z")
   const never = await renderToString(syncStatusBadge({ result: "never" }, now))
+
   expect(never).toContain("never synced")
   expect(never).toContain("--ui-badge-neutral-bg")
   expect(statusTone({ result: "error", error: "auth" })).toBe("error")
@@ -166,12 +170,14 @@ test("the sync badge carries the hub's words and a matching pastel", async () =>
 
 test("renders the shared document shell with mini theme and shell", async () => {
   const { router, project, close } = await makeRouter()
+
   cleanup.push(close)
   const response = await router.fetch(
     new Request(`http://localhost/p/${project}`, { headers: { Host: "localhost" } }),
   )
 
   const html = await response.text()
+
   expect(html).toMatch(/^<!doctype html>/i)
   expect(html).toContain('lang="en"')
   expect(html).toContain('name="viewport"')
@@ -242,12 +248,14 @@ test("renders CheckPage with diagnostics using @lemol/ui components", async () =
 
 test("renders CheckPage empty state", async () => {
   const html = await renderToString(<CheckPage project="acme" diagnostics={[]} />)
+
   expect(html).toContain("Check")
   expect(html).toContain("No diagnostics.")
 })
 
 test("renders complete dialog markup for no-JS without client runtime", async () => {
   const { router, project, close } = await makeRouter()
+
   cleanup.push(close)
 
   const boardRes = await router.fetch(
@@ -255,6 +263,7 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
   )
 
   const boardHtml = await boardRes.text()
+
   expect(boardHtml).toContain('command="show-modal"')
   expect(boardHtml).toContain('commandfor="add-task"')
   expect(boardHtml).toContain('id="add-task"')
@@ -265,6 +274,7 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
   expect(boardHtml).toContain('commandfor="add-task"')
 
   const form = new FormData()
+
   form.set("title", "Check dialogs")
   const addRes = await router.fetch(
     new Request(`http://localhost/p/${project}/tasks`, {
@@ -281,6 +291,7 @@ test("renders complete dialog markup for no-JS without client runtime", async ()
   )
 
   const taskHtml = await taskRes.text()
+
   expect(taskHtml).toContain('command="show-modal"')
   expect(taskHtml).toContain('commandfor="edit-task"')
   expect(taskHtml).toContain('id="edit-task"')

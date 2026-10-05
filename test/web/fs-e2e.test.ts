@@ -11,14 +11,17 @@ import { routes } from "../../src/web/app/routes.ts"
 import { makeFakeAssets } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
+
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()))
 })
 
 const setUp = async (todoMd: string) => {
   const root = await mkdtemp(join(tmpdir(), "todo-md-web-e2e-"))
+
   await writeFile(join(root, "TODO.md"), todoMd)
   const home = await mkdtemp(join(tmpdir(), "todo-md-web-e2e-home-"))
+
   await mkdir(join(home, "projects", "disk"), { recursive: true })
   await writeFile(
     join(home, "projects.yaml"),
@@ -54,6 +57,7 @@ test("adds and completes a task through the router over FsTodoStore", async () =
   const project = "disk"
 
   const add = new FormData()
+
   add.set("title", "Persist me")
   const added = await router.fetch(
     new Request(`http://localhost${routes.project.tasks.add.href({ project })}`, {
@@ -67,6 +71,7 @@ test("adds and completes a task through the router over FsTodoStore", async () =
   expect(await readFile(join(root, "TODO.md"), "utf8")).toContain("Persist me")
 
   const complete = new FormData()
+
   complete.set("back", routes.project.board.href({ project }))
   const completed = await router.fetch(
     new Request(`http://localhost${routes.project.tasks.complete.href({ project, id: "1" })}`, {
@@ -79,6 +84,7 @@ test("adds and completes a task through the router over FsTodoStore", async () =
   expect(completed.status).toBe(303)
   expect(await readFile(join(root, "TODO.md"), "utf8")).not.toContain("Persist me")
   const doneFiles = await readdir(join(root, "done"), { recursive: true })
+
   expect(doneFiles.some((file) => file.endsWith("01-persist-me.md"))).toBe(true)
 })
 

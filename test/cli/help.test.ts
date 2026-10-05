@@ -24,6 +24,7 @@ effectTest(
   "every command has --help with a description, examples and a description for each flag",
   Effect.gen(function* () {
     const root = yield* todo("--help")
+
     expect(root.code).toBe(0)
     expect(section(root.stdout, "EXAMPLES").length).toBeGreaterThan(0)
     const commands = section(root.stdout, "SUBCOMMANDS").map(
@@ -53,6 +54,7 @@ effectTest(
 
     for (const command of commands) {
       const help = yield* todo(command, "--help")
+
       expect(help.code, command).toBe(0)
       expect(section(help.stdout, "DESCRIPTION").length, command).toBeGreaterThan(0)
       expect(section(help.stdout, "EXAMPLES").length, command).toBeGreaterThan(0)
@@ -64,6 +66,7 @@ effectTest(
 
     for (const sub of ["ls", "add", "rm", "rename"]) {
       const help = yield* todo("projects", sub, "--help")
+
       expect(help.code, `projects ${sub}`).toBe(0)
       expect(section(help.stdout, "DESCRIPTION").length, `projects ${sub}`).toBeGreaterThan(0)
       expect(section(help.stdout, "EXAMPLES").length, `projects ${sub}`).toBeGreaterThan(0)
@@ -80,6 +83,7 @@ effectTest(
   "-h is --help, and help works without a list",
   Effect.gen(function* () {
     const help = yield* todo("add", "-h")
+
     expect(help.code).toBe(0)
     expect(help.stdout).toContain("todo add [flags] <title...>")
   }),

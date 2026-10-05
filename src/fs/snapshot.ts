@@ -122,6 +122,7 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
     )
 
     const texts = new Map<string, string | undefined>()
+
     yield* Effect.forEach(
       unique([...donePaths, ...linkedPaths]),
       (path) => Effect.map(files.read(path), (text) => texts.set(path, text)),
@@ -137,6 +138,7 @@ const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreEr
       if (id === undefined || text === undefined) continue
 
       const file = parser.taskFile(path, text)
+
       diagnostics.push(...file.diagnostics)
       done.push({ id, path, source: text, file })
     }

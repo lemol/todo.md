@@ -74,6 +74,7 @@ const showNextAll = (filter: TaskFilter, limit: number) =>
       return yield* withTodo((todo, project) =>
         Effect.gen(function* () {
           const ready = yield* todo.next({ ...filter, state: "ready" })
+
           yield* output(project, ready, (style) =>
             ready.length === 0 ? ["Nothing is ready."] : taskLines(ready, style),
           )
@@ -84,6 +85,7 @@ const showNextAll = (filter: TaskFilter, limit: number) =>
     const hub = yield* Hub
     const view = yield* hub.overview({ projects: names, filter: { ...filter, state: "ready" } })
     const shown = limit > 0 ? view.tasks.slice(0, limit) : view.tasks
+
     yield* output(undefined, view, (style) =>
       shown.length === 0 && !view.projects.some((entry) => "error" in entry)
         ? ["Nothing is ready."]
@@ -96,6 +98,7 @@ export const showList = (filter: TaskFilter = {}) =>
   withTodo((todo, project) =>
     Effect.gen(function* () {
       const listing = yield* todo.list(filter)
+
       yield* output(project, listing, (style) => renderListing(listing, style))
     }),
   )
@@ -130,6 +133,7 @@ export const list = Command.make(
 
     if (!flags.all) {
       const status = flags.done ? "done" : "open"
+
       yield* showList({ ...filterOf(flags), status, ...(state === undefined ? {} : { state }) })
     } else {
       yield* showAll({ ...filterOf(flags), ...(state === undefined ? {} : { state }) }, flags.done)
@@ -168,6 +172,7 @@ export const next = Command.make(
         Effect.gen(function* () {
           const ready = yield* todo.next(filterOf(flags))
           const shown = flags.limit > 0 ? ready.slice(0, flags.limit) : ready
+
           yield* output(project, shown, (style) =>
             shown.length === 0 ? ["Nothing is ready."] : taskLines(shown, style),
           )
@@ -201,10 +206,12 @@ export const show = Command.make(
   Effect.fn(function* ({ id }) {
     const ref = refOf(id)
     const refProject = yield* projectOfRefs([ref])
+
     yield* withTodo(
       (todo, project) =>
         Effect.gen(function* () {
           const detail = yield* todo.show(ref.id)
+
           yield* output(project, detail, (style) => renderDetail(detail, style))
         }),
       { project: refProject },
@@ -227,6 +234,7 @@ export const check = Command.make(
     yield* withTodo((todo, project) =>
       Effect.gen(function* () {
         const diagnostics = yield* todo.check()
+
         yield* output(project, diagnostics, (style) => renderDiagnostics(diagnostics, style))
         const errors = diagnostics.filter((d) => d.severity === "error").length
 

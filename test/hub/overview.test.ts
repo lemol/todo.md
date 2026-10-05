@@ -33,6 +33,7 @@ describe("overview", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn(sources())
       const overview = yield* hub.overview()
+
       expect(
         overview.projects.map((entry) =>
           "listing" in entry
@@ -60,6 +61,7 @@ describe("overview", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn(sources())
       const overview = yield* hub.overview({ filter: { tags: ["x"] } })
+
       expect(overview.tasks.map(({ ref }) => ref)).toEqual(["a:1", "b:1"])
     }),
     registry,
@@ -70,8 +72,10 @@ describe("overview", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn(sources())
       const overview = yield* hub.overview({ projects: ["b", "nope", "a"] })
+
       expect(overview.projects.map((entry) => entry.project.name)).toEqual(["b", "nope", "a"])
       const missing = overview.projects[1]
+
       expect(missing && "error" in missing ? missing.error._tag : undefined).toBe("ProjectNotFound")
       expect(missing?.project).toMatchObject({ registered: false, status: { result: "error" } })
       expect(overview.tasks.map(({ ref }) => ref)).toEqual(["b:1", "a:1", "a:2"])
@@ -84,6 +88,7 @@ describe("overview", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn(sources())
       const overview = yield* hub.overview({ sources: ["other"] })
+
       expect(overview.projects.map((entry) => entry.project.name)).toEqual(["b"])
     }),
     registry,
@@ -93,8 +98,10 @@ describe("overview", () => {
     "includes done tasks after open ones when the filter asks for them",
     Effect.gen(function* () {
       const hub = yield* hubOn(sources())
+
       yield* (yield* hub.todo("a")).complete("1")
       const overview = yield* hub.overview({ projects: ["a"], filter: { status: "all" } })
+
       expect(overview.tasks.map(({ ref, view }) => [ref, view.state])).toEqual([
         ["a:2", "ready"],
         ["a:1", "done"],

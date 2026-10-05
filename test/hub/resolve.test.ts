@@ -19,10 +19,13 @@ describe("resolve", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource, memorySource()])
+
       yield* hub.add({ name: "m", source: "memory", config: {} })
       const info = yield* hub.resolve({ project: "m", dir: "work/app", cwd: root })
+
       expect(info).toMatchObject({ name: "m", source: "memory", registered: true })
       const error = yield* Effect.flip(hub.resolve({ project: "nope", cwd: root }))
+
       expect(error).toMatchObject({ _tag: "ProjectNotFound", name: "nope" })
     }),
     diskWith(lists),
@@ -34,6 +37,7 @@ describe("resolve", () => {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource])
       const info = yield* hub.resolve({ dir: "app", cwd: `${root}/work` })
+
       expect(info).toEqual({
         name: "app",
         source: "fs",
@@ -52,8 +56,10 @@ describe("resolve", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource])
+
       yield* hub.add({ name: "main", source: "fs", config: { path: `${root}/app` } })
       const info = yield* hub.resolve({ cwd: `${root}/app/src` })
+
       expect(info).toMatchObject({ name: "main", registered: true })
     }),
     diskWith(lists),
@@ -64,14 +70,17 @@ describe("resolve", () => {
     Effect.gen(function* () {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource, memorySource()])
+
       yield* hub.add({ name: "app", source: "memory", config: {} })
       const first = yield* hub.resolve({ cwd: `${root}/app/src` })
+
       expect(first).toMatchObject({
         name: "app-2",
         registered: false,
         location: `${root}/app/todo`,
       })
       const second = yield* hub.resolve({ cwd: `${root}/work/app` })
+
       expect(second.name).toBe("app-3")
       expect((yield* hub.resolve({ cwd: `${root}/app` })).name).toBe("app-2")
       expect((yield* hub.resolve({ cwd: `${root}/other/My Tool` })).name).toBe("my-tool")
@@ -92,6 +101,7 @@ describe("resolve", () => {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource])
       const error = yield* Effect.flip(hub.resolve({ cwd: `${root}/empty` }))
+
       expect(error).toMatchObject({ _tag: "NoListFound", cwd: `${root}/empty` })
       expect(error.message).toBe(
         `no todo.md list found from ${root}/empty; run \`todo init\` or pass --dir`,
@@ -106,6 +116,7 @@ describe("resolve", () => {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource])
       const info = yield* hub.resolve({ cwd: `${root}/app` })
+
       expect(info).toMatchObject({ name: "app", registered: false })
       expect((yield* (yield* hub.todo("app")).list()).title).toBe("App")
     }),

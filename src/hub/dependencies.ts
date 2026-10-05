@@ -158,6 +158,7 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
           }
 
           const task: Task = detail.value.view.task
+
           out.set(qualified, {
             title: task.title,
             state: task.outcome === "cancelled" ? "cancelled" : detail.value.view.state,

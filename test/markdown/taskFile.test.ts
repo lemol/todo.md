@@ -117,6 +117,7 @@ describe("parseTaskFile", () => {
 
   test("treats a Comments heading that is not the last level-2 heading as description", () => {
     const file = parseTaskFile(md("## Comments", "", "text", "", "## Later"), "f.md")
+
     expect(file.comments).toEqual([])
     expect(file.description).toBe("## Comments\n\ntext\n\n## Later")
   })
@@ -238,6 +239,7 @@ describe("formatTaskFile", () => {
 
   test("round-trips through parseTaskFile", () => {
     const { diagnostics, ...parsed } = parseTaskFile(formatTaskFile(content), "f.md")
+
     expect(diagnostics).toEqual([])
     expect(parsed).toEqual(content)
   })
@@ -277,9 +279,11 @@ describe("formatTaskFile", () => {
       "---\ntitle: Task with foreign dependency\ndepends_on: [1, slash-usage:2]\n---\nBody\n"
 
     const parsed = parseTaskFile(file, "test.md")
+
     expect(parsed.dependsOn).toEqual(["1", "slash-usage:2"])
     expect(parsed.diagnostics).toEqual([])
     const formatted = formatTaskFile(parsed as TaskFileContent)
+
     expect(formatted).toContain("depends_on: [1, slash-usage:2]")
     expect(formatted).not.toContain(".nan")
   })
@@ -289,6 +293,7 @@ describe("formatTaskFile", () => {
       "---\ntitle: Task with padded foreign dependency\ndepends_on: [upstream:01]\n---\nBody\n"
 
     const parsed = parseTaskFile(file, "test.md")
+
     expect(parsed.dependsOn).toEqual(["upstream:1"])
     expect(parsed.diagnostics).toEqual([])
   })
@@ -315,6 +320,7 @@ describe("updateTaskFile", () => {
 
   test("replaces the description and keeps the comments", () => {
     const updated = updateTaskFile(example, { description: "New plan." })
+
     expect(updated).toBe(
       example.replace(
         "Token bucket per API key.\n\n## Design\n\n100 requests per minute.\n",

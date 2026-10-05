@@ -8,6 +8,7 @@ export const readingCases: ReadonlyArray<ConformanceCase> = [
     name: "load returns a list without tasks for a new store",
     run: Effect.gen(function* () {
       const list = yield* (yield* TodoStore).load()
+
       equal(list.ungrouped, [])
       equal(list.groups, [])
     }),
@@ -23,6 +24,7 @@ export const readingCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const id = "does-not-exist"
+
       yield* failsWith(store.get(id), "TaskNotFound")
       yield* failsWith(store.update(id, { title: "New" }), "TaskNotFound")
       yield* failsWith(store.complete(id), "TaskNotFound")

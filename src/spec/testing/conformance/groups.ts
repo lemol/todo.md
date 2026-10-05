@@ -67,6 +67,7 @@ export const groupCases: ReadonlyArray<ConformanceCase> = [
     run: Effect.gen(function* () {
       const store = yield* TodoStore
       const [a] = yield* given({ title: "A", placement: { group: "Backend" }, done: true })
+
       yield* store.renameGroup("Backend", "Server")
       equal((yield* store.reopen(a.id)).group, undefined)
       equal(yield* layout, [

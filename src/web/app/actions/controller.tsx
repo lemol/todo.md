@@ -247,12 +247,14 @@ const eventsAction =
     }
 
     const ready = await runtime.runPromise(Deferred.make<void>())
+
     fiber = await runtime.runPromise(
       Effect.gen(function* () {
         const hub = yield* Hub
         const consumer = Effect.scoped(
           Effect.gen(function* () {
             const changes = yield* hub.subscribeChanges
+
             yield* Deferred.succeed(ready, undefined)
             yield* Stream.runForEach(changes, (change) => Effect.sync(() => send(change)))
           }),

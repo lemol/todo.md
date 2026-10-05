@@ -9,6 +9,7 @@ const at = (search: string) => new URL(`http://localhost/${search}`)
 
 test("defaults to the projects view with no filters", () => {
   const query = parseDashboardQuery(at(""))
+
   expect(query.view).toBe("projects")
   expect(query.projects).toEqual([])
   expect(query.sources).toEqual([])
@@ -17,6 +18,7 @@ test("defaults to the projects view with no filters", () => {
 
 test("maps repeatable project, source and tag parameters", () => {
   const query = parseDashboardQuery(at("?project=acme&project=work&source=fs&tag=docs&tag=web"))
+
   expect(query.projects).toEqual(["acme", "work"])
   expect(query.sources).toEqual(["fs"])
   expect(query.overview).toEqual({
@@ -47,6 +49,7 @@ test("rejects an unknown state or view", () => {
 
 test("dashboardHref round-trips a query and applies a patch", () => {
   const query = parseDashboardQuery(at("?project=acme&tag=docs&state=ready"))
+
   expect(dashboardHref(query)).toBe("/?project=acme&tag=docs&state=ready")
   expect(dashboardHref(query, { view: "flat" })).toBe(
     "/?project=acme&tag=docs&state=ready&view=flat",

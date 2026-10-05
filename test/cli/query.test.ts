@@ -92,6 +92,7 @@ describe("todo / todo list", () => {
     "rejects --ready together with --blocked",
     Effect.gen(function* () {
       const result = yield* todo("list", "--ready", "--blocked")
+
       expect(result.code).toBe(2)
       expect(result.stderr).toBe("error: use --ready or --blocked, not both")
     }),
@@ -102,6 +103,7 @@ describe("todo / todo list", () => {
     "colors the output on a terminal",
     Effect.gen(function* () {
       const result = yield* runTodo([], { color: true })
+
       expect(result.stdout.startsWith("\u001b[1mAcme API\u001b[22m")).toBe(true)
       expect(result.stdout).toContain("\u001b[33mblocked by 02\u001b[39m")
     }),
@@ -123,6 +125,7 @@ describe("todo next", () => {
       )
       expect((yield* todo("next", "--group", "Nope")).stdout).toBe("Nothing is ready.")
       const json = JSON.parse((yield* todo("next", "--assignee", "claude", "--json")).stdout)
+
       expect(json.map((v: { task: { id: string } }) => v.task.id)).toEqual(["4"])
     }),
     diskWith(acme),
@@ -173,6 +176,7 @@ describe("todo show", () => {
         stderr: "error: no task 99",
       })
       const json = yield* todo("show", "99", "--json")
+
       expect(JSON.parse(json.stderr)).toEqual({
         error: { tag: "TaskNotFound", message: "no task 99", id: "99" },
       })
@@ -204,6 +208,7 @@ describe("todo check", () => {
         stderr: "",
       })
       const json = yield* todo("check", "--json")
+
       expect(json.code).toBe(1)
       expect(JSON.parse(json.stdout).map((d: { code: string }) => d.code)).toEqual([
         "broken-link",

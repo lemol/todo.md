@@ -6,6 +6,7 @@ import { join } from "node:path"
 // The real executable, as a separate process: exit codes and output streams.
 const bin = join(import.meta.dir, "../../src/cli/bin.ts")
 const dir = mkdtempSync(join(tmpdir(), "todo-md-bin-"))
+
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
 // The binary reads its home from the environment, so the child gets a home of

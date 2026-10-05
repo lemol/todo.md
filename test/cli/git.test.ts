@@ -25,15 +25,18 @@ describe("git projects from the CLI", () => {
         Effect.flatMap(sources, (loaded) => runTodo(args, { home, sources: loaded }))
 
       const added = yield* run("projects", "add", remote, "--source", "git", "--name", "acme")
+
       expect(added.stderr).toBe("")
       expect(added.code).toBe(0)
       expect(added.stdout).toContain("acme")
 
       const listed = yield* run("--project", "acme", "ls")
+
       expect(listed.code).toBe(0)
       expect(listed.stdout).toContain("Seeded")
 
       const done = yield* run("--project", "acme", "add", "Ship", "it", "--quick")
+
       expect(done.stderr).toBe("")
       expect(done.code).toBe(0)
 
@@ -55,6 +58,7 @@ describe("git projects from the CLI", () => {
         Effect.flatMap(sources, (loaded) => runTodo(args, { home, sources: loaded }))
 
       const refused = yield* run("projects", "add", remote, "--source", "git", "--name", "empty")
+
       expect(refused.code).not.toBe(0)
       expect(refused.stderr).toContain("no TODO.md")
       expect((yield* run("projects")).stdout).toContain("No projects registered")
@@ -71,10 +75,12 @@ describe("git projects from the CLI", () => {
         Effect.flatMap(sources, (loaded) => runTodo(args, { home: `${root}/hub`, sources: loaded }))
 
       const refused = yield* run("projects", "add", `${root}/local`, "--branch", "main")
+
       expect(refused.code).toBe(2)
       expect(refused.stderr).toContain("--branch is not for fs projects")
 
       const both = yield* run("projects", "add", `${root}/local`, "--branch", "main", "--list", "x")
+
       expect(both.code).toBe(2)
       expect(both.stderr).toContain("--branch and --list are not for fs projects")
     }),

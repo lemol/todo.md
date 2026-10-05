@@ -27,6 +27,7 @@ describe("insertItem", () => {
 
   test("adds the first task of a group after its description", () => {
     const text = md("# T", "", "## A", "", "Notes.", "", "## B")
+
     expect(insertItem(parseTodoFile(text), "A", 0, ["- [ ] 01 - New"])).toBe(
       md("# T", "", "## A", "", "Notes.", "", "- [ ] 01 - New", "", "## B"),
     )
@@ -55,6 +56,7 @@ describe("insertItem", () => {
 
   test("keeps CRLF line endings", () => {
     const crlf = "# T\r\n\r\n- [ ] 01 - A\r\n"
+
     expect(insertItem(parseTodoFile(crlf), undefined, 1, ["- [ ] 02 - B"])).toBe(
       `${crlf}- [ ] 02 - B\r\n`,
     )
@@ -64,6 +66,7 @@ describe("insertItem", () => {
 describe("removeItem", () => {
   test("removes an item with its body", () => {
     const todo = parseTodoFile(example)
+
     expect(removeItem(todo, itemOf(todo, "3"))).toBe(
       example.replace(
         "- [ ] 03 - Fix login redirect\n  #bug @lemol depends_on:1\n  Users land on /home instead of the page they requested.\n\n  - check the referrer\n",
@@ -74,11 +77,13 @@ describe("removeItem", () => {
 
   test("does not leave a doubled blank line", () => {
     const todo = parseTodoFile(md("## A", "", "- [ ] 01 - A", "", "## B"))
+
     expect(removeItem(todo, itemOf(todo, "1"))).toBe(md("## A", "", "## B"))
   })
 
   test("does not leave a blank line at the end of the file", () => {
     const todo = parseTodoFile(md("# T", "", "- [ ] 01 - A"))
+
     expect(removeItem(todo, itemOf(todo, "1"))).toBe(md("# T"))
   })
 })
@@ -86,6 +91,7 @@ describe("removeItem", () => {
 describe("replaceItem and setItemHead", () => {
   test("replaceItem swaps an item's lines", () => {
     const todo = parseTodoFile(example)
+
     expect(
       replaceItem(todo, itemOf(todo, "14"), [
         "- [ ] [14 - Write changelog](./14-write-changelog.md)",
@@ -101,6 +107,7 @@ describe("replaceItem and setItemHead", () => {
   test("setItemHead keeps the bullet, checkbox, body and link target", () => {
     const todo = parseTodoFile(example)
     const renamed = setItemHead(todo, itemOf(todo, "9"), "9", "Bump all deps")
+
     expect(renamed).toBe(example.replace("* [X] 09 - Bump deps", "* [X] 09 - Bump all deps"))
     const linked = parseTodoFile(md("- [ ] [Rate limits](backend/x.md)"))
     const [first] = linked.sections[0]?.items ?? []

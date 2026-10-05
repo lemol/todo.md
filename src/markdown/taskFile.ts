@@ -288,6 +288,7 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
     const end = comments ?? text.lines.length
     const block = changes.description === "" ? [] : changes.description.split("\n")
     const lines = comments !== undefined && block.length > 0 ? [...block, ""] : block
+
     text = spliceLines(text, bodyStart, end - bodyStart, lines)
   }
 

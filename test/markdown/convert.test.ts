@@ -82,6 +82,7 @@ describe("file-backed tasks", () => {
 
   test("the link text is the fallback title", () => {
     const file = parseTaskFile("Notes.\n", "03-notes.md")
+
     expect(
       fileTask("3", file, { title: "From the link", status: "open", group: undefined }).title,
     ).toBe("From the link")
@@ -90,6 +91,7 @@ describe("file-backed tasks", () => {
   test("only done tasks write group and completion time", () => {
     expect(taskFileFor(task)).toMatchObject({ group: undefined, completedAt: undefined })
     const at = DateTime.makeUnsafe("2026-09-12T10:31:00Z")
+
     expect(taskFileFor({ ...task, status: "done", completedAt: at })).toMatchObject({
       group: "Backend",
       completedAt: at,

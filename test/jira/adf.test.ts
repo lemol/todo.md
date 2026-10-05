@@ -29,6 +29,7 @@ describe("adfToMarkdown: text and paragraphs", () => {
 
   test("applies each text mark", () => {
     const marked = (mark: unknown) => adfToMarkdown(doc(paragraph(text("x", [mark]))))
+
     expect(marked({ type: "strong" })).toBe("**x**")
     expect(marked({ type: "em" })).toBe("*x*")
     expect(marked({ type: "code" })).toBe("`x`")

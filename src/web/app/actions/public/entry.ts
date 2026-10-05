@@ -12,6 +12,7 @@ import {
 export const startLiveRefresh = () => {
   let dirty = false
   const refreshLiveRegion = createLiveRegionRefresher()
+
   document.addEventListener(
     "input",
     (event) => {
@@ -100,6 +101,7 @@ const triggerFlashToast = () => {
 
   if (toastEl) {
     const invocation = new Event("command", { bubbles: false, cancelable: true, composed: true })
+
     Object.defineProperties(invocation, {
       command: { enumerable: true, value: "--dismiss-toast" },
       source: { enumerable: true, value: toastEl },

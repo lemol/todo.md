@@ -160,6 +160,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
         const dir = yield* located(project)
         const path = yield* Path.Path
         const clone = path.join(dir, "clone")
+
         yield* git(dir, cloneArgs(project.config, clone)).pipe(
           Effect.mapError((cause) =>
             sourceError(
@@ -245,6 +246,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
         const pulled = yield* lock(
           Effect.gen(function* () {
             const before = (yield* git(clone, ["rev-parse", "HEAD"])).trim()
+
             yield* git(clone, ["fetch", "origin"])
             const rebased = yield* Effect.result(git(clone, ["pull", "--rebase"]))
 
@@ -272,6 +274,7 @@ export const gitSourceWith = (git: Git): Source<GitConfig> => {
 
         if (ahead > 0) {
           const outcome = yield* pushCommits({ git, clone, branch: project.config.branch, lock })
+
           yield* recordPush(dir, outcome)
 
           if (outcome._tag === "Diverged") return yield* fail("diverged", outcome.message)

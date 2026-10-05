@@ -26,6 +26,7 @@ describe("status", () => {
     "is never for a project that has not synced",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect(yield* hub.status("m")).toEqual({ result: "never" })
     }),
     diskWith(registry),
@@ -35,6 +36,7 @@ describe("status", () => {
     "reads the project's state.json",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect(plain(yield* hub.status("m"))).toEqual({
         lastSync: "2026-09-13T10:00:00.000Z",
         result: "error",
@@ -68,6 +70,7 @@ describe("status", () => {
     "leaves out a failing source status",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource({ status: () => Effect.die(new Error("no git")) })])
+
       expect(yield* hub.status("m")).toEqual({ result: "never" })
     }),
     diskWith(registry),
@@ -79,6 +82,7 @@ describe("status", () => {
       const { root } = yield* Disk
       const hub = yield* hubOn([memorySource()])
       const status = yield* hub.status("m")
+
       expect(status.result).toBe("error")
       expect(status.error).toContain(`could not read ${root}/.todo-md/projects/m/state.json`)
     }),
@@ -91,6 +95,7 @@ describe("status", () => {
       const { root } = yield* Disk
       const hub = yield* hubOn([fsSource])
       const info = yield* hub.resolve({ dir: "app", cwd: root })
+
       expect(info.status).toEqual({ result: "never" })
       expect(yield* hub.status(info.name)).toEqual({ result: "never" })
     }),
@@ -101,6 +106,7 @@ describe("status", () => {
     "fails with ProjectNotFound for an unknown name",
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
+
       expect((yield* Effect.flip(hub.status("nope")))._tag).toBe("ProjectNotFound")
     }),
     diskWith(registry),
@@ -111,6 +117,7 @@ describe("status", () => {
     Effect.gen(function* () {
       const hub = yield* hubOn([memorySource()])
       const [project] = yield* hub.projects()
+
       expect(project?.status.result).toBe("error")
       expect(project?.status.diverged).toBe(true)
     }),

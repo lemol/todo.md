@@ -18,6 +18,7 @@ describe("memorySource", () => {
     Effect.gen(function* () {
       const store = yield* open(memorySource(), "m", { title: "M", tasks: [{ title: "One" }] })
       const list = yield* store.load()
+
       expect(list.title).toBe("M")
       expect(list.ungrouped.map((task) => task.title)).toEqual(["One"])
     }),
@@ -27,6 +28,7 @@ describe("memorySource", () => {
     "keeps each project's store across opens, per source value",
     Effect.gen(function* () {
       const source = memorySource()
+
       yield* (yield* open(source, "a")).add({ title: "Kept" })
       expect((yield* (yield* open(source, "a")).load()).ungrouped).toHaveLength(1)
       expect((yield* (yield* open(source, "b")).load()).ungrouped).toHaveLength(0)
@@ -39,6 +41,7 @@ describe("memorySource", () => {
     Effect.gen(function* () {
       const tasks = [{ title: "Self", dependsOn: ["1"] }]
       const error = yield* Effect.flip(open(memorySource(), "m", { tasks }))
+
       expect(error).toMatchObject({ _tag: "SourceError", name: "m" })
     }),
   )
@@ -47,6 +50,7 @@ describe("memorySource", () => {
     "adds the hooks it is given",
     Effect.sync(() => {
       const source = memorySource({ defaultName: () => "memo" })
+
       expect(source.kind).toBe("memory")
       expect(source.defaultName?.({})).toBe("memo")
       expect(source.sync).toBeUndefined()

@@ -44,6 +44,7 @@ describe("boards", () => {
 
   test("a board knows every task and the done IDs", () => {
     const board = boardOf(list, [task({ id: "5", status: "done" })])
+
     expect(allTasks(board).map((t) => t.id)).toEqual(["1", "2", "3", "4", "5"])
     expect(board.satisfiedIds).toEqual(new Set(["5"]))
   })

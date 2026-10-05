@@ -9,6 +9,7 @@ const service = TodoService.layer.pipe(Layer.provideMerge(MemoryTodoStore.layer(
 /** Adds tasks: 1 (ungrouped), 2 and 3 in Backend (3 depends on 2), 4 in Frontend (tagged, assigned). */
 const seed = Effect.gen(function* () {
   const todo = yield* TodoService
+
   yield* todo.add({ title: "Write changelog" })
   yield* todo.add({ title: "Add rate limiting" }, { group: "Backend" })
   yield* todo.add({ title: "Load test", dependsOn: ["2"] }, { group: "Backend" })
@@ -25,6 +26,7 @@ describe("TodoService queries", () => {
     "list returns every section with its open tasks and their state",
     Effect.gen(function* () {
       const listing = yield* (yield* seed).list()
+
       expect(listing.title).toBe("Acme")
       expect(
         listing.sections.map((s) => [s.name, s.tasks.map((v) => [v.task.id, v.state])]),
@@ -68,12 +70,15 @@ describe("TodoService queries", () => {
     "list returns done tasks when asked, with or without open ones",
     Effect.gen(function* () {
       const todo = yield* seed
+
       yield* todo.complete("2")
       expect((yield* todo.list()).done).toEqual([])
       const done = yield* todo.list({ status: "done" })
+
       expect(done.sections).toEqual([])
       expect(done.done.map((v) => [v.task.id, v.state])).toEqual([["2", "done"]])
       const all = yield* todo.list({ status: "all" })
+
       expect(all.sections.flatMap((s) => ids(s.tasks))).toEqual(["1", "3", "4"])
       expect(ids(all.done)).toEqual(["2"])
     }),
@@ -84,6 +89,7 @@ describe("TodoService queries", () => {
     "next returns ready tasks in priority order, filtered",
     Effect.gen(function* () {
       const todo = yield* seed
+
       expect(ids(yield* todo.next())).toEqual(["1", "2", "4"])
       expect(ids(yield* todo.next({ group: "Frontend" }))).toEqual(["4"])
       yield* todo.complete("2")
@@ -97,6 +103,7 @@ describe("TodoService queries", () => {
     Effect.gen(function* () {
       const todo = yield* seed
       const two = yield* todo.show("2")
+
       expect(two.view.state).toBe("ready")
       expect(two.dependencies).toEqual([])
       expect(ids(two.blocks)).toEqual(["3"])
@@ -115,11 +122,13 @@ describe("TodoService queries", () => {
     Effect.gen(function* () {
       const todo = yield* seed
       const task = yield* todo.get("2")
+
       expect(task.id).toBe("2")
       expect(task.title).toBe("Add rate limiting")
       expect((yield* Effect.flip(todo.get("999")))._tag).toBe("TaskNotFound")
 
       const all = yield* todo.tasks()
+
       expect(all.map((t) => t.id)).toEqual(["1", "2", "3", "4"])
     }),
     service,
@@ -129,6 +138,7 @@ describe("TodoService queries", () => {
     "check adds model problems to the store's diagnostics",
     Effect.gen(function* () {
       const todo = yield* seed
+
       expect(yield* todo.check()).toEqual([])
       yield* todo.update("1", { dependsOn: ["99"] })
       expect((yield* todo.check()).map((d) => [d.code, d.taskId])).toEqual([
@@ -144,8 +154,10 @@ describe("TodoService mutations", () => {
     "complete reports the open tasks it made ready",
     Effect.gen(function* () {
       const todo = yield* seed
+
       yield* todo.add({ title: "Release", dependsOn: ["2", "1"] })
       const completion = yield* todo.complete("2")
+
       expect(completion.task).toMatchObject({ id: "2", status: "done" })
       expect(ids(completion.unblocked)).toEqual(["3"])
       expect(ids((yield* todo.complete("1")).unblocked)).toEqual(["5"])
@@ -161,8 +173,10 @@ describe("TodoService mutations", () => {
       const blocker = yield* todo.add({ title: "First" })
       const blocked = yield* todo.add({ title: "Second", dependsOn: [blocker.id] })
       const cancelled = yield* todo.cancel(blocker.id, "Not doing this.")
+
       expect(cancelled.outcome).toBe("cancelled")
       const views = yield* todo.next()
+
       expect(ids(views)).not.toContain(blocked.id)
     }),
     service,
@@ -173,6 +187,7 @@ describe("TodoService mutations", () => {
     Effect.gen(function* () {
       const todo = yield* seed
       const refused = yield* Effect.flip(todo.remove("2"))
+
       expect(refused).toMatchObject({ _tag: "HasDependents", id: "2", dependents: ["3"] })
       expect((yield* todo.show("2")).view.state).toBe("ready")
       yield* todo.remove("2", { force: true })
@@ -186,6 +201,7 @@ describe("TodoService mutations", () => {
     "other mutations go to the store",
     Effect.gen(function* () {
       const todo = yield* seed
+
       yield* todo.update("1", { title: "Write the changelog" })
       yield* todo.move("1", { group: "Backend" })
       yield* todo.renameGroup("Backend", "Server")
@@ -193,6 +209,7 @@ describe("TodoService mutations", () => {
       yield* todo.complete("4")
       yield* todo.reopen("4")
       const task = yield* (yield* TodoStore).get("1")
+
       expect(task).toMatchObject({ title: "Write the changelog", group: "Server" })
       expect(task.comments).toHaveLength(1)
       expect((yield* (yield* TodoStore).get("4")).status).toBe("open")
@@ -264,6 +281,7 @@ describe("TodoService capability guards", () => {
     Effect.gen(function* () {
       const todo = yield* TodoService
       const a = yield* (yield* Unguarded).add({ title: "A" })
+
       expect(yield* tags(todo.add({ title: "B" }))).toBe("Unsupported")
       expect(yield* tags(todo.remove(a.id))).toBe("Unsupported")
       expect(yield* tags(todo.move(a.id, {}))).toBe("Unsupported")
@@ -281,6 +299,7 @@ describe("TodoService capability guards", () => {
     Effect.gen(function* () {
       const todo = yield* TodoService
       const a = yield* todo.add({ title: "A" })
+
       expect(yield* tags(todo.add({ title: "B" }, { group: "Backend" }))).toBe("Unsupported")
       expect(yield* tags(todo.add({ title: "B" }, { after: a.id }))).toBe("Unsupported")
       expect((yield* (yield* TodoStore).load()).ungrouped.map((t) => t.id)).toEqual([a.id])

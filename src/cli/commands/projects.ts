@@ -30,6 +30,7 @@ const printProject = (hub: Hub["Service"], info: ProjectInfo) =>
     const counts = yield* countsOf(hub, info.name)
     const status = yield* hub.status(info.name)
     const now = yield* DateTime.now
+
     yield* output(undefined, info, () => [
       projectLine({ info, ...counts, status: statusText(status, now) }),
     ])
@@ -242,6 +243,7 @@ export const projectsRm = Command.make(
   },
   Effect.fn(function* ({ name, force }) {
     const hub = yield* Hub
+
     yield* hub.remove(name, { force })
     yield* output(undefined, { removed: name }, () => [`Removed project ${name}`])
   }),
@@ -261,6 +263,7 @@ export const projectsRename = Command.make(
   },
   Effect.fn(function* ({ from, to }) {
     const hub = yield* Hub
+
     yield* printProject(hub, yield* hub.rename(from, to))
   }),
 ).pipe(
@@ -322,6 +325,7 @@ export const sync = Command.make(
         })
 
     const failed = outcomes.filter((outcome) => "error" in outcome).length
+
     yield* output(undefined, outcomes, () => outcomes.map(syncLine))
 
     if (failed > 0) return yield* new SyncFailed({ errors: failed })

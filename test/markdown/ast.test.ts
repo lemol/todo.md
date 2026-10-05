@@ -19,6 +19,7 @@ describe("headingText", () => {
   test("extracts heading text and column range", () => {
     const source = "## Backend"
     const heading = parseAst(source).children[0] as Heading
+
     expect(headingText(source, heading)).toEqual({ text: "Backend", from: 3, to: 10 })
   })
 
@@ -40,6 +41,7 @@ describe("headingText", () => {
 
     const source = "  Padded Heading  "
     const res = headingText(source, mockHeading)
+
     expect(res).toEqual({
       text: "Padded Heading",
       from: 2,
