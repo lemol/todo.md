@@ -49,6 +49,7 @@ effectTest(
       "fmt",
       "projects",
       "sync",
+      "jira",
       "web",
     ])
 
@@ -64,15 +65,21 @@ effectTest(
       }
     }
 
-    for (const sub of ["ls", "add", "rm", "rename"]) {
-      const help = yield* todo("projects", sub, "--help")
+    const subcommands = [
+      ...["ls", "add", "rm", "rename"].map((sub) => ["projects", sub]),
+      ["jira", "pull"],
+    ]
 
-      expect(help.code, `projects ${sub}`).toBe(0)
-      expect(section(help.stdout, "DESCRIPTION").length, `projects ${sub}`).toBeGreaterThan(0)
-      expect(section(help.stdout, "EXAMPLES").length, `projects ${sub}`).toBeGreaterThan(0)
+    for (const [parent = "", sub = ""] of subcommands) {
+      const name = `${parent} ${sub}`
+      const help = yield* todo(parent, sub, "--help")
+
+      expect(help.code, name).toBe(0)
+      expect(section(help.stdout, "DESCRIPTION").length, name).toBeGreaterThan(0)
+      expect(section(help.stdout, "EXAMPLES").length, name).toBeGreaterThan(0)
 
       for (const line of [...section(help.stdout, "FLAGS"), ...section(help.stdout, "ARGUMENTS")]) {
-        expect(line, `projects ${sub}: ${line}`).toMatch(described)
+        expect(line, `${name}: ${line}`).toMatch(described)
       }
     }
   }),

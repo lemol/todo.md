@@ -1,6 +1,7 @@
 import { Console, Effect } from "effect"
 import { CliOutput, Command } from "effect/cli"
 import { Hub } from "../hub/index.ts"
+import { jira } from "./commands/jira.ts"
 import { fmt, init } from "./commands/lists.ts"
 import { projects, sync } from "./commands/projects.ts"
 import { check, list, next, show, showList } from "./commands/query.ts"
@@ -42,6 +43,7 @@ export const todo = Command.make("todo", {}, () => showList()).pipe(
     fmt,
     projects,
     sync,
+    jira,
     web,
   ]),
   Command.withGlobalFlags([Json, Dir, Project]),

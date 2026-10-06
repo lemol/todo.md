@@ -2,6 +2,7 @@ import { Console, Context, Effect, Option } from "effect"
 import { Flag, GlobalFlag } from "effect/cli"
 import type { TodoService } from "../core/index.ts"
 import { type AnySource, Hub, type ProjectInfo, parseRef, type TaskRef } from "../hub/index.ts"
+import type { JiraClient, JiraCredentials } from "../jira/index.ts"
 import { UsageError } from "./errors.ts"
 import { type Style, styleFor } from "./style.ts"
 
@@ -30,6 +31,11 @@ export class CliContext extends Context.Service<
      * substitution before the CLI is reached. Tests pass their own.
      */
     readonly stdin: Effect.Effect<string>
+    /**
+     * A Jira client for `todo jira pull`, its HTTP and token command already
+     * wired. Absent where no network is available, and the command says so.
+     */
+    readonly jira?: ((credentials: JiraCredentials) => Effect.Effect<JiraClient>) | undefined
   }
 >()("@lemol/todo-md/cli/CliContext") {}
 
