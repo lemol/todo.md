@@ -17,6 +17,11 @@ export class SyncFailed extends Schema.TaggedError<SyncFailed>()("SyncFailed", {
   errors: Schema.Number,
 }) {}
 
+/** `todo jira pull` could not apply some changes; each was already printed. */
+export class PullFailed extends Schema.TaggedError<PullFailed>()("PullFailed", {
+  errors: Schema.Number,
+}) {}
+
 type Tagged = { readonly _tag: string } & Record<string, unknown>
 
 const isTagged = (error: unknown): error is Tagged =>
@@ -65,6 +70,11 @@ export const describeError = (error: unknown): string => {
       const errors = Number(error.errors)
 
       return `sync failed for ${errors} project${errors === 1 ? "" : "s"}`
+    }
+    case "PullFailed": {
+      const errors = Number(error.errors)
+
+      return `${errors} change${errors === 1 ? "" : "s"} from Jira could not be applied`
     }
     default:
       return typeof error.message === "string" && error.message !== "" ? error.message : error._tag

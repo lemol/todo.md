@@ -3,6 +3,7 @@ import { Effect, FileSystem, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { main } from "../../src/cli/main.ts"
 import { type AnySource, fsSource } from "../../src/hub/index.ts"
+import type { JiraClient, JiraCredentials } from "../../src/jira/index.ts"
 import { Disk } from "../fs/helpers.ts"
 
 export interface Result {
@@ -24,6 +25,8 @@ export interface RunOptions {
   readonly sources?: ReadonlyArray<AnySource>
   /** What a `-` flag reads (default: nothing, as with no pipe). */
   readonly stdin?: string
+  /** How `todo jira pull` reaches Jira (default: it cannot). */
+  readonly jira?: (credentials: JiraCredentials) => Effect.Effect<JiraClient>
 }
 
 const text = (lines: ReadonlyArray<unknown>) => lines.map(String).join("\n")
@@ -47,6 +50,7 @@ export const runTodo = (args: ReadonlyArray<string>, options: RunOptions = {}) =
         userHome: options.userHome ?? root,
         sources: options.sources ?? [fsSource],
         stdin: Effect.succeed(options.stdin ?? ""),
+        jira: options.jira,
       }).pipe(Effect.provide(BunServices.layer))
     }).pipe(
       // A caller-passed home belongs to the caller; a fresh one is removed.

@@ -92,6 +92,7 @@ todo projects add https://acme.atlassian.net --source jira --name work \
 | `store.ts` | The `TodoStore`: reads from the mirror, mutations through Jira |
 | `JiraSource.ts` | `JiraConfig` and the `Source`: prepare, open, sync, changes |
 | `errors.ts` | `JiraError`, and how it reads as a `SyncError` or a `StoreError` |
+| `pull.ts` | `todo jira pull`: issues copied one way into an ordinary list (below) |
 
 ## What sync does
 
@@ -161,6 +162,41 @@ understand is a `remote` failure, never a crash.
 | 429 | `remote`, with the retry-after | `StoreError` |
 | Any other non-2xx | `remote`, with Jira's `errorMessages` | `StoreError` |
 | 404 on one issue, reading or writing | `remote` | `TaskNotFound` |
+
+## Pulling into a list (`todo jira pull`)
+
+Not a source: `pull` copies issues **one way** into any list the CLI can
+open (a plain directory, a git project), and never writes to Jira. The list
+stays the user's own. Its tasks get local IDs and can be grouped, reordered,
+commented on and depend on any other task. A pulled task remembers its
+issue in `extra.jira_id`, shown as `jira_id:PROJ-1` on the metadata line or
+in the task file's frontmatter. That link is all a later pull uses.
+
+```sh
+export JIRA_SITE=https://acme.atlassian.net JIRA_EMAIL=me@acme.test JIRA_TOKEN=…
+todo jira pull --jql 'project = PROJ AND statusCategory != Done' --group Jira
+```
+
+`--site` and `--email` default to `$JIRA_SITE` and `$JIRA_EMAIL`. The token
+comes from `--token-command`, or else the variable `--token-env` names
+(default `JIRA_TOKEN`). `--jql` defaults to the source's `jql`, ordered by
+rank. `--dry-run` prints the plan and writes nothing.
+
+| The issue | The list |
+| --- | --- |
+| open, no linked task | added, in Jira's order, to `--group` or ungrouped; in its own file when it has a description (`--inline` keeps it in `TODO.md`) |
+| done, no linked task | nothing: finished work is not imported |
+| linked | `title`, `description` and `assignee` follow Jira. Labels are added to `tags`, and blockers that have a task here are added to `dependsOn`. Neither is ever removed, so local tags and dependencies survive |
+| done, task open | the task is completed |
+| open, task done | the task is reopened, unless it was cancelled here |
+| no longer returned by `--jql` | looked up by key, so a completed or reassigned issue still updates its task |
+| gone (404) | reported as missing; the task is left alone |
+
+Planning (`planPull`) is pure. Everything is fetched before the list is
+touched, so an unreachable site changes nothing. Each change then stands
+alone: one the list refuses is reported, the rest still happen, and the
+command exits 1. A second pull with nothing new in Jira changes nothing.
+Comments, groups and order are never pulled.
 
 ## What it does not do
 

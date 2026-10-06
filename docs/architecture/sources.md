@@ -81,3 +81,7 @@ interface SourceProject<C> {
   title and labels, and without `commentAuthor` Jira's own user signs every
   comment. With `read_only: true` it writes nothing at all: every mutation
   fails before a request is sent, and only `sync` changes the mirror. See [src/jira/README.md](../../src/jira/README.md).
+
+`todo jira pull` is not a source. It copies issues one way into an ordinary
+list, where they get local IDs and remember their issue in `extra.jira_id`.
+See [src/jira/README.md](../../src/jira/README.md#pulling-into-a-list-todo-jira-pull).

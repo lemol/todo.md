@@ -316,3 +316,29 @@ export const makeClient = (
       edit: (key, fields) => send(withBody("PUT", at(key), { fields }), ignored, key),
     } satisfies JiraClient
   })
+
+/** A runaway `nextPageToken` must not loop forever; 200 pages is far past any real list. */
+const pageLimit = 200
+
+/** Every issue a query returns, following `nextPageToken` to the last page. */
+export const searchAll = Effect.fnUntraced(function* (
+  client: JiraClient,
+  jql: string,
+): Effect.fn.Return<ReadonlyArray<Issue>, JiraError> {
+  const issues: Array<Issue> = []
+  let token: string | undefined
+
+  for (let page = 0; page < pageLimit; page++) {
+    const result = yield* client.search({
+      jql,
+      ...(token === undefined ? {} : { nextPageToken: token }),
+    })
+
+    issues.push(...(result.issues ?? []))
+    token = result.nextPageToken ?? undefined
+
+    if (token === undefined) break
+  }
+
+  return issues
+})

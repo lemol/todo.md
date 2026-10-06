@@ -18,9 +18,8 @@ import {
 } from "../hub/index.ts"
 import type { Task } from "../spec/index.ts"
 import { TodoStore } from "../spec/index.ts"
-import { type JiraClient, type JiraCredentials, makeClient } from "./client.ts"
+import { type JiraClient, type JiraCredentials, makeClient, searchAll } from "./client.ts"
 import { asSyncError, type JiraError } from "./errors.ts"
-import type { Issue } from "./mapping.ts"
 import { mirrorFile, writeMirror } from "./mirror.ts"
 import * as JiraTodoStore from "./store.ts"
 import { taskFor } from "./store.ts"
@@ -80,9 +79,6 @@ export const credentialsOf = (config: JiraConfig): JiraCredentials => ({
   tokenCommand: config.token_command,
 })
 
-/** A runaway `nextPageToken` must not loop forever; 200 pages is far past any real list. */
-const pageLimit = 200
-
 /**
  * A `Source` over Jira, built from a way to make clients rather than from
  * `HttpClient` itself, so the hub never sees an HTTP requirement.
@@ -123,24 +119,9 @@ export const jiraSourceWith = (
     jql: string,
     site: string,
   ): Effect.Effect<ReadonlyArray<Task>, JiraError> =>
-    Effect.gen(function* () {
-      const issues: Array<Issue> = []
-      let token: string | undefined
-
-      for (let page = 0; page < pageLimit; page++) {
-        const result = yield* client.search({
-          jql,
-          ...(token === undefined ? {} : { nextPageToken: token }),
-        })
-
-        issues.push(...(result.issues ?? []))
-        token = result.nextPageToken ?? undefined
-
-        if (token === undefined) break
-      }
-
-      return yield* Effect.forEach(issues, (issue) => taskFor(client, issue, site))
-    })
+    Effect.flatMap(searchAll(client, jql), (issues) =>
+      Effect.forEach(issues, (issue) => taskFor(client, issue, site)),
+    )
 
   /** Both queries, written to the mirror. The mirror is replaced only once both succeeded. */
   const refresh = (
