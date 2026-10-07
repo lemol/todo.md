@@ -128,6 +128,7 @@ describe("the Jira client: reading", () => {
 
         expect(asked).toContain("summary")
         expect(asked).toContain("issuelinks")
+        expect(asked).toContain("components")
       }),
     ),
   )

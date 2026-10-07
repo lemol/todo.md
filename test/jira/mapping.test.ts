@@ -229,6 +229,20 @@ describe("taskFromIssue: extra", () => {
   test("leaves out what the issue does not have", () => {
     expect(map(issue({ priority: null })).extra.priority).toBeUndefined()
   })
+
+  test("joins component names with ', ' in Jira's order", () => {
+    const task = map(issue({ components: [{ name: "api" }, { name: "web" }] }))
+
+    expect(task.extra.components).toBe("api, web")
+  })
+
+  test("leaves components absent when the issue has none", () => {
+    expect(map(issue()).extra.components).toBeUndefined()
+    expect(map(issue({ components: [] })).extra.components).toBeUndefined()
+    expect(
+      map(issue({ components: [{ name: "  " }, { name: null }] })).extra.components,
+    ).toBeUndefined()
+  })
 })
 
 describe("Markdown to ADF", () => {

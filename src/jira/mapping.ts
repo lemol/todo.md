@@ -61,6 +61,7 @@ export const Issue = Schema.Struct({
       status: Maybe(Status),
       priority: Maybe(Named),
       issuelinks: Maybe(Schema.Array(IssueLink)),
+      components: Maybe(Schema.Array(Named)),
       resolutiondate: Maybe(Schema.String),
       comment: Maybe(CommentPage),
       project: Maybe(Schema.Struct({ key: Maybe(Schema.String) })),
@@ -98,6 +99,7 @@ export const issueFields: ReadonlyArray<string> = [
   "status",
   "priority",
   "issuelinks",
+  "components",
   "resolutiondate",
   "comment",
   "project",
@@ -164,6 +166,15 @@ export const commentsOf = (comments: ReadonlyArray<JiraComment>): ReadonlyArray<
     })
     .sort((left, right) => DateTime.toEpochMillis(right.at) - DateTime.toEpochMillis(left.at))
 
+/** The component names in Jira's order, joined as one value; `undefined` when there are none. */
+const componentsOf = (issue: Issue): string | undefined => {
+  const names = (issue.fields?.components ?? [])
+    .map((component) => (component.name ?? "").trim())
+    .filter((name) => name !== "")
+
+  return names.length === 0 ? undefined : names.join(", ")
+}
+
 const extraOf = (issue: Issue, site: string): Extra => {
   const fields = issue.fields
   const entries: ReadonlyArray<readonly [string, string | undefined]> = [
@@ -173,6 +184,7 @@ const extraOf = (issue: Issue, site: string): Extra => {
     ["project", fields?.project?.key ?? undefined],
     ["assignee_name", fields?.assignee?.displayName ?? undefined],
     ["assignee_account", fields?.assignee?.accountId ?? undefined],
+    ["components", componentsOf(issue)],
   ]
 
   return Object.fromEntries(entries.filter(([, value]) => value !== undefined))
