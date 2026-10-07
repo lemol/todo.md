@@ -220,6 +220,39 @@ describe("todo jira pull", () => {
   )
 
   effectTest(
+    "copies components into extra.components and follows them",
+    withPull((run, jira) =>
+      Effect.gen(function* () {
+        jira.put(
+          anIssue("PROJ-1", {
+            summary: "Rework auth",
+            components: [{ name: "api" }, { name: "web" }],
+          }),
+        )
+        yield* run("jira", "pull")
+
+        const added = JSON.parse((yield* run("show", "2", "--json")).stdout).view.task
+
+        expect(added.extra).toMatchObject({ jira_id: "PROJ-1", components: "api, web" })
+
+        jira.put(anIssue("PROJ-1", { summary: "Rework auth", components: [{ name: "mobile" }] }))
+
+        const planned = yield* run("jira", "pull", "--dry-run")
+
+        expect(planned.stdout).toContain("Would update")
+        expect(planned.stdout).toContain("(extra)")
+
+        yield* run("jira", "pull")
+
+        const followed = JSON.parse((yield* run("show", "2", "--json")).stdout).view.task
+
+        expect(followed.extra.components).toBe("mobile")
+      }),
+    ),
+    list,
+  )
+
+  effectTest(
     "puts new tasks in --group, and --dry-run writes nothing",
     withPull((run, jira) =>
       Effect.gen(function* () {

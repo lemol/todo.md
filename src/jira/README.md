@@ -148,7 +148,7 @@ issue before the change, so it keeps the patched copy instead of its own.
 | `completedAt` | `resolutiondate`, on a done issue |
 | `outcome` | `completed` on a done issue; Jira has nothing to map `cancelled` from |
 | `group` | never: Jira has no groups |
-| `extra` | `status`, `priority`, `url`, `project`, `assignee_name`, `assignee_account` |
+| `extra` | `status`, `priority`, `url`, `project`, `assignee_name`, `assignee_account`, `components` (names joined with `, `; absent when none) |
 
 Anything Jira did not send is simply absent; a payload this version does not
 understand is a `remote` failure, never a crash.
@@ -186,7 +186,7 @@ rank. `--dry-run` prints the plan and writes nothing.
 | --- | --- |
 | open, no linked task | added, in Jira's order, to `--group` or ungrouped; in its own file when it has a description (`--inline` keeps it in `TODO.md`) |
 | done, no linked task | nothing: finished work is not imported |
-| linked | `title`, `description` and `assignee` follow Jira. Labels are added to `tags`, and blockers that have a task here are added to `dependsOn`. Neither is ever removed, so local tags and dependencies survive |
+| linked | `title`, `description`, `assignee` and `extra.components` follow Jira (overwritten, and removed when the issue has none). Labels are added to `tags`, and blockers that have a task here are added to `dependsOn`. Neither is ever removed, so local tags and dependencies survive |
 | done, task open | the task is completed |
 | open, task done | the task is reopened, unless it was cancelled here |
 | no longer returned by `--jql` | looked up by key, so a completed or reassigned issue still updates its task |
