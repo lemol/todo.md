@@ -84,9 +84,19 @@ const linkedTasks = (local: ReadonlyArray<Task>): ReadonlyMap<string, Task> => {
   return byKey
 }
 
+/** The `extra` field holding an issue's component names, which route a task to a repository. */
+export const componentsField = "components"
+
+/** The components `extra` carries: trimmed text, `undefined` when absent or blank. */
+const componentsOf = (task: Task): string | undefined => {
+  const value = task.extra[componentsField]
+
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined
+}
+
 /**
  * The fields of `local` that differ from `remote`, as a patch. Title,
- * description and assignee follow Jira. Labels and blockers are only ever
+ * description, assignee and components follow Jira. Labels and blockers are only ever
  * added, so the tags and dependencies given here survive a pull.
  */
 const patchFor = (local: Task, remote: Task, localIdOf: (key: string) => TaskId | undefined) => {
@@ -109,6 +119,17 @@ const patchFor = (local: Task, remote: Task, localIdOf: (key: string) => TaskId 
   if (tags.length > 0) patch.tags = [...local.tags, ...new Set(tags)]
 
   if (dependsOn.length > 0) patch.dependsOn = [...local.dependsOn, ...new Set(dependsOn)]
+
+  const components = componentsOf(remote)
+
+  if (components !== componentsOf(local)) {
+    const { [componentsField]: _dropped, ...rest } = local.extra
+
+    patch.extra = {
+      ...rest,
+      ...(components === undefined ? {} : { [componentsField]: components }),
+    }
+  }
 
   return patch
 }
@@ -157,7 +178,12 @@ export const planPull = (
           ...(remote.tags.length === 0 ? {} : { tags: [...new Set(remote.tags)] }),
           ...(remote.assignee === undefined ? {} : { assignee: remote.assignee }),
           ...(dependsOn.length === 0 ? {} : { dependsOn: [...new Set(dependsOn)] }),
-          extra: { [jiraIdField]: key },
+          extra: {
+            [jiraIdField]: key,
+            ...(componentsOf(remote) === undefined
+              ? {}
+              : { [componentsField]: componentsOf(remote) }),
+          },
         },
       })
       continue

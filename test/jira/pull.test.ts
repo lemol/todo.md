@@ -34,6 +34,49 @@ describe("jiraIdOf", () => {
 })
 
 describe("planPull", () => {
+  test("adds components into extra alongside jira_id", () => {
+    const plan = planPull([], [issue("PROJ-1", { extra: { components: "api, web" } })])
+
+    expect(plan.changes[0]).toMatchObject({
+      kind: "add",
+      input: { extra: { jira_id: "PROJ-1", components: "api, web" } },
+    })
+  })
+
+  test("follows changed components, keeping other extra keys", () => {
+    const local = [linked("4", "PROJ-1", { extra: { components: "api", note: "mine" } })]
+    const plan = planPull(local, [
+      issue("PROJ-1", { title: "PROJ-1", extra: { components: "api, web", status: "To Do" } }),
+    ])
+
+    expect(plan.changes).toEqual([
+      {
+        kind: "update",
+        key: "PROJ-1",
+        id: "4",
+        patch: { extra: { jira_id: "PROJ-1", components: "api, web", note: "mine" } },
+      },
+    ])
+  })
+
+  test("clears components the issue no longer has", () => {
+    const local = [linked("4", "PROJ-1", { extra: { components: "api" } })]
+    const plan = planPull(local, [issue("PROJ-1", { title: "PROJ-1" })])
+
+    expect(plan.changes).toEqual([
+      { kind: "update", key: "PROJ-1", id: "4", patch: { extra: { jira_id: "PROJ-1" } } },
+    ])
+  })
+
+  test("leaves components absent when the issue has none", () => {
+    const plan = planPull([], [issue("PROJ-1", { extra: { status: "To Do" } })])
+
+    expect(plan.changes[0]).toMatchObject({ kind: "add", input: { extra: { jira_id: "PROJ-1" } } })
+    expect(
+      (plan.changes[0] as { input: { extra: Record<string, unknown> } }).input.extra.components,
+    ).toBeUndefined()
+  })
+
   test("adds an open issue with no task, linked by jira_id", () => {
     const plan = planPull(
       [],
