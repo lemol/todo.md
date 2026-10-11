@@ -6,28 +6,3 @@ review:
 flows:
   tags:
     needs-plan: planned
-answering:
-  rules:
-    - question: visit-limit
-      stage: check
-      choice: settle
-      atMost: 1
-  deputy:
-    perRun: 4
-    perQuestion: 2
-    authority:
-      visit-limit:
-        [
-          continue,
-          settle,
-          "goto:do",
-          "goto:check",
-          "goto:review",
-          "goto:review-fix",
-        ]
-      review-changes: [do, fix]
-      unblock: [resume, "goto:*"]
-      gate-unrelated: [check, do]
-      repository-changed: [check, review, do]
-      attempts-exhausted: [retry, recast]
-      file-overlap: [continue]
