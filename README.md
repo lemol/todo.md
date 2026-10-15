@@ -58,8 +58,7 @@ bun add "git+ssh://git@github.com/lemol/todo.md.git#todo-md@0.2.0"
 ```
 
 In [lemol-workspace](https://github.com/lemol/lemol-workspace), it is checked
-out at `repos/todo-md` and consumers resolve it through the override
-`"@lemol/todo-md": "file:./repos/todo-md"`.
+out at `repos/todo-md`, and the consumers there resolve that clone directly.
 
 ## Docs
 

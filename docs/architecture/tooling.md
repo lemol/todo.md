@@ -3,14 +3,14 @@
 ## Why one package
 
 todo.md is consumed the way the other lemol repositories are: as a git
-dependency pinned to a tag, which a composition root such as
-`lemol-workspace` overrides with a local checkout:
+dependency pinned to a tag, or, by a consumer that has it checked out as a
+workspace member, as `workspace:*`:
 
 ```jsonc
-// consumer
+// a consumer anywhere
 "@lemol/todo-md": "git+ssh://git@github.com/lemol/todo.md.git#todo-md@0.2.0"
-// composition root
-"overrides": { "@lemol/todo-md": "file:./repos/todo-md" }
+// a consumer in the same Bun workspace as this checkout
+"@lemol/todo-md": "workspace:*"
 ```
 
 Git dependencies install only the repository's root package. We checked the
