@@ -74,7 +74,7 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
   },
   {
     name: "move to the end of its own section keeps the moved task before the next add",
-    requires: ["groups", "reorder"],
+    requires: ["add", "groups", "reorder"],
     setup: true,
     run: Effect.gen(function* () {
       const store = yield* TodoStore
