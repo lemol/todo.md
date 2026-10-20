@@ -15,10 +15,5 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## M3 — @lemol/ui adoption
 
-
-
-
-
-
-
+## Read cost
 
