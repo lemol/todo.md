@@ -1,4 +1,4 @@
-import { DateTime, Effect, Option, Path } from "effect"
+import { DateTime, Effect, FileSystem, Option, Path } from "effect"
 import { Argument, Command, Flag } from "effect/cli"
 import { FsTodoStore } from "../../fs/index.ts"
 import {
@@ -177,6 +177,7 @@ export const projectsAdd = Command.make(
   }) {
     const { cwd, home, userHome } = yield* CliContext
     const paths = yield* Path.Path
+    const fs = yield* FileSystem.FileSystem
     const hub = yield* Hub
     const input = yield* projectInput(target, {
       cwd,
@@ -266,7 +267,9 @@ export const projectsAdd = Command.make(
         ? absolute(path.value)
         : paths.join(home, "projects", info.name, SqliteSource.defaultFile)
 
-      yield* importList({ path: file, title: info.name }, snapshot).pipe(
+      yield* fs.makeDirectory(paths.dirname(file), { recursive: true }).pipe(
+        Effect.mapError((error) => new UsageError({ message: error.message })),
+        Effect.andThen(importList({ path: file, title: info.name }, snapshot)),
         Effect.provide(BunSqliteDriver.layer),
         Effect.onError(() => Effect.ignore(hub.remove(info.name, { force: true }))),
       )

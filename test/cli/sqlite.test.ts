@@ -150,6 +150,26 @@ describe("todo projects add --source sqlite", () => {
   )
 
   effectTest(
+    "--from with --path creates the missing directory of the database",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const home = `${disk.root}/home`
+
+      const added = yield* runTodo(
+        ["projects", "add", "g", "--source", "sqlite", "--path", "~/missing/g.db", "--from", "g"],
+        { home, sources },
+      )
+
+      expect(added.code).toBe(0)
+
+      const from = yield* fsList(`${disk.root}/g/todo`)
+
+      expect(yield* database(`${disk.root}/missing/g.db`)).toEqual(from)
+    }),
+    diskWith({ "g/todo/TODO.md": md("# G", "", "- [ ] 01 - One") }),
+  )
+
+  effectTest(
     "--from into a database that holds tasks fails and leaves no project behind",
     Effect.gen(function* () {
       const disk = yield* Disk
