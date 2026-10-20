@@ -96,8 +96,13 @@ and `listDone()`. `diagnostics()` reports it with code `invalid-task`:
 
 Calling `get` or attempting a mutation on an invalid task fails with `StoreError`.
 
+## Import
+
+`importList(options, snapshot)` fills an empty database from a snapshot (`load()` and `listDone()`). It keeps IDs, `completed_at`, comment times, group descriptions and order, and sets `last_id` to the highest imported ID so subsequent tasks receive fresh IDs. It refuses a database that already holds tasks or groups.
+
+From the CLI, `todo projects add <name> --source sqlite --from <dir>` creates the project and fills the new database from the Markdown list at `<dir>`. It refuses a directory without a `todo.md` list or a list with error diagnostics.
+
 ## Limits
 
 - **No `promote`.** Database tasks have no separate file to move into; `promote` fails with `Unsupported`.
 - **No sync.** SQLite lists are local files.
-- **No import.** Creating a list from Markdown is deferred to a follow-up task.
