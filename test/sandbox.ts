@@ -10,7 +10,7 @@
  */
 
 import { afterEach } from "bun:test"
-import { type Dirent, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs"
+import { type Dirent, mkdtempSync, readdirSync, statSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join, relative, resolve } from "node:path"
 
@@ -21,12 +21,6 @@ const realHome = process.env.TODO_MD_HOME ?? join(homedir(), ".todo-md")
 /** Where an escape lands: this repository's own backlog, and the machine's hub. */
 const guarded = [join(repo, "todo"), realHome]
 
-// The hub's parse cache is derived, and every `todo` process on the machine
-// writes it, so a change there is no escape: it failed whichever test was
-// running. It also grows with every list parsed, and hashing it after each
-// test made the suite crawl.
-const unguarded = new Set([join(realHome, "cache")])
-
 // Read before it is replaced, so the guard above watches the real home even
 // though nothing under test can now find it. Spawned processes inherit this.
 const home = mkdtempSync(join(tmpdir(), "todo-md-test-home-"))
@@ -34,8 +28,10 @@ const home = mkdtempSync(join(tmpdir(), "todo-md-test-home-"))
 process.env.TODO_MD_HOME = home
 process.on("exit", () => rmSync(home, { recursive: true, force: true }))
 
-/** Every file below `dir` as sorted `<path> <hash>` lines; a missing `dir` is empty. */
-const snapshotOf = (dir: string): string => {
+/** Sorted `<path> <size> <mtimeMs> <ino>` lines, without reading file contents.
+ * A missing directory is empty; rewrites preserving all metadata go unnoticed.
+ */
+export const snapshotOf = (dir: string): string => {
   const lines: string[] = []
 
   const walk = (at: string) => {
@@ -50,20 +46,16 @@ const snapshotOf = (dir: string): string => {
     for (const entry of entries) {
       const full = join(at, entry.name)
 
-      if (unguarded.has(full)) continue
-
       if (entry.isDirectory()) walk(full)
       else if (entry.isFile()) {
-        let text: string
-
-        // Another process may remove it between the listing and the read.
+        // Another process may remove it between the listing and the stat.
         try {
-          text = readFileSync(full, "utf8")
+          const stat = statSync(full)
+
+          lines.push(`${relative(dir, full)} ${stat.size} ${stat.mtimeMs} ${stat.ino}`)
         } catch {
           continue
         }
-
-        lines.push(`${relative(dir, full)} ${Bun.hash(text).toString(16)}`)
       }
     }
   }
@@ -73,14 +65,17 @@ const snapshotOf = (dir: string): string => {
   return lines.sort().join("\n")
 }
 
-/** What changed between two snapshots: `+` added, `-` removed, `~` rewritten. */
-const changesBetween = (before: string, after: string): string => {
+/** What changed between two snapshots: `+` added, `-` removed, `~` metadata changed. */
+export const changesBetween = (before: string, after: string): string => {
   const parse = (snapshot: string) =>
     new Map(
       snapshot === ""
         ? []
         : snapshot.split("\n").map((line) => {
-            const space = line.lastIndexOf(" ")
+            const space = line.lastIndexOf(
+              " ",
+              line.lastIndexOf(" ", line.lastIndexOf(" ") - 1) - 1,
+            )
 
             return [line.slice(0, space), line.slice(space + 1)] as const
           }),
@@ -90,11 +85,11 @@ const changesBetween = (before: string, after: string): string => {
   const to = parse(after)
   const lines: string[] = []
 
-  for (const [path, hash] of to) {
+  for (const [path, metadata] of to) {
     const was = from.get(path)
 
     if (was === undefined) lines.push(`  + ${path}`)
-    else if (was !== hash) lines.push(`  ~ ${path}`)
+    else if (was !== metadata) lines.push(`  ~ ${path}`)
   }
 
   for (const path of from.keys()) if (!to.has(path)) lines.push(`  - ${path}`)
