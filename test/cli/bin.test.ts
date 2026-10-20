@@ -43,10 +43,10 @@ describe("the todo executable", () => {
       code: 0,
       stdout: "Created todo/TODO.md\n",
     })
-    expect(run("add", "Try", "it", "--quick")).toMatchObject({
-      code: 0,
-      stdout: "Added 01  Try it\n",
-    })
+    const added = run("add", "Try", "it", "--quick")
+
+    expect(added.code).toBe(0)
+    expect(added.stdout).toEndWith("/todo: Added 01  Try it\n")
     expect(run("next", "--json").stdout).toContain('"title":"Try it"')
     expect(run("done", "9")).toMatchObject({ code: 1, stdout: "", stderr: "error: no task 9\n" })
     expect(run("mv", "1").code).toBe(2)

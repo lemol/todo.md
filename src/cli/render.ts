@@ -228,6 +228,10 @@ export const syncLine = (outcome: SyncResult | SyncFailure): string =>
     ? `${outcome.project}: error (${outcome.error.reason}): ${outcome.error.message}`
     : `${outcome.project}: ${outcome.summary}`
 
+/** How a mutation names the list it wrote to: the registered name, else the list root. */
+export const listName = (project: ProjectInfo): string =>
+  project.registered ? project.name : project.location
+
 /** `todo done`: what was completed and what became ready. */
 export const renderCompletions = (
   completions: ReadonlyArray<Completion>,

@@ -12,6 +12,7 @@ describe("todo add", () => {
   effectTest(
     "adds a task in its own file, joining unquoted words",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* todo(
         "add",
         "Ship",
@@ -23,7 +24,11 @@ describe("todo add", () => {
         "release",
       )
 
-      expect(result).toEqual({ code: 0, stdout: "Added 06  Ship it to Backend", stderr: "" })
+      expect(result).toEqual({
+        code: 0,
+        stdout: `${root}: Added 06  Ship it to Backend`,
+        stderr: "",
+      })
       const disk = yield* Disk
 
       expect(yield* disk.read("TODO.md")).toContain(
@@ -39,7 +44,11 @@ describe("todo add", () => {
   effectTest(
     "keeps it inline with --quick, and with --inline",
     Effect.gen(function* () {
-      expect((yield* todo("add", "Write", "notes", "--quick")).stdout).toBe("Added 06  Write notes")
+      const { root } = yield* Disk
+
+      expect((yield* todo("add", "Write", "notes", "--quick")).stdout).toBe(
+        `${root}: Added 06  Write notes`,
+      )
       const inline = yield* todo(
         "add",
         "Bump deps",
@@ -63,8 +72,10 @@ describe("todo add", () => {
   effectTest(
     "lets an explicit flag override the part --quick would have decided",
     Effect.gen(function* () {
+      const { root } = yield* Disk
+
       expect((yield* todo("add", "Ship it", "--quick", "--group", "Backend")).stdout).toBe(
-        "Added 06  Ship it to Backend",
+        `${root}: Added 06  Ship it to Backend`,
       )
       expect(yield* (yield* Disk).read("TODO.md")).toContain("- [ ] 06 - Ship it\n")
       expect((yield* todo("add", "Log it", "--quick", "--file")).code).toBe(0)
@@ -151,6 +162,7 @@ describe("todo add --description -", () => {
   effectTest(
     "writes what was piped in byte for byte",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* runTodo(
         ["add", "Record the cause", "--group", "Backend", "--description", "-"],
         { stdin: body },
@@ -158,7 +170,7 @@ describe("todo add --description -", () => {
 
       expect(result).toEqual({
         code: 0,
-        stdout: "Added 06  Record the cause to Backend",
+        stdout: `${root}: Added 06  Record the cause to Backend`,
         stderr: "",
       })
       expect(yield* (yield* Disk).read("backend/06-record-the-cause.md")).toBe(
@@ -187,11 +199,12 @@ describe("todo promote", () => {
   effectTest(
     "moves an inline task into its own file and leaves a link",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* todo("promote", "3")
 
       expect(result).toEqual({
         code: 0,
-        stdout: "03  Fix login redirect now has its own file",
+        stdout: `${root}: 03  Fix login redirect now has its own file`,
         stderr: "",
       })
       const disk = yield* Disk
@@ -217,8 +230,10 @@ describe("todo promote", () => {
   effectTest(
     "says the same thing for a task that already has one, and reports unknown IDs",
     Effect.gen(function* () {
+      const { root } = yield* Disk
+
       expect((yield* todo("promote", "2")).stdout).toBe(
-        "02  Add rate limiting now has its own file",
+        `${root}: 02  Add rate limiting now has its own file`,
       )
       expect(yield* (yield* Disk).read("backend/02-add-rate-limiting.md")).toBe(
         acme["backend/02-add-rate-limiting.md"],
@@ -237,6 +252,7 @@ describe("todo edit", () => {
   effectTest(
     "changes the title, tags, assignee and dependencies",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* todo(
         "edit",
         "03",
@@ -251,7 +267,7 @@ describe("todo edit", () => {
         "2",
       )
 
-      expect(result.stdout).toBe("Updated 03  Fix the redirect")
+      expect(result.stdout).toBe(`${root}: Updated 03  Fix the redirect`)
       expect(yield* showJson("3")).toMatchObject({
         title: "Fix the redirect",
         tags: ["urgent"],
@@ -279,11 +295,12 @@ describe("todo edit", () => {
   effectTest(
     "--file moves the task into its own file, with a description read from stdin",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* runTodo(["edit", "3", "--file", "--description", "-"], {
         stdin: "The referrer is dropped by `redirect()`.\n",
       })
 
-      expect(result.stdout).toBe("Updated 03  Fix login redirect")
+      expect(result.stdout).toBe(`${root}: Updated 03  Fix login redirect`)
       expect(yield* (yield* Disk).read("backend/03-fix-login-redirect.md")).toContain(
         "The referrer is dropped by `redirect()`.",
       )
@@ -305,8 +322,14 @@ describe("todo done and reopen", () => {
   effectTest(
     "completes tasks and lists the ones that became ready",
     Effect.gen(function* () {
+      const { root } = yield* Disk
+
       expect((yield* todo("done", "2")).stdout).toBe(
-        lines("Done 02  Add rate limiting", "Now ready:", "  03  Fix login redirect  #bug @lemol"),
+        lines(
+          `${root}: Done 02  Add rate limiting`,
+          "Now ready:",
+          "  03  Fix login redirect  #bug @lemol",
+        ),
       )
       expect(yield* (yield* Disk).exists("done/backend/02-add-rate-limiting.md")).toBe(true)
       const both = JSON.parse((yield* todo("done", "1", "4", "--json")).stdout)
@@ -319,12 +342,14 @@ describe("todo done and reopen", () => {
   effectTest(
     "explains why a task cannot be completed or reopened",
     Effect.gen(function* () {
+      const { root } = yield* Disk
+
       expect((yield* todo("done", "99")).stderr).toBe("error: no task 99")
       yield* todo("done", "2")
       expect((yield* todo("done", "2")).stderr).toBe(
         "error: task 2 is done, so it cannot be completed",
       )
-      expect((yield* todo("reopen", "2")).stdout).toBe("Reopened 02  Add rate limiting")
+      expect((yield* todo("reopen", "2")).stdout).toBe(`${root}: Reopened 02  Add rate limiting`)
       expect((yield* todo("reopen", "2")).stderr).toBe(
         "error: task 2 is open, so it cannot be reopened",
       )
@@ -337,10 +362,11 @@ describe("todo cancel", () => {
   effectTest(
     "records the reason and takes the task off the list",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* todo("cancel", "3", "--reason", "Superseded by d47fcd2.")
 
       expect(result.stdout).toBe(
-        lines("Cancelled 03  Fix login redirect", "  Superseded by d47fcd2."),
+        lines(`${root}: Cancelled 03  Fix login redirect`, "  Superseded by d47fcd2."),
       )
       const disk = yield* Disk
 
@@ -383,8 +409,10 @@ describe("todo mv", () => {
   effectTest(
     "moves a task to the top, to another group, or out of its group",
     Effect.gen(function* () {
+      const { root } = yield* Disk
+
       expect((yield* todo("mv", "3", "--top")).stdout).toBe(
-        "Moved 03  Fix login redirect to Backend",
+        `${root}: Moved 03  Fix login redirect to Backend`,
       )
       expect((yield* todo("ls", "--group", "Backend")).stdout).toContain(
         lines(
@@ -394,10 +422,10 @@ describe("todo mv", () => {
         ),
       )
       expect((yield* todo("mv", "1", "--group", "Frontend")).stdout).toBe(
-        "Moved 01  Write changelog to Frontend",
+        `${root}: Moved 01  Write changelog to Frontend`,
       )
       expect((yield* todo("mv", "4", "--ungrouped")).stdout).toBe(
-        "Moved 04  Fix layout to the ungrouped tasks",
+        `${root}: Moved 04  Fix layout to the ungrouped tasks`,
       )
       expect((yield* todo("mv", "3", "--bottom")).code).toBe(0)
       expect((yield* todo("mv", "2", "--after", "3", "--json")).code).toBe(0)
@@ -422,12 +450,14 @@ describe("todo rm", () => {
   effectTest(
     "refuses to remove a task others depend on unless forced",
     Effect.gen(function* () {
+      const { root } = yield* Disk
+
       expect(yield* todo("rm", "2")).toEqual({
         code: 1,
         stdout: "",
         stderr: "error: task 2 is needed by 3; use --force to remove it anyway",
       })
-      expect((yield* todo("rm", "2", "--force")).stdout).toBe("Removed 02")
+      expect((yield* todo("rm", "2", "--force")).stdout).toBe(`${root}: Removed 02`)
       expect(yield* (yield* Disk).exists("backend/02-add-rate-limiting.md")).toBe(false)
       expect(JSON.parse((yield* todo("rm", "1", "--json")).stdout)).toEqual({ removed: "1" })
     }),
@@ -439,9 +469,10 @@ describe("todo comment", () => {
   effectTest(
     "adds a comment, moving an inline task into its own file",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* todo("comment", "1", "Draft", "it", "--author", "claude")
 
-      expect(result).toEqual({ code: 0, stdout: "Commented on 01", stderr: "" })
+      expect(result).toEqual({ code: 0, stdout: `${root}: Commented on 01`, stderr: "" })
       expect(yield* (yield* Disk).read("01-write-changelog.md")).toBe(
         md(
           "---",
@@ -494,9 +525,10 @@ describe("todo comment -", () => {
   effectTest(
     "reads the body from stdin, keeping what the shell would have run",
     Effect.gen(function* () {
+      const { root } = yield* Disk
       const result = yield* runTodo(["comment", "1", "-", "--author", "claude"], { stdin: body })
 
-      expect(result).toEqual({ code: 0, stdout: "Commented on 01", stderr: "" })
+      expect(result).toEqual({ code: 0, stdout: `${root}: Commented on 01`, stderr: "" })
       expect(yield* (yield* Disk).read("01-write-changelog.md")).toBe(
         md(
           "---",

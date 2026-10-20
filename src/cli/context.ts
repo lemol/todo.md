@@ -4,6 +4,7 @@ import type { TodoService } from "../core/index.ts"
 import { type AnySource, Hub, type ProjectInfo, parseRef, type TaskRef } from "../hub/index.ts"
 import type { JiraClient, JiraCredentials } from "../jira/index.ts"
 import { UsageError } from "./errors.ts"
+import { listName } from "./render.ts"
 import { type Style, styleFor } from "./style.ts"
 
 /** Where the CLI runs. `bin.ts` fills it from the process; tests pass their own. */
@@ -230,6 +231,25 @@ export const output = (
     const { color } = yield* CliContext
 
     yield* Console.log(human(styleFor(color)).join("\n"))
+  })
+
+/**
+ * Prints a mutation's confirmation: JSON exactly as `output` prints it, human
+ * output with the first line prefixed by the list it wrote to (the registered
+ * name, else the list root), so a write to the wrong list shows up. Later
+ * lines (`Now ready:`, a cancel reason) pass through unchanged.
+ */
+export const confirm = (
+  project: ProjectInfo,
+  value: unknown,
+  human: (style: Style) => ReadonlyArray<string>,
+) =>
+  output(project, value, (style) => {
+    const lines = human(style)
+
+    if (lines.length === 0) return lines
+
+    return [`${listName(project)}: ${lines[0]}`, ...lines.slice(1)]
   })
 
 /** A comment's author: `--author`, else `$TODO_MD_AUTHOR`, else the OS user name. */

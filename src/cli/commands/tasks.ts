@@ -5,7 +5,7 @@ import { formatRef, Hub, type TaskRef } from "../../hub/index.ts"
 import { type Placement, type TaskPatch, unique } from "../../spec/index.ts"
 import {
   author,
-  output,
+  confirm,
   projectOfRefs,
   refOf,
   textOf,
@@ -151,7 +151,7 @@ export const add = Command.make(
         // an explicit --file says so rather than pretending it worked.
         if (wantsFile && (todo.capabilities.promote || flags.file)) yield* todo.promote(task.id)
 
-        yield* output(project, task, () => [
+        yield* confirm(project, task, () => [
           `Added ${label(task)}${task.group === undefined ? "" : ` to ${task.group}`}`,
         ])
         yield* warnUnpushed(project)
@@ -192,7 +192,7 @@ export const promote = Command.make(
         Effect.gen(function* () {
           const task = yield* todo.promote(ref.id)
 
-          yield* output(project, task, () => [`${label(task)} now has its own file`])
+          yield* confirm(project, task, () => [`${label(task)} now has its own file`])
           yield* warnUnpushed(project)
         }),
       { project: refProject },
@@ -296,7 +296,7 @@ export const edit = Command.make(
               ? (yield* todo.show(id.id)).view.task
               : yield* todo.update(id.id, patch)
 
-          yield* output(project, task, () => [`Updated ${label(task)}`])
+          yield* confirm(project, task, () => [`Updated ${label(task)}`])
           yield* warnUnpushed(project)
         }),
       { project: refProject },
@@ -386,7 +386,7 @@ export const done = Command.make(
           const completions = yield* Effect.forEach(refs, (ref) => todo.complete(ref.id))
           const cross = yield* newlyReadyInOtherProjects(refs, project.name)
 
-          yield* output(project, completions, (style) =>
+          yield* confirm(project, completions, (style) =>
             renderCompletions(completions, style, cross),
           )
           yield* warnUnpushed(project)
@@ -425,7 +425,7 @@ export const cancel = Command.make(
         Effect.gen(function* () {
           const cancelled = yield* todo.cancel(ref.id, text)
 
-          yield* output(project, cancelled, (style) => renderCancellation(cancelled, style))
+          yield* confirm(project, cancelled, (style) => renderCancellation(cancelled, style))
           yield* warnUnpushed(project)
         }),
       { project: refProject },
@@ -459,7 +459,7 @@ export const reopen = Command.make(
         Effect.gen(function* () {
           const task = yield* todo.reopen(ref.id)
 
-          yield* output(project, task, () => [`Reopened ${label(task)}`])
+          yield* confirm(project, task, () => [`Reopened ${label(task)}`])
           yield* warnUnpushed(project)
         }),
       { project: refProject },
@@ -554,7 +554,7 @@ export const mv = Command.make(
             return yield* todo.move(id.id, placement)
           })
 
-          yield* output(project, placed, () => [
+          yield* confirm(project, placed, () => [
             `Moved ${label(placed)} to ${placed.group ?? "the ungrouped tasks"}`,
           ])
           yield* warnUnpushed(project)
@@ -588,7 +588,7 @@ export const rm = Command.make(
       (todo, project) =>
         Effect.gen(function* () {
           yield* todo.remove(ref.id, { force })
-          yield* output(project, { removed: ref.id }, () => [`Removed ${showId(ref.id)}`])
+          yield* confirm(project, { removed: ref.id }, () => [`Removed ${showId(ref.id)}`])
           yield* warnUnpushed(project)
         }),
       { project: refProject },
@@ -625,7 +625,7 @@ export const comment = Command.make(
         Effect.gen(function* () {
           const added = yield* todo.comment(ref.id, { author: by, body })
 
-          yield* output(project, added, () => [`Commented on ${showId(ref.id)}`])
+          yield* confirm(project, added, () => [`Commented on ${showId(ref.id)}`])
           yield* warnUnpushed(project)
         }),
       { project: refProject },

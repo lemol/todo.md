@@ -275,7 +275,7 @@ describe("todo sync", () => {
       })
 
       expect(added.code).toBe(0)
-      expect(added.stdout).toBe("Added 01  Do it")
+      expect(added.stdout).toBe("mem: Added 01  Do it")
       expect(added.stderr).toBe("todo: not pushed (ahead 1): offline")
 
       const other = yield* runTodo(["add", "--project", "memd", "Do", "it", "--quick"], {
@@ -291,7 +291,39 @@ describe("todo sync", () => {
         sources,
       })
 
-      expect(local).toEqual({ code: 0, stdout: "Added 04  Do it", stderr: "" })
+      expect(local).toEqual({ code: 0, stdout: "a: Added 04  Do it", stderr: "" })
+    }),
+    diskWith(alpha),
+  )
+})
+
+describe("a mutation's confirmation", () => {
+  effectTest(
+    "names the registered project it wrote to, and any other list by its root",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      const home = `${root}/home`
+
+      yield* withAlpha(home)
+
+      const inA = (...args: ReadonlyArray<string>) =>
+        Effect.map(runTodo(args, { home, cwd: "a" }), (result) => result.stdout)
+
+      expect(yield* inA("add", "Four", "--quick")).toBe("a: Added 04  Four")
+      expect(yield* inA("edit", "4", "--title", "Fourth")).toBe("a: Updated 04  Fourth")
+      expect(yield* inA("promote", "4")).toBe("a: 04  Fourth now has its own file")
+      expect(yield* inA("comment", "4", "Started")).toBe("a: Commented on 04")
+      expect(yield* inA("mv", "4", "--top")).toBe("a: Moved 04  Fourth to the ungrouped tasks")
+      expect(yield* inA("done", "4")).toBe("a: Done 04  Fourth")
+      expect(yield* inA("reopen", "4")).toBe("a: Reopened 04  Fourth")
+      expect(yield* inA("cancel", "4", "--reason", "Dropped")).toBe(
+        lines("a: Cancelled 04  Fourth", "  Dropped"),
+      )
+      expect(yield* inA("rm", "1")).toBe("a: Removed 01")
+
+      const unregistered = yield* runTodo(["add", "Tres", "--quick"], { home, cwd: "b" })
+
+      expect(unregistered.stdout).toBe(`${root}/b: Added 03  Tres`)
     }),
     diskWith(alpha),
   )
