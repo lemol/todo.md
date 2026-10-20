@@ -21,8 +21,8 @@ process builds its own `Hub` over the shared home.
 | `formatRef`, `parseRef`, `TaskRef` | Qualified task reference helpers (`<project>:<id>`). |
 | `makeDependencyResolver(project, deps)` | The `DependencyResolver` each `hub.todo` service gets: readiness and diagnostics for `<project>:<id>` entries across registered projects, warning (never failing) on unresolvable ones, with cross-project cycle detection. |
 | `fsSource`, `FsConfig` | Local lists: `{ path }`, an absolute path (or `~/…`). Opens an `FsTodoStore` that caches parses in `<home>/cache`. |
-| `watchList(root, { ignore? })` | Watches a list directory recursively (debounced 100 ms, ignoring locks and tmp files). `ignore` skips further event paths, as [`git`](../git) does for `.git`. |
-| `projectInput(target, { cwd, source?, name?, branch?, list? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`, plus `branch` and `list` when given; anything else is `fs` with `{ path }` resolved against `cwd`. An explicit `source` other than `fs` or `git` gets an empty config. |
+| `watchList(root, { ignore?, recursive? })` | Watches a list directory (debounced 100 ms, ignoring locks and tmp files; recursive by default). `ignore` skips further event paths, as [`git`](../git) does for `.git`. |
+| `projectInput(target, { cwd, source?, name?, path?, branch?, list? })` | What a user types (a path or URL) as `add`'s input (`AddInput`): a sqlite target is the project's name; git URLs (`git@…`, `ssh://…`, `https://….git`, `github.com/…`) are `git` with `{ url }`, plus `branch` and `list` when given; anything else is `fs` with `{ path }` resolved against `cwd`. `path` passes through to sqlite. |
 | `projectInputFrom(target, options, resolve)` | The same rules without `Path`; frontends pass a `resolve(cwd, path)` callback. |
 | `statusText` | A `ProjectStatus` as one line for people, shared by every frontend (`status.ts`). |
 | `isValidName`, `nameFrom` | The name rule, `[a-z0-9][a-z0-9-]*`, and free text turned into one. |
@@ -181,5 +181,5 @@ No Bun or Node APIs. `testing.ts` is for tests only.
 
 ## Not here
 
-- The git source: [`src/git`](../git). The jira source: `src/jira` (task 06).
+- The git source: [`src/git`](../git). The jira source: [`src/jira`](../jira). The sqlite source: [`src/sqlite`](../sqlite).
 - Frontend wiring: tasks 16–18.

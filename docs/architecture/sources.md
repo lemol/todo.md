@@ -1,6 +1,6 @@
 # Sources
 
-> **Status: fs, git and jira built (tasks 14, 15, 19, 06 and 24).** The full
+> **Status: fs, git, jira and sqlite built.** The full
 > design is in the
 > [hub design](../superpowers/specs/2026-09-13-hub-design.md#4-sources).
 
@@ -14,7 +14,7 @@ it.
 | `fs` | `hub` | the list directory | none | files, as `FsTodoStore` |
 | `git` | `src/git` | a partial clone in `projects/<name>/clone` | fetch, `pull --rebase`, push | files, then one commit per mutation and a push |
 | `jira` | `src/jira` | `projects/<name>/mirror.json` | fetch the JQL queries | Jira REST, then re-fetch the issue into the mirror |
-| `sqlite` *(planned)* | `src/sqlite` | `projects/<name>/todo.db`, or a `path:` the user gives | none (local file) | SQL in one transaction per mutation; every capability but `promote` ([design](../superpowers/specs/2026-10-19-sqlite-source-design.md)) |
+| `sqlite` | `src/sqlite` | `projects/<name>/todo.db`, or a `path:` the user gives | none (local file) | SQL in one transaction per mutation; every capability but `promote` ([design](../superpowers/specs/2026-10-19-sqlite-source-design.md)) |
 
 ## The interface
 

@@ -36,7 +36,7 @@ examples. `todo --help` lists the commands.
 | `todo check` | Validate the list; exits 1 when it finds errors. | `Diagnostic[]` |
 | `todo init [dir]` | Create a list (default `./todo`); `--title` (default: the directory's name). | `{ root }` |
 | `todo fmt` | Normalize a hand-edited list: number new items, complete ticked ones, sync link text. | `{ assigned, finished, swept }` |
-| `todo projects` | Registered projects with sync status; `ls`, `add <target> [--name] [--source] [--branch] [--list]`, `rm <name> [--force]`, `rename <from> <to>`. `--branch` and `--list` are git-only. | `ProjectInfo[]` |
+| `todo projects` | Registered projects with sync status; `ls`, `add <target> [--name] [--source] [--path] [--branch] [--list]`, `rm <name> [--force]`, `rename <from> <to>`. `--path` is sqlite-only; `--branch` and `--list` are git-only. | `ProjectInfo[]` |
 | `todo sync [names…] [--all]` | Sync projects with their remotes; exits 1 when any sync failed. | `(SyncResult \| SyncFailure)[]` |
 | `todo jira pull` | Copy Jira issues into the list, one way: new open issues become tasks with local IDs and a `jira_id`, and pulled tasks follow their issue's title, description, assignee and status. `--jql`, `--site`, `--email`, `--token-env`/`--token-command`, `--group`, `--inline`, `--dry-run`. See [`jira`](../jira/README.md#pulling-into-a-list-todo-jira-pull). | `{ changes: [{ kind, key, id?, title, fields? }], missing: key[], failures: [{ kind, key, error }], dryRun }` |
 | `todo web [--port] [--host]` | Start the local web UI over the current list (`--port` default 4400, next free when busy; `--host` default 127.0.0.1). | `{ url }` |

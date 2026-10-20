@@ -79,8 +79,8 @@ tui ─┘    ▲      ▲
 |                                 | `@lemol/todo-md/hub/testing`   | hub, spec                                | `memorySource`, for tests only                                                  |
 | [`src/git`](../../src/git)           | `@lemol/todo-md/git`           | spec, fs, hub, `effect`                  | `gitSource`: a list in a git repository, cloned into `~/.todo-md` (task 19)      |
 | [`src/jira`](../../src/jira)         | `@lemol/todo-md/jira`          | spec, hub, `effect`                      | `jiraSource`: Jira tickets behind a local mirror; mutations go to Jira first     |
-| `src/sqlite` *(planned)* | `@lemol/todo-md/sqlite` | spec, hub, `effect` | `sqliteSource`: a list in a SQLite file, behind an injected `SqliteDriver` ([design](../superpowers/specs/2026-10-19-sqlite-source-design.md)) |
-| [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, git, jira, web, `effect`, `@effect/platform-bun`, `node:*`, `bun` | The `todo` binary        |
+| [`src/sqlite`](../../src/sqlite)     | `@lemol/todo-md/sqlite`        | spec, hub, `effect`                      | `sqliteSource`: a list in a SQLite file, behind an injected `SqliteDriver` ([design](../superpowers/specs/2026-10-19-sqlite-source-design.md)) |
+| [`src/cli`](../../src/cli)           | `@lemol/todo-md/cli`           | spec, core, fs, hub, git, jira, sqlite, web, `effect`, `@effect/platform-bun`, `node:*`, `bun`, `bun:sqlite` | The `todo` binary        |
 | [`src/web`](../../src/web)           | — (wired by the CLI's `web` command) | `spec`, `core`, `hub`, `git` (+ `effect`, Remix, Markdown renderers, `@lemol/ui`; `node:`/`bun` only in `server.ts`, `app/assets.ts`) | Local web UI over hub projects |
 
 Planned rows are not enforced yet; each task that builds one adds its rule to
