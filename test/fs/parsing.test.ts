@@ -133,6 +133,31 @@ describe("makeParser", () => {
   )
 
   effectTest(
+    "a save drops the cache files of lists that are gone, and keeps the rest",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+
+      const cacheOf = (root: string) => `{"version":1,"root":${JSON.stringify(root)},"entries":{}}`
+
+      yield* disk.write("cache/gone.json", cacheOf(`${disk.root}/removed-worktree`))
+      yield* disk.write("cache/live.json", cacheOf(disk.root))
+      yield* disk.write("cache/unreadable.json", "{ not json")
+      yield* disk.write("cache/notes.txt", cacheOf("/nowhere"))
+      yield* read(yield* parserWith(), { "01-a.md": withComment })
+      const tree = yield* disk.tree()
+
+      // The fourth is the parser's own: its list, `/list`, does not exist
+      // either, but a save never drops the file it has just written.
+      expect(tree).toHaveLength(4)
+      expect(tree).toEqual(
+        expect.arrayContaining(["cache/live.json", "cache/unreadable.json", "cache/notes.txt"]),
+      )
+      expect(tree).not.toContain("cache/gone.json")
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
     "parses a file JSON cannot hold every time, and caches the others",
     Effect.gen(function* () {
       const disk = yield* Disk

@@ -37,7 +37,9 @@ same conformance suite as `MemoryTodoStore`.
   text are unchanged reuses its last parse: in memory for the store's
   lifetime, and in `<cacheDir>/<hash of root>.json` between processes. Only
   an identical text hits, so the cache never needs invalidating; a missing or
-  unreadable cache file is ignored. Bump `taskFileParserVersion` when
+  unreadable cache file is ignored. A save also removes the cache files of
+  lists whose root no longer exists (a removed worktree, say), so the cache
+  directory does not grow without bound. Bump `taskFileParserVersion` when
   `parseTaskFile`'s output changes.
 - **Atomic files.** Each write goes to a temporary file, then is renamed over
   the original.

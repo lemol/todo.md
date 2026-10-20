@@ -10,7 +10,7 @@
  * are always seen and nothing needs invalidating.
  */
 
-import { Effect, FileSystem, Path, Random, Schema } from "effect"
+import { Effect, FileSystem, Option, Path, Random, Schema } from "effect"
 import {
   parseTaskFile,
   parseTodoFile,
@@ -28,7 +28,8 @@ export interface Parser {
   /**
    * Ends a read. When no other read is in flight, forgets parses no read used
    * since the last time that happened, then saves the cache file if any parse
-   * was new. Every `begin` needs its `end`, on every exit.
+   * was new, dropping those of lists that no longer exist. Every `begin` needs
+   * its `end`, on every exit.
    */
   readonly end: Effect.Effect<void>
 }
@@ -84,6 +85,17 @@ const CacheFile = Schema.Struct({
 const CacheJson = Schema.fromJsonString(CacheFile)
 const decodeEntry = Schema.decodeUnknownOption(CachedTaskFile)
 const encodeEntry = Schema.encodeUnknownOption(CachedTaskFile)
+const decodeRoot = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.String))
+
+/** How much of a cache file holds its root: `save` writes it before the entries. */
+const headBytes = 4096
+
+/** The list a cache file's head names, without reading its entries. */
+const rootIn = (head: string): Option.Option<string> => {
+  const quoted = /^\{"version":\d+,"root":("(?:[^"\\]|\\.)*")/.exec(head)?.[1]
+
+  return quoted === undefined ? Option.none() : decodeRoot(quoted)
+}
 
 /** Drops `undefined` fields, which JSON cannot hold, so the entry encodes. */
 const defined = (file: TaskFile): Record<string, unknown> =>
@@ -167,6 +179,29 @@ export const makeParser = (
       )
     })
 
+    // Every list parsed leaves a cache file, and a list in a worktree goes
+    // away with it, so a save also drops the files of lists that are gone.
+    const forgetGone = (other: string) =>
+      Effect.gen(function* () {
+        const head = yield* Effect.scoped(
+          fs.open(other).pipe(Effect.flatMap((opened) => opened.readAlloc(headBytes))),
+        )
+
+        const root = Option.flatMap(head, (bytes) => rootIn(new TextDecoder().decode(bytes)))
+
+        if (Option.isSome(root) && !(yield* fs.exists(root.value))) yield* fs.remove(other)
+      }).pipe(Effect.ignore)
+
+    const prune = Effect.gen(function* () {
+      if (file === undefined || cacheDir === undefined) return
+
+      const others = (yield* fs.readDirectory(cacheDir))
+        .map((name) => path.join(cacheDir, name))
+        .filter((other) => other !== file && other.endsWith(".json"))
+
+      yield* Effect.forEach(others, forgetGone, { discard: true })
+    }).pipe(Effect.ignore)
+
     return {
       todoFile: (source) => {
         if (lastTodo?.source !== source) lastTodo = { source, todo: parseTodoFile(source) }
@@ -203,7 +238,7 @@ export const makeParser = (
 
         fresh = false
 
-        return Effect.ignore(save)
+        return Effect.ignore(save).pipe(Effect.andThen(prune))
       }),
     }
   })
