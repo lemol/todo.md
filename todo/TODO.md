@@ -1,7 +1,5 @@
 # todo.md
 
-- [ ] [44 - Make the test sandbox's escape guard cheap](./44-make-the-test-sandbox-s-escape-guard-cheap.md)
-
 
 
 ## Hub and sources
