@@ -16,6 +16,8 @@ export interface ProjectInputOptions {
   /** The source kind, instead of inferring it. */
   readonly source?: string | undefined
   readonly name?: string | undefined
+  /** sqlite: the database file. */
+  readonly path?: string | undefined
   /** git: the branch to track, instead of the repository's default. */
   readonly branch?: string | undefined
   /** git: the list directory inside the repository, instead of discovering it. */
@@ -44,12 +46,14 @@ const gitUrls = [
 /**
  * Turns what a user types to add a project (a path or a URL) into `hub.add`'s
  * input. A git URL is `git`; anything else is an `fs` path, resolved against
- * `cwd` unless it starts with `~`. `options.source` overrides the inference,
+ * `cwd` unless it starts with `~`. A sqlite target is the project's name.
+ * `options.source` overrides the inference,
  * and is how a target becomes a `jira` site: no URL shape says "Jira". A kind
  * this does not know gets an empty config for the frontend to fill.
  *
  * Each source's own options are left out of every other config — `branch` and
- * `list` of anything but git, `email` and the token of anything but jira — so
+ * `list` of anything but git, `email` and the token of anything but jira, `path`
+ * of anything but sqlite and fs — so
  * a frontend can pass them all through and then refuse the combination itself.
  */
 export const projectInputFrom = (
@@ -58,6 +62,21 @@ export const projectInputFrom = (
   resolve: (cwd: string, path: string) => string,
 ): AddInput => {
   const source = options.source ?? (gitUrls.some((pattern) => pattern.test(target)) ? "git" : "fs")
+
+  if (source === "sqlite") {
+    const config =
+      options.path === undefined
+        ? {}
+        : {
+            path:
+              options.path === "~" || options.path.startsWith("~/")
+                ? options.path
+                : resolve(options.cwd, options.path),
+          }
+
+    return { name: options.name ?? target, source: "sqlite", config }
+  }
+
   const home = target === "~" || target.startsWith("~/")
   const config =
     source === "fs"

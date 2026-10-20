@@ -31,6 +31,8 @@ export interface WatchListOptions {
    * is a repository root. The path is as the watcher reports it.
    */
   readonly ignore?: (path: string) => boolean
+  /** Whether to watch subdirectories recursively (default: true). */
+  readonly recursive?: boolean | undefined
 }
 
 /**
@@ -48,7 +50,7 @@ export const watchList = (
 
       // Event paths may be relative to `root`; only the file name matters,
       // except for `options.ignore`, which sees the path as reported.
-      return fs.watch(root, { recursive: true }).pipe(
+      return fs.watch(root, { recursive: options.recursive ?? true }).pipe(
         Stream.filter((event) => {
           const name = path.basename(event.path)
 

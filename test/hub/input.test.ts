@@ -85,4 +85,29 @@ describe("projectInput", () => {
       ).toEqual({ site: "https://acme.atlassian.net" })
     })
   })
+
+  test("a sqlite target is the project's name, and path its database file", () => {
+    expect(input("groceries", { source: "sqlite" })).toEqual({
+      name: "groceries",
+      source: "sqlite",
+      config: {},
+    })
+    expect(input("groceries", { source: "sqlite", path: "db/groceries.db" })).toEqual({
+      name: "groceries",
+      source: "sqlite",
+      config: { path: "/work/db/groceries.db" },
+    })
+    expect(input("groceries", { source: "sqlite", path: "~/groceries.db", name: "food" })).toEqual({
+      name: "food",
+      source: "sqlite",
+      config: { path: "~/groceries.db" },
+    })
+  })
+
+  test("path is left out of every other source's config", () => {
+    expect(input("/srv/app", { path: "/srv/app.db" }).config).toEqual({ path: "/srv/app" })
+    expect(input("git@github.com:lemol/mionso.git", { path: "/srv/app.db" }).config).toEqual({
+      url: "git@github.com:lemol/mionso.git",
+    })
+  })
 })
