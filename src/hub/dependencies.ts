@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 import { DependencyResolver } from "../core/index.ts"
 import {
   type Diagnostic,
@@ -84,6 +84,10 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
       Effect.gen(function* () {
         const visited = yield* VisitedRef
         const done = new Set<TaskId>()
+        const byProject = new Map<
+          string,
+          Array<{ readonly qualified: TaskId; readonly id: string }>
+        >()
 
         for (const qualified of ids) {
           if (visited.has(qualified)) continue
@@ -92,7 +96,14 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
 
           if (ref.project === undefined) continue
 
-          const project = yield* Effect.option(deps.find(ref.project))
+          const wanted = byProject.get(ref.project) ?? []
+
+          wanted.push({ qualified, id: ref.id })
+          byProject.set(ref.project, wanted)
+        }
+
+        for (const [name, wanted] of byProject) {
+          const project = yield* Effect.option(deps.find(name))
 
           if (project._tag === "None") continue
 
@@ -100,14 +111,37 @@ export const makeDependencyResolver = (currentProject: string, deps: HubDeps) =>
 
           if (service._tag === "None") continue
 
-          const nextVisited = new Set([...visited, qualified])
-          const task = yield* Effect.option(
-            Effect.provideService(showTask(service.value, ref.id), VisitedRef, nextVisited),
-          )
+          // One read of the project answers every id asked of it. A read per
+          // id was a stat pass over the whole list per dependency.
+          const tasks: Option.Option<ReadonlyArray<Task>> =
+            typeof service.value.tasks === "function"
+              ? yield* Effect.option(
+                  service.value.tasks() as Effect.Effect<ReadonlyArray<Task>, unknown>,
+                )
+              : Option.none<ReadonlyArray<Task>>()
 
-          if (task._tag === "None") continue
+          if (tasks._tag === "Some") {
+            const byId = new Map(tasks.value.map((task) => [task.id, task] as const))
 
-          if (taskDoneCompleted(task.value)) done.add(qualified)
+            for (const { qualified, id } of wanted) {
+              const task = byId.get(id)
+
+              if (task !== undefined && taskDoneCompleted(task)) done.add(qualified)
+            }
+
+            continue
+          }
+
+          for (const { qualified, id } of wanted) {
+            const nextVisited = new Set([...visited, qualified])
+            const task = yield* Effect.option(
+              Effect.provideService(showTask(service.value, id), VisitedRef, nextVisited),
+            )
+
+            if (task._tag === "None") continue
+
+            if (taskDoneCompleted(task.value)) done.add(qualified)
+          }
         }
 
         return done as ReadonlySet<TaskId>
