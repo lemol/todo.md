@@ -86,7 +86,8 @@ user name.
 - **Mutations name their list.** The first line of a task mutation's
   confirmation starts with the registered project's name, or the list root
   for an unregistered list, so a write to the wrong list shows up
-  (`acme: Added 06  Ship it to Backend`).
+  (`acme: Added 06  Ship it to Backend`). `add` says `to new group <name>`
+  when `--group` named a group the list did not have.
 - **Colors** are used only on a terminal, and never when `NO_COLOR` is set.
 - **JSON output** is the command's result exactly, with dates as ISO 8601
   strings. Results from a registered project gain its name as `project`;

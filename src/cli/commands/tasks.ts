@@ -126,6 +126,14 @@ export const add = Command.make(
           }
         }
 
+        // A new group is as often a typo or the wrong list as an intention,
+        // so say when --group creates one. The listing is unfiltered, since
+        // an empty heading already counts as the group.
+        const group = Option.getOrUndefined(flags.group)
+        const created =
+          group !== undefined &&
+          !(yield* todo.list()).sections.some((section) => section.name === group)
+
         const task = yield* todo.add(
           {
             title: flags.title.join(" "),
@@ -151,9 +159,14 @@ export const add = Command.make(
         // an explicit --file says so rather than pretending it worked.
         if (wantsFile && (todo.capabilities.promote || flags.file)) yield* todo.promote(task.id)
 
-        yield* confirm(project, task, () => [
-          `Added ${label(task)}${task.group === undefined ? "" : ` to ${task.group}`}`,
-        ])
+        const into =
+          task.group === undefined
+            ? ""
+            : created
+              ? ` to new group ${task.group}`
+              : ` to ${task.group}`
+
+        yield* confirm(project, task, () => [`Added ${label(task)}${into}`])
         yield* warnUnpushed(project)
       }),
     )

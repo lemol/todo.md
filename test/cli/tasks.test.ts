@@ -154,6 +154,36 @@ describe("todo add", () => {
     }),
     diskWith(acme),
   )
+
+  effectTest(
+    "says when it created the group, since a new group is as often a typo or the wrong list",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+
+      expect(
+        (yield* todo("add", "Three tabs", "--group", "Live updates", "--no-description")).stdout,
+      ).toBe(`${root}: Added 06  Three tabs to new group Live updates`)
+      expect((yield* todo("add", "Four", "--group", "Live updates", "--quick")).stdout).toBe(
+        `${root}: Added 07  Four to Live updates`,
+      )
+      expect((yield* todo("add", "Five", "--group", "Backend", "--quick")).stdout).toBe(
+        `${root}: Added 08  Five to Backend`,
+      )
+    }),
+    diskWith(acme),
+  )
+
+  effectTest(
+    "does not call an empty group heading new",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+
+      expect((yield* todo("add", "First", "--group", "Ops", "--quick")).stdout).toBe(
+        `${root}: Added 01  First to Ops`,
+      )
+    }),
+    diskWith({ "TODO.md": md("# L", "", "## Ops", "") }),
+  )
 })
 
 describe("todo add --description -", () => {
