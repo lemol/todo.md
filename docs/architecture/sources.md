@@ -14,6 +14,7 @@ it.
 | `fs` | `hub` | the list directory | none | files, as `FsTodoStore` |
 | `git` | `src/git` | a partial clone in `projects/<name>/clone` | fetch, `pull --rebase`, push | files, then one commit per mutation and a push |
 | `jira` | `src/jira` | `projects/<name>/mirror.json` | fetch the JQL queries | Jira REST, then re-fetch the issue into the mirror |
+| `sqlite` *(planned)* | `src/sqlite` | `projects/<name>/todo.db`, or a `path:` the user gives | none (local file) | SQL in one transaction per mutation; every capability but `promote` ([design](../superpowers/specs/2026-10-19-sqlite-source-design.md)) |
 
 ## The interface
 
@@ -81,6 +82,15 @@ interface SourceProject<C> {
   title and labels, and without `commentAuthor` Jira's own user signs every
   comment. With `read_only: true` it writes nothing at all: every mutation
   fails before a request is sent, and only `sync` changes the mirror. See [src/jira/README.md](../../src/jira/README.md).
+
+- **sqlite** *(planned)* keeps the whole list in one SQLite file, created
+  empty on first open. It reaches the database through a `SqliteDriver`
+  service the CLI provides from `bun:sqlite`, so the module imports no
+  `bun`. Each mutation is one transaction (no `.todo.lock`); live changes
+  watch the file and its `-wal` with `watchList`, as jira watches its
+  mirror. Removing a project deletes the file only when the hub placed it
+  in the data directory — a file at a given `path:` is left alone. See
+  [the design](../superpowers/specs/2026-10-19-sqlite-source-design.md).
 
 `todo jira pull` is not a source. It copies issues one way into an ordinary
 list, where they get local IDs and remember their issue in `extra.jira_id`.

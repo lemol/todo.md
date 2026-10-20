@@ -22,6 +22,7 @@
 | An explicit project registry               | `~/.todo-md/projects.yaml`, managed from the CLI and web. Auto-registering fills it with throwaway lists; scanning is slow and implicit. |
 | Local replicas and explicit `sync`         | Reads stay fast and offline: the directory (fs), a clone (git), a JSON mirror (jira). Remote data refreshes only on `sync`. |
 | JSON mirrors, no SQLite yet                | Mirrors are small and disposable, so switching later is a re-sync. A global index would go stale on every hand edit. |
+| A SQLite *list*, driver injected           | A database-backed list is a separate adapter, not the deferred index or mirror. `src/sqlite` defines a `SqliteDriver` service the CLI fills from `bun:sqlite`, so no non-app module imports `bun` ([design](../superpowers/specs/2026-10-19-sqlite-source-design.md)). |
 | Git: commit per mutation, then try to push | Changes reach other machines at once; a failed push leaves the commit local and visible as `ahead`, never a failed mutation. |
 | Jira: mirror plus daily actions            | Complete, reopen, comment, title and labels; no issue creation or deletion, no Markdown → ADF. |
 | `add` and `remove` become capabilities     | Lets a source such as Jira leave them out (spec §1.5). |
