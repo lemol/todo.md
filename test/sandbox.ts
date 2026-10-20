@@ -54,7 +54,16 @@ const snapshotOf = (dir: string): string => {
 
       if (entry.isDirectory()) walk(full)
       else if (entry.isFile()) {
-        lines.push(`${relative(dir, full)} ${Bun.hash(readFileSync(full, "utf8")).toString(16)}`)
+        let text: string
+
+        // Another process may remove it between the listing and the read.
+        try {
+          text = readFileSync(full, "utf8")
+        } catch {
+          continue
+        }
+
+        lines.push(`${relative(dir, full)} ${Bun.hash(text).toString(16)}`)
       }
     }
   }
