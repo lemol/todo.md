@@ -1,7 +1,5 @@
 # todo.md
 
-- [ ] [39 - A mutation's confirmation names the group but not the list it wrote to](./39-a-mutation-s-confirmation-names-the-group-but-not-the-list.md)
-
 
 
 ## Hub and sources
