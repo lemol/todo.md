@@ -41,6 +41,8 @@ export const startServer = async (options: ServerOptions) => {
               JiraSource.make({ env: options.env }).pipe(Effect.provide(FetchHttpClient.layer)),
             ]),
             ([gitSource, jiraSource]) =>
+              // Tests only: the CLI's `web` command passes every source,
+              // including sqlite, which web cannot import (bun:sqlite).
               Hub.layer({
                 home: options.home,
                 userHome: options.userHome,

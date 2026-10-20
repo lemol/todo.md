@@ -9,7 +9,7 @@ are. For what a task *is* and how the files look, see
 | The `TodoStore` contract, capabilities, conformance, writing an adapter | [contract.md](./contract.md) |
 | `markdown` and `fs`: parsing, splicing writes, the write path, locking | [storage.md](./storage.md) |
 | `hub`: projects, the registry, sync, changes, cross-project queries *(partly built)* | [hub.md](./hub.md) |
-| Sources: fs, git and jira behind the hub | [sources.md](./sources.md) |
+| Sources: fs, git, jira and sqlite behind the hub | [sources.md](./sources.md) |
 | The CLI, the web app and the TUI as composition roots | [frontends.md](./frontends.md) |
 | Packaging, the `effect` pin, testing and tooling | [tooling.md](./tooling.md) |
 | Why things are the way they are | [decisions.md](./decisions.md) |
@@ -58,7 +58,7 @@ Today:
 ```
 
 The sources sit beside the hub, built at each composition root and passed in
-(`git` and `jira` are built):
+(`git`, `jira` and `sqlite` are built):
 
 ```
 cli ─┬─► hub ──► core ──► spec
@@ -66,6 +66,7 @@ web ─┤    │  └─► fs ──► markdown
 tui ─┘    ▲      ▲
        git ──────┘    git: fs over a clone + commit/push
        jira ─► hub    jira: Jira REST behind a JSON mirror
+       sqlite ─► hub  sqlite: one SQLite file behind an injected driver
 ```
 
 | Module                          | Import path                    | May import                               | Responsibility                                                                  |

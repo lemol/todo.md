@@ -55,25 +55,27 @@ const makeConnection = (rawDb: Database): Effect.Effect<SqliteConnection> =>
     ): Effect.Effect<A, E | SqliteError, R> => {
       const beginSql = mode === "read" ? "BEGIN" : "BEGIN IMMEDIATE"
 
-      const exec = Effect.gen(function* () {
-        yield* run(beginSql)
+      const exec = Effect.uninterruptibleMask((restore) =>
+        Effect.gen(function* () {
+          yield* run(beginSql)
 
-        return yield* effect.pipe(
-          Effect.onExit((exit) => {
-            if (!Exit.isSuccess(exit)) {
-              return run("ROLLBACK").pipe(Effect.ignore)
-            }
+          return yield* restore(effect).pipe(
+            Effect.onExit((exit) => {
+              if (!Exit.isSuccess(exit)) {
+                return run("ROLLBACK").pipe(Effect.ignore)
+              }
 
-            return Effect.void
-          }),
-          Effect.flatMap((result) =>
-            run("COMMIT").pipe(
-              Effect.as(result),
-              Effect.onError(() => run("ROLLBACK").pipe(Effect.ignore)),
+              return Effect.void
+            }),
+            Effect.flatMap((result) =>
+              run("COMMIT").pipe(
+                Effect.as(result),
+                Effect.onError(() => run("ROLLBACK").pipe(Effect.ignore)),
+              ),
             ),
-          ),
-        )
-      })
+          )
+        }),
+      )
 
       return sem.withPermit(exec)
     }

@@ -83,7 +83,7 @@ interface SourceProject<C> {
   comment. With `read_only: true` it writes nothing at all: every mutation
   fails before a request is sent, and only `sync` changes the mirror. See [src/jira/README.md](../../src/jira/README.md).
 
-- **sqlite** *(planned)* keeps the whole list in one SQLite file, created
+- **sqlite** keeps the whole list in one SQLite file, created
   empty on first open. It reaches the database through a `SqliteDriver`
   service the CLI provides from `bun:sqlite`, so the module imports no
   `bun`. Each mutation is one transaction (no `.todo.lock`); live changes

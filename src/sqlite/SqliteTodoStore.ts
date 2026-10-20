@@ -65,7 +65,7 @@ export const layer = (options: Options): Layer.Layer<TodoStore, StoreError, Sqli
 
       yield* init(db, options.title).pipe(Effect.mapError(storeError))
 
-      const resolvePlacement = (where: Placement) =>
+      const resolvePlacement = (where: Placement, excludeId?: TaskId) =>
         Effect.gen(function* () {
           if (where.before !== undefined && where.after !== undefined) {
             return yield* new ValidationError({
@@ -77,10 +77,16 @@ export const layer = (options: Options): Layer.Layer<TodoStore, StoreError, Sqli
 
           if (anchorId === undefined) {
             const group = where.group
-            const rows = yield* db.query(
-              "SELECT COUNT(*) as count FROM tasks WHERE status = 'open' AND group_name IS ?",
-              [group ?? null],
-            )
+            const rows =
+              excludeId === undefined
+                ? yield* db.query(
+                    "SELECT COUNT(*) as count FROM tasks WHERE status = 'open' AND group_name IS ?",
+                    [group ?? null],
+                  )
+                : yield* db.query(
+                    "SELECT COUNT(*) as count FROM tasks WHERE status = 'open' AND group_name IS ? AND id != ?",
+                    [group ?? null, excludeId],
+                  )
 
             const count = Number(rows[0]?.count ?? 0)
 
@@ -482,7 +488,7 @@ export const layer = (options: Options): Layer.Layer<TodoStore, StoreError, Sqli
                   [oldGroup, oldPos],
                 )
 
-                const target = yield* resolvePlacement(where)
+                const target = yield* resolvePlacement(where, id)
 
                 yield* ensureGroupExists(target.group)
 

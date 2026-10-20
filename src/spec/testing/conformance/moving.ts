@@ -73,6 +73,36 @@ export const movingCases: ReadonlyArray<ConformanceCase> = [
     }),
   },
   {
+    name: "move to the end of its own section keeps the moved task before the next add",
+    requires: ["groups", "reorder"],
+    setup: true,
+    run: Effect.gen(function* () {
+      const store = yield* TodoStore
+      const [a, b, c] = yield* given({ title: "A" }, { title: "B" }, { title: "C" })
+
+      yield* store.move(a.id, {})
+      equal(yield* layout, [["", [b.id, c.id, a.id]]])
+
+      const d = yield* store.add({ title: "D" })
+
+      equal(yield* layout, [["", [b.id, c.id, a.id, d.id]]])
+
+      const [v, u] = yield* given(
+        { title: "V", placement: { group: "G" } },
+        { title: "U", placement: { group: "G" } },
+      )
+
+      yield* store.move(v.id, { group: "G" })
+
+      const w = yield* store.add({ title: "W" }, { group: "G" })
+
+      equal(yield* layout, [
+        ["", [b.id, c.id, a.id, d.id]],
+        ["G", [u.id, v.id, w.id]],
+      ])
+    }),
+  },
+  {
     name: "move rejects done tasks, unknown IDs and self-anchors, changing nothing",
     requires: ["reorder"],
     setup: true,
