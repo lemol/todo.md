@@ -35,7 +35,7 @@ const storeError = (error: unknown): StoreError =>
     cause: error,
   })
 
-const init = (db: SqliteConnection, title: string) =>
+export const init = (db: SqliteConnection, title: string) =>
   Effect.gen(function* () {
     yield* db.run("PRAGMA journal_mode = WAL")
     yield* db.run("PRAGMA busy_timeout = 5000")
