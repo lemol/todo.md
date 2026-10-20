@@ -112,6 +112,14 @@ effectTest(
     expect(help.stdout).toContain(
       "todo projects add groceries --source sqlite --path ~/notes/groceries.db",
     )
+    expect(
+      section(help.stdout, "FLAGS").some(
+        (line) => line.trim().startsWith("--from string") && line.includes("sqlite only"),
+      ),
+    ).toBe(true)
+    expect(help.stdout).toContain(
+      "todo projects add groceries --source sqlite --from ~/notes/groceries",
+    )
   }),
   diskWith({}),
 )

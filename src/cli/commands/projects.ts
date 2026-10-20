@@ -1,12 +1,17 @@
-import { DateTime, Effect, Option } from "effect"
+import { DateTime, Effect, Option, Path } from "effect"
 import { Argument, Command, Flag } from "effect/cli"
+import { FsTodoStore } from "../../fs/index.ts"
 import {
   Hub,
+  listRootOf,
   type ProjectInfo,
   projectInput,
   type SyncFailure,
   type SyncResult,
 } from "../../hub/index.ts"
+import { TodoStore } from "../../spec/index.ts"
+import { importList, type Snapshot, SqliteSource } from "../../sqlite/index.ts"
+import * as BunSqliteDriver from "../BunSqliteDriver.ts"
 import { CliContext, Dir, output, Project } from "../context.ts"
 import { SyncFailed, UsageError } from "../errors.ts"
 import { projectLine, statusText, syncLine } from "../render.ts"
@@ -115,6 +120,12 @@ export const projectsAdd = Command.make(
         "sqlite only: the database file (default: todo.db in the project's data directory)",
       ),
     ),
+    from: Flag.String("from").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "sqlite only: a Markdown list to copy into the new database, with its IDs, groups, comments and done tasks",
+      ),
+    ),
     branch: Flag.String("branch").pipe(
       Flag.optional,
       Flag.withDescription("git only: the branch to track (default: the repository's own)"),
@@ -155,6 +166,7 @@ export const projectsAdd = Command.make(
     name,
     source,
     path,
+    from,
     branch,
     list,
     email,
@@ -163,7 +175,8 @@ export const projectsAdd = Command.make(
     jql,
     readOnly,
   }) {
-    const { cwd } = yield* CliContext
+    const { cwd, home, userHome } = yield* CliContext
+    const paths = yield* Path.Path
     const hub = yield* Hub
     const input = yield* projectInput(target, {
       cwd,
@@ -188,7 +201,10 @@ export const projectsAdd = Command.make(
         : given.filter(([, value]) => Option.isSome(value)).map(([flag]) => flag)
 
     const misplaced = [
-      ...wrongFor("sqlite", [["--path", path]]),
+      ...wrongFor("sqlite", [
+        ["--path", path],
+        ["--from", from],
+      ]),
       ...wrongFor("git", [
         ["--branch", branch],
         ["--list", list],
@@ -208,7 +224,55 @@ export const projectsAdd = Command.make(
       })
     }
 
-    yield* printProject(hub, yield* hub.add(input))
+    const absolute = (dir: string) =>
+      dir === "~" || dir.startsWith("~/") ? `${userHome}${dir.slice(1)}` : paths.resolve(cwd, dir)
+
+    let snapshot: Snapshot | undefined = undefined
+
+    if (Option.isSome(from)) {
+      const fromDir = absolute(from.value)
+      const rootOpt = yield* listRootOf(fromDir)
+
+      if (Option.isNone(rootOpt)) {
+        return yield* new UsageError({
+          message: `--from ${from.value} has no todo.md list`,
+        })
+      }
+
+      const root = rootOpt.value
+
+      snapshot = yield* Effect.gen(function* () {
+        const store = yield* TodoStore
+        const diagnostics = yield* store.diagnostics()
+        const errors = diagnostics.filter((d) => d.severity === "error").length
+
+        if (errors > 0) {
+          return yield* new UsageError({
+            message: `--from ${from.value} has ${errors} error${errors === 1 ? "" : "s"}; fix them first (todo check --dir ${root})`,
+          })
+        }
+
+        const list = yield* store.load()
+        const done = yield* store.listDone()
+
+        return { list, done }
+      }).pipe(Effect.provide(FsTodoStore.layer({ root })))
+    }
+
+    const info = yield* hub.add(input)
+
+    if (snapshot !== undefined) {
+      const file = Option.isSome(path)
+        ? absolute(path.value)
+        : paths.join(home, "projects", info.name, SqliteSource.defaultFile)
+
+      yield* importList({ path: file, title: info.name }, snapshot).pipe(
+        Effect.provide(BunSqliteDriver.layer),
+        Effect.onError(() => Effect.ignore(hub.remove(info.name, { force: true }))),
+      )
+    }
+
+    yield* printProject(hub, info)
   }),
 ).pipe(
   Command.withDescription(
@@ -227,6 +291,10 @@ export const projectsAdd = Command.make(
     {
       command: "todo projects add groceries --source sqlite --path ~/notes/groceries.db",
       description: "Keep it in a file of your own; removing the project leaves the file",
+    },
+    {
+      command: "todo projects add groceries --source sqlite --from ~/notes/groceries",
+      description: "Start it with the tasks of a Markdown list, IDs and all",
     },
     {
       command: "todo projects add git@github.com:lemol/mionso.git",

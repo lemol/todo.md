@@ -21,6 +21,6 @@ export type {
   SourceProject,
   SyncOutcome,
 } from "./Source.ts"
-export { FsConfig, fsSource, type WatchListOptions, watchList } from "./sources/fs.ts"
+export { FsConfig, fsSource, listRootOf, type WatchListOptions, watchList } from "./sources/fs.ts"
 export { statusText } from "./status.ts"
 export type { SyncFailure, SyncResult } from "./sync.ts"
