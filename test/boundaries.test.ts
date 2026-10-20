@@ -26,9 +26,10 @@ const rules: Record<string, { modules: string[]; packages: string[] }> = {
   hub: { modules: ["spec", "core", "fs"], packages: ["effect", "yaml"] },
   git: { modules: ["spec", "fs", "hub"], packages: ["effect"] },
   jira: { modules: ["spec", "hub"], packages: ["effect"] },
+  sqlite: { modules: ["spec", "hub"], packages: ["effect"] },
   cli: {
-    modules: ["spec", "core", "fs", "hub", "git", "jira", "web"],
-    packages: ["effect", "@effect/platform-bun", "node:", "bun"],
+    modules: ["spec", "core", "fs", "hub", "git", "jira", "sqlite", "web"],
+    packages: ["effect", "@effect/platform-bun", "node:", "bun", "bun:sqlite"],
   },
 }
 
@@ -291,6 +292,36 @@ describe("module boundaries", () => {
       expect(
         violations(at("hub", "Hub.ts"), 'import { JiraSource } from "../jira/index.ts"'),
       ).toEqual([`${at("hub", "Hub.ts")}: module hub must not import module jira`])
+    })
+
+    test("lets sqlite use spec and hub, and keeps bun to the apps", () => {
+      const source = [
+        'import { watchList } from "../hub/index.ts"',
+        'import { TodoStore } from "../spec/index.ts"',
+        'import { Context, Effect } from "effect"',
+      ].join("\n")
+
+      expect(violations(at("sqlite", "SqliteSource.ts"), source)).toEqual([])
+      expect(
+        violations(at("sqlite", "SqliteDriver.ts"), 'import { Database } from "bun:sqlite"'),
+      ).toEqual([
+        `${at("sqlite", "SqliteDriver.ts")}: module sqlite must not import package bun:sqlite`,
+      ])
+      expect(
+        violations(
+          at("sqlite", "SqliteTodoStore.ts"),
+          'import { FsTodoStore } from "../fs/index.ts"',
+        ),
+      ).toEqual([`${at("sqlite", "SqliteTodoStore.ts")}: module sqlite must not import module fs`])
+      expect(
+        violations(at("cli", "BunSqliteDriver.ts"), 'import { Database } from "bun:sqlite"'),
+      ).toEqual([])
+      expect(
+        violations(at("cli", "bin.ts"), 'import { SqliteSource } from "../sqlite/index.ts"'),
+      ).toEqual([])
+      expect(
+        violations(at("hub", "Hub.ts"), 'import { SqliteSource } from "../sqlite/index.ts"'),
+      ).toEqual([`${at("hub", "Hub.ts")}: module hub must not import module sqlite`])
     })
 
     test("keeps hub test helpers out of runtime code", () => {
