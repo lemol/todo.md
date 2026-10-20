@@ -90,13 +90,68 @@ export const doneTask = (done: DoneEntry): Task =>
     group: done.file.group,
   })
 
-/** Reads the whole list. Never writes to it; unchanged files reuse their last parse. */
-export const readSnapshot = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> =>
-  Effect.acquireUseRelease(
+/**
+ * What a snapshot depends on, short of reading the task files: `TODO.md`'s
+ * text, the file names in the done directory and the task directories, and
+ * each task file's size, inode and modification time. Two keys agree only
+ * while every file is as it was.
+ */
+const keyOf = (files: Files, parser: Parser, source: string): Effect.Effect<string, StoreError> =>
+  Effect.gen(function* () {
+    const todo = parser.todoFile(source)
+    const { tasksDir, doneDir } = todo.config
+    const taskDirs = unique([
+      tasksDir,
+      ...todo.sections.flatMap((s) =>
+        s.name === undefined ? [] : [joinPath(tasksDir, groupSlug(s.name))],
+      ),
+    ])
+
+    const done = yield* files.list(doneDir, { recursive: true })
+    const listed = yield* Effect.forEach(taskDirs, (dir) => files.list(dir))
+    const linked = allItems(todo).flatMap((item) => (item.path === undefined ? [] : [item.path]))
+    const stats = yield* files.stats(unique([...done, ...linked]))
+
+    return [files.writes(), done.join(","), listed.flat().join(","), stats.join(",")].join("\n")
+  })
+
+/**
+ * Reads the whole list. Never writes to it; unchanged files reuse their last
+ * parse, and a list whose files are all as they were (`keyOf`) reuses its
+ * last snapshot without opening them, so a host that reads on every request
+ * pays a stat pass, not a read of every file. A hand edit is still seen on
+ * the next read: it changes a file's size, inode or modification time, or
+ * `TODO.md`'s text, which is compared whole.
+ */
+export const readSnapshot = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> => {
+  let last:
+    | { readonly source: string; readonly key: string; readonly snapshot: Snapshot }
+    | undefined
+
+  const read = Effect.acquireUseRelease(
     parser.begin,
     () => readWith(files, parser),
     () => parser.end,
   )
+
+  return Effect.gen(function* () {
+    const source = yield* files.read(todoPath)
+
+    if (source === undefined) return yield* read
+
+    const key = yield* keyOf(files, parser, source)
+
+    if (last !== undefined && last.source === source && last.key === key) return last.snapshot
+
+    // The key is taken before the read: a file that changes between the two
+    // is in the snapshot and not in the key, so the next read sees it move.
+    const snapshot = yield* read
+
+    last = { source, key, snapshot }
+
+    return snapshot
+  })
+}
 
 const readWith = (files: Files, parser: Parser): Effect.Effect<Snapshot, StoreError> =>
   Effect.gen(function* () {

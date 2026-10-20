@@ -31,8 +31,14 @@ same conformance suite as `MemoryTodoStore`.
   lock → normalize (spec §2.11) → read a snapshot → edit → write files → unlock
   ```
 
-- **No cache of the list.** Every read reads every file, so hand edits made
-  between commands are always seen.
+- **A snapshot is reused while a stat pass says nothing changed.** A read
+  first compares `TODO.md`'s text whole, the file names in the done and task
+  directories, and each task file's size, inode and modification time with
+  the last read's; only when something differs does it open the task files
+  again. Hand edits made between commands are still seen: an edit changes
+  one of those, and the store's own writes count too. A host that reads on
+  every request (the hub, a web app) pays a few milliseconds per read instead
+  of a read of every file.
 - **Parses are cached by content** (`parsing.ts`). A task file whose path and
   text are unchanged reuses its last parse: in memory for the store's
   lifetime, and in `<cacheDir>/<hash of root>.json` between processes. Only

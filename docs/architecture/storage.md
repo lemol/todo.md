@@ -59,9 +59,15 @@ release lock
 Reads (`load`, `get`, `listDone`, `diagnostics`) take the snapshot without
 the lock and never write.
 
-- **No cache of the list.** Every operation re-reads the files, so hand edits
-  made between commands are always seen. A long-running host (the web app)
-  watches files instead of caching them.
+- **A snapshot is reused while nothing changed.** Every read starts with a
+  stat pass: `TODO.md`'s text compared whole, the file names in the done and
+  task directories, and each task file's size, inode and modification time
+  (`fs/snapshot.ts`, `keyOf`). While all of it is as it was at the last read,
+  that read's snapshot is returned without opening a task file; otherwise the
+  files are read again. Hand edits made between commands are still seen, and
+  the store's own writes always count. A long-running host (the hub, the web
+  app) pays about two milliseconds for six hundred files instead of reading
+  and hashing them; it still watches files to learn *when* to read.
 - **Parses are cached by content.** Reading is cheap; parsing Markdown into a
   syntax tree is nearly all the cost of a snapshot (about 3 ms a task file),
   and between two reads almost every file is unchanged. So a store remembers

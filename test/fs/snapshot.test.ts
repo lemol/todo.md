@@ -2,7 +2,7 @@ import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import { doneTask, entryTask, isInterrupted, readSnapshot } from "../../src/fs/snapshot.ts"
 import { effectTest } from "../../src/spec/testing.ts"
-import { diskWith, filesOnDisk, md, parserOnDisk } from "./helpers.ts"
+import { Disk, diskWith, filesOnDisk, md, parserOnDisk } from "./helpers.ts"
 
 const snapshot = Effect.flatMap(Effect.all([filesOnDisk, parserOnDisk]), ([files, parser]) =>
   readSnapshot(files, parser),
@@ -58,6 +58,67 @@ describe("readSnapshot", () => {
       expect(error.message).toContain("no TODO.md")
     }),
     diskWith({}),
+  )
+})
+
+describe("readSnapshot reuses its last snapshot", () => {
+  const linked = md("- [ ] [01 - Linked](./01-linked.md)")
+  const later = new Date(Date.now() + 60_000)
+
+  /** One `readSnapshot` effect, as a store holds it, over the test directory. */
+  const reader = Effect.map(Effect.all([filesOnDisk, parserOnDisk]), ([files, parser]) =>
+    readSnapshot(files, parser),
+  )
+
+  effectTest(
+    "returns the same snapshot while every file is as it was",
+    Effect.gen(function* () {
+      const read = yield* reader
+      const first = yield* read
+
+      expect(yield* read).toBe(first)
+      expect(first.entries.map((entry) => entry.file?.title)).toEqual(["Linked"])
+    }),
+    diskWith({ "TODO.md": linked, "01-linked.md": md("---", "title: Linked", "---") }),
+  )
+
+  effectTest(
+    "reads again when a task file changed in place, even at the same size",
+    Effect.gen(function* () {
+      const read = yield* reader
+      const disk = yield* Disk
+      const first = yield* read
+
+      yield* disk.write("01-linked.md", md("---", "title: Lonked", "---"))
+      yield* disk.setModified("01-linked.md", later)
+      const second = yield* read
+
+      expect(second).not.toBe(first)
+      expect(second.entries.map((entry) => entry.file?.title)).toEqual(["Lonked"])
+    }),
+    diskWith({ "TODO.md": linked, "01-linked.md": md("---", "title: Linked", "---") }),
+  )
+
+  effectTest(
+    "reads again when TODO.md changed or a done file appeared",
+    Effect.gen(function* () {
+      const read = yield* reader
+      const disk = yield* Disk
+      const first = yield* read
+
+      yield* disk.write("TODO.md", md("- [ ] [01 - Linked](./01-linked.md)", "- [ ] 02 - Inline"))
+      const second = yield* read
+
+      expect(second).not.toBe(first)
+      expect(second.entries.map((entry) => entry.id)).toEqual(["1", "2"])
+
+      yield* disk.write("done/03-finished.md", md("---", "title: Finished", "---"))
+      const third = yield* read
+
+      expect(third).not.toBe(second)
+      expect(third.done.map((entry) => entry.id)).toEqual(["3"])
+    }),
+    diskWith({ "TODO.md": linked, "01-linked.md": md("---", "title: Linked", "---") }),
   )
 })
 
