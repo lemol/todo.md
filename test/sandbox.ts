@@ -16,8 +16,16 @@ import { join, relative, resolve } from "node:path"
 
 const repo = resolve(import.meta.dir, "..")
 
+const realHome = process.env.TODO_MD_HOME ?? join(homedir(), ".todo-md")
+
 /** Where an escape lands: this repository's own backlog, and the machine's hub. */
-const guarded = [join(repo, "todo"), process.env.TODO_MD_HOME ?? join(homedir(), ".todo-md")]
+const guarded = [join(repo, "todo"), realHome]
+
+// The hub's parse cache is derived, and every `todo` process on the machine
+// writes it, so a change there is no escape: it failed whichever test was
+// running. It also grows with every list parsed, and hashing it after each
+// test made the suite crawl.
+const unguarded = new Set([join(realHome, "cache")])
 
 // Read before it is replaced, so the guard above watches the real home even
 // though nothing under test can now find it. Spawned processes inherit this.
@@ -41,6 +49,8 @@ const snapshotOf = (dir: string): string => {
 
     for (const entry of entries) {
       const full = join(at, entry.name)
+
+      if (unguarded.has(full)) continue
 
       if (entry.isDirectory()) walk(full)
       else if (entry.isFile()) {
