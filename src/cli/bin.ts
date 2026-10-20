@@ -8,6 +8,8 @@ import type { ChildProcessSpawner } from "effect/process"
 import { GitSource } from "../git/index.ts"
 import { fsSource } from "../hub/index.ts"
 import { JiraSource, makeClient } from "../jira/index.ts"
+import { SqliteSource } from "../sqlite/index.ts"
+import * as BunSqliteDriver from "./BunSqliteDriver.ts"
 import { main } from "./main.ts"
 
 const userHome = homedir()
@@ -27,10 +29,11 @@ const readStdin = (): string => {
 Effect.all([
   GitSource.make({ env: process.env }),
   JiraSource.make({ env: process.env }).pipe(Effect.provide(FetchHttpClient.layer)),
+  SqliteSource.make().pipe(Effect.provide(BunSqliteDriver.layer)),
   Effect.context<ChildProcessSpawner.ChildProcessSpawner>(),
 ])
   .pipe(
-    Effect.flatMap(([gitSource, jiraSource, services]) =>
+    Effect.flatMap(([gitSource, jiraSource, sqliteSource, services]) =>
       main(process.argv.slice(2), {
         cwd: process.cwd(),
         env: process.env,
@@ -38,7 +41,7 @@ Effect.all([
         color: process.stdout.isTTY === true && process.env.NO_COLOR === undefined,
         home: process.env.TODO_MD_HOME ?? `${userHome}/.todo-md`,
         userHome,
-        sources: [fsSource, gitSource, jiraSource],
+        sources: [fsSource, gitSource, jiraSource, sqliteSource],
         stdin: Effect.sync(readStdin),
         jira: (credentials) =>
           makeClient(credentials, { env: process.env }).pipe(

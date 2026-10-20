@@ -19,7 +19,7 @@ export const web = Command.make(
     ),
   },
   Effect.fn(function* ({ port, host }) {
-    const { cwd, env, username, home, userHome } = yield* CliContext
+    const { cwd, env, username, home, userHome, sources } = yield* CliContext
     const dir = yield* Dir
     const project = yield* Project
 
@@ -55,6 +55,7 @@ export const web = Command.make(
               username,
               home,
               userHome,
+              sources,
             }),
           ),
           (handle) => Effect.promise(() => handle.close()),

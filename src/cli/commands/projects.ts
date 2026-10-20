@@ -95,7 +95,9 @@ export const projectsAdd = Command.make(
   "add",
   {
     target: Argument.String("target").pipe(
-      Argument.withDescription("A directory path for a local list, a git URL, or a Jira site"),
+      Argument.withDescription(
+        "A directory path for a local list, a git URL, a Jira site, or a SQLite project's name",
+      ),
     ),
     name: Flag.String("name").pipe(
       Flag.optional,
@@ -103,7 +105,15 @@ export const projectsAdd = Command.make(
     ),
     source: Flag.String("source").pipe(
       Flag.optional,
-      Flag.withDescription("The source kind: fs, git or jira (default: inferred from the target)"),
+      Flag.withDescription(
+        "The source kind: fs, git, jira or sqlite (default: inferred from the target)",
+      ),
+    ),
+    path: Flag.String("path").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "sqlite only: the database file (default: todo.db in the project's data directory)",
+      ),
     ),
     branch: Flag.String("branch").pipe(
       Flag.optional,
@@ -144,6 +154,7 @@ export const projectsAdd = Command.make(
     target,
     name,
     source,
+    path,
     branch,
     list,
     email,
@@ -158,6 +169,7 @@ export const projectsAdd = Command.make(
       cwd,
       ...(Option.isSome(source) ? { source: source.value } : {}),
       ...(Option.isSome(name) ? { name: name.value } : {}),
+      ...(Option.isSome(path) ? { path: path.value } : {}),
       ...(Option.isSome(branch) ? { branch: branch.value } : {}),
       ...(Option.isSome(list) ? { list: list.value } : {}),
       ...(Option.isSome(email) ? { email: email.value } : {}),
@@ -176,6 +188,7 @@ export const projectsAdd = Command.make(
         : given.filter(([, value]) => Option.isSome(value)).map(([flag]) => flag)
 
     const misplaced = [
+      ...wrongFor("sqlite", [["--path", path]]),
       ...wrongFor("git", [
         ["--branch", branch],
         ["--list", list],
@@ -198,12 +211,22 @@ export const projectsAdd = Command.make(
     yield* printProject(hub, yield* hub.add(input))
   }),
 ).pipe(
-  Command.withDescription("Register a directory, a git URL or a Jira site as a project"),
+  Command.withDescription(
+    "Register a directory, a git URL, a Jira site or a SQLite list as a project",
+  ),
   Command.withExamples([
     { command: "todo projects add ~/labs/acme", description: "Register a local list" },
     {
       command: "todo projects add ~/labs/acme --name acme",
       description: "Register it under another name",
+    },
+    {
+      command: "todo projects add groceries --source sqlite",
+      description: "Keep a list in a SQLite file the hub manages",
+    },
+    {
+      command: "todo projects add groceries --source sqlite --path ~/notes/groceries.db",
+      description: "Keep it in a file of your own; removing the project leaves the file",
     },
     {
       command: "todo projects add git@github.com:lemol/mionso.git",

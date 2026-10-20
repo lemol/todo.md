@@ -2,7 +2,7 @@ import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
 import { FetchHttpClient } from "effect/http"
 import { GitSource } from "../git/index.ts"
-import { fsSource, Hub } from "../hub/index.ts"
+import { type AnySource, fsSource, Hub } from "../hub/index.ts"
 import { JiraSource } from "../jira/index.ts"
 import type { HubRuntime } from "./app/middleware/project.tsx"
 import { createAppRouter } from "./app/router.ts"
@@ -19,6 +19,7 @@ export interface ServerOptions {
   /** The hub's directory: `$TODO_MD_HOME`, else `<userHome>/.todo-md`. */
   readonly home: string
   readonly userHome: string
+  readonly sources?: ReadonlyArray<AnySource> | undefined
 }
 
 export const startServer = async (options: ServerOptions) => {
@@ -26,22 +27,29 @@ export const startServer = async (options: ServerOptions) => {
     throw new Error("use --project or --dir, not both")
   }
 
-  const runtime = ManagedRuntime.make(
-    Layer.unwrap(
-      Effect.map(
-        Effect.all([
-          GitSource.make({ env: options.env }),
-          JiraSource.make({ env: options.env }).pipe(Effect.provide(FetchHttpClient.layer)),
-        ]),
-        ([gitSource, jiraSource]) =>
-          Hub.layer({
-            home: options.home,
-            userHome: options.userHome,
-            sources: [fsSource, gitSource, jiraSource],
-          }),
-      ),
-    ).pipe(Layer.provide(BunServices.layer)),
-  )
+  const hubLayer =
+    options.sources !== undefined
+      ? Hub.layer({
+          home: options.home,
+          userHome: options.userHome,
+          sources: options.sources,
+        })
+      : Layer.unwrap(
+          Effect.map(
+            Effect.all([
+              GitSource.make({ env: options.env }),
+              JiraSource.make({ env: options.env }).pipe(Effect.provide(FetchHttpClient.layer)),
+            ]),
+            ([gitSource, jiraSource]) =>
+              Hub.layer({
+                home: options.home,
+                userHome: options.userHome,
+                sources: [fsSource, gitSource, jiraSource],
+              }),
+          ),
+        )
+
+  const runtime = ManagedRuntime.make(hubLayer.pipe(Layer.provide(BunServices.layer)))
 
   const hubRuntime: HubRuntime = { runPromise: (effect) => runtime.runPromise(effect) }
   let startup: string

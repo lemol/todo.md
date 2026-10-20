@@ -96,3 +96,22 @@ effectTest(
   }),
   diskWith({}),
 )
+
+effectTest(
+  "projects add documents the sqlite source and its --path flag",
+  Effect.gen(function* () {
+    const help = yield* todo("projects", "add", "--help")
+
+    expect(help.code).toBe(0)
+    expect(
+      section(help.stdout, "FLAGS").some(
+        (line) => line.trim().startsWith("--path string") && line.includes("sqlite only"),
+      ),
+    ).toBe(true)
+    expect(help.stdout).toContain("todo projects add groceries --source sqlite")
+    expect(help.stdout).toContain(
+      "todo projects add groceries --source sqlite --path ~/notes/groceries.db",
+    )
+  }),
+  diskWith({}),
+)
