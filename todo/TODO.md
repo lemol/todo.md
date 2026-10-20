@@ -12,8 +12,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Later
 
-- [ ] [41 - Import a Markdown list into a SQLite project](./later/41-import-a-markdown-list-into-a-sqlite-project.md)
-
 
 ## M3 — @lemol/ui adoption
 
