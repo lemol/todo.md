@@ -22,8 +22,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Read cost
 
-- [ ] [53 - A hub test's temporary list vanishes under concurrent test runs](./read-cost/53-a-hub-test-s-temporary-list-vanishes-under-concurrent-test.md)
-
 
 
 
