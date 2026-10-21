@@ -24,7 +24,7 @@ The `@lemol/todo-md/spec/testing` entry point is for tests only:
 
 | Export                          | What it is                                                              |
 | ------------------------------- | ----------------------------------------------------------------------- |
-| `effectTest(name, effect, layer?)` | Runs an Effect as a `bun:test` test, with a scope and test services. |
+| `effectTest(name, effect, layer?)` | Runs an Effect as a `bun:test` test, with a scope and test services. The test's scope closes before the layer's. |
 | `conformanceCases`              | The runner-agnostic conformance cases, each an Effect over a `TodoStore`. They assert with `node:assert`, so they need no particular test runner. |
 | `equal`, `failsWith`, `layout`  | The assertion helpers the cases use, for adapter-specific tests. |
 | `given(...tasks)`               | The state a case starts from: the runner's `seed` when it has one, `add` otherwise. Takes `SeedTask`s (a `TaskInput` plus optional `placement` and `done`). |

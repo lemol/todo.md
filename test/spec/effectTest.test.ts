@@ -1,7 +1,8 @@
-import { expect } from "bun:test"
+import { expect, test } from "bun:test"
 import { Context, DateTime, Effect, Layer } from "effect"
 import { TestClock } from "effect/testing"
 import { effectTest } from "../../src/spec/testing.ts"
+import { runEffectTest } from "../../src/spec/testing/effectTest.ts"
 
 class Greeting extends Context.Service<Greeting, { readonly text: string }>()("test/Greeting") {}
 
@@ -21,3 +22,19 @@ effectTest(
   }),
   Layer.succeed(Greeting, Greeting.of({ text: "hello" })),
 )
+
+test("closes the test's scope before the layer's", async () => {
+  const closed: Array<string> = []
+  const layer = Layer.effect(
+    Greeting,
+    Effect.acquireRelease(Effect.succeed(Greeting.of({ text: "hello" })), () =>
+      Effect.sync(() => closed.push("layer")),
+    ),
+  )
+
+  await runEffectTest(
+    Effect.addFinalizer(() => Effect.sync(() => closed.push("test"))),
+    layer,
+  )
+  expect(closed).toEqual(["test", "layer"])
+})
