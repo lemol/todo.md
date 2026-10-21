@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 // Bundles src/cli/bin.ts into an executable dist/bin.js for the installed
-// `todo` bin. The web server stays outside the bundle: createAssets locates
-// source assets relative to its own module, so bundling the server would
-// point asset discovery at dist/ instead of src/web. The native resolver
-// (oxc-resolver) stays outside too, keeping the bundle portable.
+// `todo` bin. Web is a lazy chunk sharing the CLI's Effect runtime; passing
+// schemas between bundled and installed runtimes is unsafe. Asset discovery
+// stays in its source module so createAssets finds src/web, not dist/.
+// The native resolver (oxc-resolver) stays outside, keeping output portable.
 
 import { chmodSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
@@ -12,26 +12,25 @@ const root = resolve(import.meta.dir, "..")
 const outdir = process.argv[2] === undefined ? join(root, "dist") : resolve(process.argv[2])
 
 const entrypoint = join(root, "src/cli/bin.ts")
-const server = join(root, "src/web/server.ts")
+const assets = join(root, "src/web/app/assets.ts")
 
 const toPosix = (path: string): string => path.split(sep).join("/")
 
-// The bundle resolves the external server against its real location, so
+// The bundle resolves external assets against its real location, so
 // relativize canonical paths: a symlinked outdir (macOS /tmp) would
-// otherwise miscount the `..` climb and miss the server at runtime.
+// otherwise miscount the `..` climb and miss the module at runtime.
 mkdirSync(outdir, { recursive: true })
 
 const canonical = (path: string): string => toPosix(realpathSync(path))
 
-const serverPlugin: Bun.Plugin = {
-  name: "todo-md-external-web-server",
+const assetsPlugin: Bun.Plugin = {
+  name: "todo-md-external-web-assets",
 
   setup(build) {
-    // The CLI loads the server lazily with import("../../web/server.ts");
-    // leave that specifier external, rewritten relative to the output
-    // directory, so the bundle loads the server from the installed package.
-    build.onResolve({ filter: /^\.\.\/\.\.\/web\/server\.ts$/ }, () => {
-      const specifier = relative(canonical(outdir), canonical(server))
+    build.onResolve({ filter: /\/assets\.ts$/ }, (args) => {
+      if (resolve(args.resolveDir, args.path) !== assets) return
+
+      const specifier = relative(canonical(outdir), canonical(assets))
 
       return { path: specifier.startsWith(".") ? specifier : `./${specifier}`, external: true }
     })
@@ -43,8 +42,9 @@ const result = await Bun.build({
   outdir,
   target: "bun",
   minify: true,
+  splitting: true,
   external: ["oxc-resolver"],
-  plugins: [serverPlugin],
+  plugins: [assetsPlugin],
 })
 
 if (!result.success) {

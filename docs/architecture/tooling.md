@@ -70,9 +70,11 @@ The web UI lives in `src/web` and ships in the published package, so `remix` (ex
 - **One build step.** Subpath exports point at TypeScript sources, which Bun
   runs directly, the same as `@lemol/framework`; the installed executable is
   bundled instead. `bun run build:cli` bundles `src/cli/bin.ts` into
-  `dist/bin.js` (built on install via `prepare`), leaving the web server
-  (`src/web/server.ts`, loaded lazily by `todo web`) and the native resolver
-  (`oxc-resolver`) external so the bundle stays portable. No `--bytecode` or
+  `dist/bin.js` and sibling chunks (built on install via `prepare`). The web
+  server is a lazy chunk sharing the CLI's Effect runtime, not an external
+  module receiving bundled schemas. Asset discovery (`src/web/app/assets.ts`)
+  and the native resolver (`oxc-resolver`) stay external so module-relative
+  source assets work and output stays portable. No `--bytecode` or
   `--compile`: ESM needs `--compile`, and `--compile --bytecode` does not
   build.
 - **Releases** are git tags named `todo-md@<version>`.

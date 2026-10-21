@@ -10,10 +10,11 @@ Built with `effect/cli` on `@effect/platform-bun`.
 - **As a dependency:** `@lemol/todo-md` declares `bin: { todo: ./dist/bin.js }`,
   so `todo` is on the path in `node_modules/.bin` (for example `bunx todo`).
   The bundle is built on install (`prepare` runs `bun run build:cli`, which
-  bundles `src/cli/bin.ts` with `bun build --target=bun --minify`). The web
-  server and the native resolver stay outside the bundle, so it stays
-  portable: `todo web` loads `src/web/server.ts` from the installed package
-  lazily.
+  bundles `src/cli/bin.ts` for Bun with minification and code splitting).
+  Keep all generated `dist/*.js` files together: `todo web` loads its server
+  chunk lazily, sharing the CLI's Effect runtime. Only asset discovery
+  (`src/web/app/assets.ts`) and the native resolver stay external, preserving
+  module-relative source assets without shipping a platform-specific binary.
 - **From a checkout:** `bun run build:cli`, then `bun link` in this repository
   makes `todo` available globally.
 - **Without installing:** `bun src/cli/bin.ts <command>`.
