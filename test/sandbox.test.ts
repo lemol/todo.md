@@ -1,7 +1,7 @@
 import { expect, test, spyOn } from "bun:test"
 import * as fs from "node:fs"
 import { join } from "node:path"
-import { changesBetween, snapshotOf } from "./sandbox.ts"
+import { changesBetween, guarded, realHome, repo, snapshotOf } from "./sandbox.ts"
 
 const temporaryDirectory = () => fs.mkdtempSync(join(import.meta.dir, ".sandbox-test-"))
 
@@ -23,6 +23,31 @@ test("reports added, removed and rewritten files, including paths with spaces an
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }
+})
+
+test("skipped directories are not reported, the files beside them still are", () => {
+  const dir = temporaryDirectory()
+
+  try {
+    fs.mkdirSync(join(dir, "cache"))
+    fs.writeFileSync(join(dir, "cache", "list.json"), "old")
+    fs.writeFileSync(join(dir, "registry.json"), "old")
+    const before = snapshotOf(dir, ["cache"])
+
+    fs.writeFileSync(join(dir, "cache", "list.json"), "new contents")
+    fs.writeFileSync(join(dir, "cache", "added.json"), "new")
+    expect(changesBetween(before, snapshotOf(dir, ["cache"]))).toBe("")
+
+    fs.writeFileSync(join(dir, "registry.json"), "new contents")
+    expect(changesBetween(before, snapshotOf(dir, ["cache"]))).toBe("  ~ registry.json")
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("the real hub's cache is skipped and its registry is not", () => {
+  expect(guarded.find((entry) => entry.dir === realHome)?.skip).toEqual(["cache"])
+  expect(guarded.find((entry) => entry.dir === join(repo, "todo"))?.skip).toEqual([])
 })
 
 test("the preload attributes an escape to the test that writes it", () => {

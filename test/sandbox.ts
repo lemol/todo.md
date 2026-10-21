@@ -7,6 +7,13 @@
  * defences. Every process started from here gets an empty hub of its own, and
  * the real list and registry are watched, so an escape fails the test that
  * made it instead of going unnoticed.
+ *
+ * The hub's `cache/` directory is not watched. It holds the parse cache, which
+ * is never a source of truth (spec, storage architecture), and every real
+ * `todo` or nzila process on the machine rewrites it, so a change there edits
+ * no one's work and would fail whichever test happened to be running. The
+ * registry and the rest of the home, and this repository's `todo/`, stay
+ * watched.
  */
 
 import { afterEach } from "bun:test"
@@ -14,12 +21,16 @@ import { type Dirent, mkdtempSync, readdirSync, statSync, rmSync } from "node:fs
 import { homedir, tmpdir } from "node:os"
 import { join, relative, resolve } from "node:path"
 
-const repo = resolve(import.meta.dir, "..")
+export const repo = resolve(import.meta.dir, "..")
 
-const realHome = process.env.TODO_MD_HOME ?? join(homedir(), ".todo-md")
+export const realHome = process.env.TODO_MD_HOME ?? join(homedir(), ".todo-md")
 
-/** Where an escape lands: this repository's own backlog, and the machine's hub. */
-const guarded = [join(repo, "todo"), realHome]
+/** Where an escape lands: this repository's own backlog, and the machine's hub.
+ * `skip` names top-level directories left out of the watch. */
+export const guarded: ReadonlyArray<{ dir: string; skip: ReadonlyArray<string> }> = [
+  { dir: join(repo, "todo"), skip: [] },
+  { dir: realHome, skip: ["cache"] },
+]
 
 // Read before it is replaced, so the guard above watches the real home even
 // though nothing under test can now find it. Spawned processes inherit this.
@@ -30,8 +41,9 @@ process.on("exit", () => rmSync(home, { recursive: true, force: true }))
 
 /** Sorted `<path> <size> <mtimeMs> <ino>` lines, without reading file contents.
  * A missing directory is empty; rewrites preserving all metadata go unnoticed.
+ * Top-level directories named in `skip` are left out.
  */
-export const snapshotOf = (dir: string): string => {
+export const snapshotOf = (dir: string, skip: ReadonlyArray<string> = []): string => {
   const lines: string[] = []
 
   const walk = (at: string) => {
@@ -46,8 +58,9 @@ export const snapshotOf = (dir: string): string => {
     for (const entry of entries) {
       const full = join(at, entry.name)
 
-      if (entry.isDirectory()) walk(full)
-      else if (entry.isFile()) {
+      if (entry.isDirectory()) {
+        if (at !== dir || !skip.includes(entry.name)) walk(full)
+      } else if (entry.isFile()) {
         // Another process may remove it between the listing and the stat.
         try {
           const stat = statSync(full)
@@ -97,13 +110,14 @@ export const changesBetween = (before: string, after: string): string => {
   return lines.sort().join("\n")
 }
 
-const baselines = new Map(guarded.map((dir) => [dir, snapshotOf(dir)] as const))
+const baselines = new Map(guarded.map(({ dir, skip }) => [dir, snapshotOf(dir, skip)] as const))
+const skips = new Map(guarded.map(({ dir, skip }) => [dir, skip] as const))
 
 // The escaped writes stay on disk, so the new state becomes the baseline: the
 // rest of the run reports its own escapes instead of this one over and over.
 afterEach(() => {
   for (const [dir, before] of baselines) {
-    const after = snapshotOf(dir)
+    const after = snapshotOf(dir, skips.get(dir))
 
     if (after === before) continue
 
