@@ -41,7 +41,8 @@ same conformance suite as `MemoryTodoStore`.
   of a read of every file.
 - **Parses are cached by content** (`parsing.ts`). A task file whose path and
   text are unchanged reuses its last parse: in memory for the store's
-  lifetime, and in `<cacheDir>/<hash of root>.json` between processes. Only
+  lifetime, and in `<cacheDir>/<hash of root>.json` between processes, keyed
+  by its path, its length and `Bun.hash` of its text. Only
   an identical text hits, so the cache never needs invalidating; a missing or
   unreadable cache file is ignored. A save also removes the cache files of
   lists whose root no longer exists (a removed worktree, say), so the cache

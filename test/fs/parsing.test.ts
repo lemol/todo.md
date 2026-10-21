@@ -1,7 +1,7 @@
-import { describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
 import { BunServices } from "@effect/platform-bun"
 import { Effect } from "effect"
-import { makeParser } from "../../src/fs/parsing.ts"
+import { keyOf, makeParser } from "../../src/fs/parsing.ts"
 import { parseTaskFile } from "../../src/markdown/index.ts"
 import { effectTest } from "../../src/spec/testing.ts"
 import { Disk, diskWith, md } from "./helpers.ts"
@@ -44,6 +44,13 @@ const read = (
 
     return parsed
   })
+
+describe("keyOf", () => {
+  test("keys a parse by path, length and Bun.hash of the text", () => {
+    expect(keyOf("01-a.md", withComment)).toBe(`01-a.md:197:${Bun.hash(withComment).toString(36)}`)
+    expect(keyOf("01-a.md", withComment)).toBe("01-a.md:197:z484hkxqy8ou")
+  })
+})
 
 describe("makeParser", () => {
   effectTest(
@@ -100,12 +107,37 @@ describe("makeParser", () => {
 
       // The next parser takes the cached parse rather than parsing again.
       const [cacheFile] = yield* disk.tree()
+
+      // Named after the root's cyrb53 hash, which must not change: a new
+      // name would orphan every cache file until its list is gone.
+      expect(cacheFile).toBe("cache/1zxjo77c9fm.json")
       const cached = (yield* disk.read(cacheFile ?? "")).replace("Token bucket.", "From the cache")
 
       yield* disk.write(cacheFile ?? "", cached)
       const [fromCache] = yield* read(yield* parserWith(), { "01-a.md": withComment })
 
       expect(fromCache?.description).toBe("From the cache")
+    }),
+    diskWith({}),
+  )
+
+  effectTest(
+    "misses an entry under the old cyrb53 key, and saves it under the new one",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+
+      yield* read(yield* parserWith(), { "01-a.md": withComment })
+      const [cacheFile] = yield* disk.tree()
+      const key = keyOf("01-a.md", withComment)
+      const cached = (yield* disk.read(cacheFile ?? "")).replace("Token bucket.", "From the cache")
+
+      yield* disk.write(cacheFile ?? "", cached.replace(key, "01-a.md:197:1woid7foeyd"))
+      const [missed] = yield* read(yield* parserWith(), { "01-a.md": withComment })
+
+      expect(missed?.description).toBe("Token bucket.")
+      const saved = JSON.parse(yield* disk.read(cacheFile ?? ""))
+
+      expect(Object.keys(saved.entries)).toEqual([key])
     }),
     diskWith({}),
   )

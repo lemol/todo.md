@@ -34,7 +34,7 @@ export interface Parser {
   readonly end: Effect.Effect<void>
 }
 
-/** cyrb53: a fast 53-bit string hash. The cache key also holds the length and path. */
+/** cyrb53: a stable 53-bit string hash, naming a list's cache file. */
 const hash = (text: string): string => {
   let h1 = 0xdeadbeef
   let h2 = 0x41c6ce57
@@ -52,7 +52,12 @@ const hash = (text: string): string => {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)
 }
 
-const keyOf = (path: string, source: string) => `${path}:${source.length}:${hash(source)}`
+/**
+ * Keys a parse by path, length and `Bun.hash` of the text. The hash is
+ * native, and several times faster than `hash` over a whole list.
+ */
+export const keyOf = (path: string, source: string): string =>
+  `${path}:${source.length}:${Bun.hash(source).toString(36)}`
 
 const CachedTaskFile = Schema.Struct({
   title: Schema.optionalKey(Schema.String),
