@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { createAssetServer } from "remix/assets"
 import { assetOptions } from "../../src/web/app/assets.ts"
+import { scratchDirectory } from "../sandbox.ts"
 
 // `todo web` boots from wherever bun installed todo-md — including its
 // central store, where the app dir sits *inside* the served tree and remix's
@@ -13,7 +13,7 @@ import { assetOptions } from "../../src/web/app/assets.ts"
 // mount left sibling entries outside the mounts and the entry failed to
 // compile with IMPORT_OUTSIDE_MOUNTS).
 const layout = () => {
-  const dir = mkdtempSync(join(tmpdir(), "todo-assets-"))
+  const dir = scratchDirectory("todo-assets-")
   const remixDir = join(dir, ".bun", "remix@1", "node_modules", "remix")
   const leftpadDir = join(dir, ".bun", "leftpad@1", "node_modules", "leftpad")
 

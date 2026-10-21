@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Effect } from "effect"
@@ -10,6 +9,7 @@ import { memorySource } from "../../src/hub/testing.ts"
 import { JiraSource } from "../../src/jira/index.ts"
 import { defaultBranch, remoteIn, subjects } from "../git/helpers.ts"
 import { anIssue, makeFakeJira } from "../jira/fake.ts"
+import { scratchDirectory } from "../sandbox.ts"
 import { makeRouter } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -104,7 +104,7 @@ describe("projects page", () => {
 
   test("adds a project and redirects to its board", async () => {
     const app = await open({ extraSources: [fsSource] })
-    const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+    const dir = scratchDirectory("todo-md-add-")
 
     writeFileSync(join(dir, "TODO.md"), "# New\n\n- [ ] First\n")
     const response = await postApp(app.router, "/projects", { target: dir, name: "new" })
@@ -117,7 +117,7 @@ describe("projects page", () => {
   })
 
   test("a relative target resolves against the router's cwd, not the process's", async () => {
-    const cwd = mkdtempSync(join(tmpdir(), "todo-md-cwd-"))
+    const cwd = scratchDirectory("todo-md-cwd-")
 
     mkdirSync(join(cwd, "list"))
     writeFileSync(join(cwd, "list", "TODO.md"), "# Relative\n")
@@ -129,7 +129,7 @@ describe("projects page", () => {
   })
 
   test("adds a git project, clones it and pushes what the board changes", async () => {
-    const root = mkdtempSync(join(tmpdir(), "todo-md-web-git-"))
+    const root = scratchDirectory("todo-md-web-git-")
     const remote = remoteIn(root, { "todo/TODO.md": "# Remote\n\n- [ ] 01 - Seeded\n" })
     const git = gitSourceWith(
       await Effect.runPromise(Effect.provide(makeGit({ env: {} }), BunServices.layer)),
@@ -161,7 +161,7 @@ describe("projects page", () => {
 
     expect(await (await fetchApp(app.router, "/projects")).text()).toContain('name="branch"')
 
-    const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+    const dir = scratchDirectory("todo-md-add-")
 
     writeFileSync(join(dir, "TODO.md"), "# Local\n")
     const refused = await postApp(app.router, "/projects", {
@@ -230,7 +230,7 @@ describe("projects page", () => {
 
   test("refuses jira's fields on a project of another source", async () => {
     const app = await open({ extraSources: [fsSource] })
-    const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+    const dir = scratchDirectory("todo-md-add-")
 
     writeFileSync(join(dir, "TODO.md"), "# Local\n")
     const refused = await postApp(app.router, "/projects", {
@@ -245,7 +245,7 @@ describe("projects page", () => {
 
   test("a duplicate name re-renders the form with 422", async () => {
     const app = await open({ extraSources: [fsSource] })
-    const dir = mkdtempSync(join(tmpdir(), "todo-md-add-"))
+    const dir = scratchDirectory("todo-md-add-")
 
     writeFileSync(join(dir, "TODO.md"), "# Dup\n")
     const response = await postApp(app.router, "/projects", { target: dir, name: "acme" })

@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { mkdtempSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { Effect, Layer, Schema } from "effect"
 import { type AnySource, fsSource, Hub, SourceError } from "../../src/hub/index.ts"
 import { memorySource } from "../../src/hub/testing.ts"
 import { TodoStore } from "../../src/spec/index.ts"
+import { scratchDirectory } from "../sandbox.ts"
 import { makeRouter, seed } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -175,7 +175,7 @@ describe("dashboard", () => {
   }
 
   test("register replaces the unregistered startup project", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "todo-md-register-"))
+    const dir = scratchDirectory("todo-md-register-")
 
     writeFileSync(join(dir, "TODO.md"), "# Disk list\n")
     const app = await open({ projects: [], listDir: dir })
