@@ -6,21 +6,22 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 ## Now
 
-- **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1):**
+- **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
-  - Rounds 2 to 7 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
-    (`5542b21`), 52 (`3cfa7b2`) and 53 (`67e4a6b`), all reviewed. The 53
-    review filed 54.
-  - Proposed **54** alone (test runs leave `todo-md-*` temp dirs, `test/`
-    only). Nothing else is running, so it shares no instruction text, no
-    `src/runner/git/ops.ts` and no task id with a live run.
-- **Next:** after 54, only 50 is left, and it waits for the person. Stop
-  the loop there.
+  - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
+    (`5542b21`), 52 (`3cfa7b2`), 53 (`67e4a6b`) and 54 (`fceb4e2`), all
+    reviewed. The 54 review filed nothing.
+  - Stopped after 54: the only open task is 50, and it waits for the
+    person.
+- **Next:** the person decides 50, and whether to take up 54's review
+  note (a), a per-run `TMPDIR` so a raw `mkdtemp` can't leak (see the 54
+  run file).
 
 ## Runs
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [54 A test run leaves its temporary directories behind](dogfooding/runs/54-a-test-run-leaves-its-temporary-directories-behind.md) | `fceb4e2` | none; ratings recorded |
 | [53 A hub test's temporary list vanishes under concurrent test runs](dogfooding/runs/53-a-hub-test-s-temporary-list-vanishes-under-concurrent-test.md) | `67e4a6b` | 54; ratings recorded |
 | [52 The web JSX loader shifts every tsx stack-trace line by one](dogfooding/runs/52-the-web-jsx-loader-shifts-every-tsx-stack-trace-line-by-one.md) | `3cfa7b2` | none; ratings recorded |
 | [51 The fs watch test that skips git's directory is flaky under load](dogfooding/runs/51-the-fs-watch-test-that-skips-git-s-directory-is-flaky-under.md) | `5542b21` | 53; ratings recorded |
