@@ -22,8 +22,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Read cost
 
-- [ ] [54 - A test run leaves its temporary directories behind](./read-cost/54-a-test-run-leaves-its-temporary-directories-behind.md)
-
 
 
 
