@@ -23,8 +23,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Read cost
 
-- [ ] [51 - The fs watch test that skips git's directory is flaky under load](./read-cost/51-the-fs-watch-test-that-skips-git-s-directory-is-flaky-under.md)
-
 
 
 
