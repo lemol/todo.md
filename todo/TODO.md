@@ -22,7 +22,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Read cost
 
-- [ ] [47 - Hash parse-cache keys with Bun.hash](./read-cost/47-hash-parse-cache-keys-with-bun-hash.md)
 - [ ] [51 - The fs watch test that skips git's directory is flaky under load](./read-cost/51-the-fs-watch-test-that-skips-git-s-directory-is-flaky-under.md)
 
 
