@@ -17,6 +17,9 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Later
 
+- [ ] [55 - Decide whether a test run gets its own TMPDIR](./later/55-decide-whether-a-test-run-gets-its-own-tmpdir.md)
+
+
 
 ## M3 — @lemol/ui adoption
 

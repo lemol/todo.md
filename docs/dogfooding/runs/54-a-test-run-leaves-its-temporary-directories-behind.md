@@ -47,8 +47,8 @@ Run `01M5FX034Q2TARN6M0MV1JV05N`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
     `--bail`.
   - The `server.test.ts` and `harness.ts` prefixes are done: review#1
     audited them, and the empty TMPDIR confirms it.
-- Not filed, carried here: review#1's note (a). A future raw `mkdtemp`
-  under `tmpdir()` would leak without failing any test. One fix would be
+- Filed at the loop's close as 55: review#1's note (a). A future raw
+  `mkdtemp` under `tmpdir()` would leak without failing any test. One fix would be
   for the preload to point `TMPDIR` at a per-run scratch directory, so the
   run removes whatever lands there. Nothing leaks today, and that design
   needs the person's call.
