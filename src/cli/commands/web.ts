@@ -42,7 +42,8 @@ export const web = Command.make(
     })
     yield* Effect.scoped(
       Effect.gen(function* () {
-        const { startServer } = yield* Effect.promise(() => import("../../web/server.ts"))
+        const { loadServer } = yield* Effect.promise(() => import("../../web/load.ts"))
+        const { startServer } = yield* Effect.promise(loadServer)
         const started = yield* Effect.acquireRelease(
           Effect.promise(() =>
             startServer({

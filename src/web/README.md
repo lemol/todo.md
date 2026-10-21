@@ -54,7 +54,10 @@ branch and list fields; they are refused for a target that is not git. `app/midd
 supplies request capabilities, including `loadProject` for `/p/:project` and
 `provideHub` for hub-level routes; `app/actions` owns routes; `app/ui` owns
 shared rendering and styles. Hosting/authentication and GitHub-backed storage
-are deferred (task 09).
+are deferred (task 09). Source runs reach the server through `load.ts`, which
+registers a JSX loader for `remix/component`, because `@lemol/ui` ships
+pragma-less `.tsx` that Bun would otherwise compile with the working
+directory's `tsconfig.json`.
 
 ## Adoption of @lemol/ui
 

@@ -72,7 +72,8 @@ The web UI lives in `src/web` and ships in the published package, so `remix` (ex
   bundled instead. `bun run build:cli` bundles `src/cli/bin.ts` into
   `dist/bin.js` and sibling chunks (built on install via `prepare`). The web
   server is a lazy chunk sharing the CLI's Effect runtime, not an external
-  module receiving bundled schemas. Asset discovery (`src/web/app/assets.ts`)
+  module receiving bundled schemas. The CLI reaches it through
+  `src/web/load.ts`, which registers the `remix/component` JSX loader first. Asset discovery (`src/web/app/assets.ts`)
   and the native resolver (`oxc-resolver`) stay external so module-relative
   source assets work and output stays portable. No `--bytecode` or
   `--compile`: ESM needs `--compile`, and `--compile --bytecode` does not
