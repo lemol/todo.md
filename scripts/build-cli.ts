@@ -5,7 +5,7 @@
 // point asset discovery at dist/ instead of src/web. The native resolver
 // (oxc-resolver) stays outside too, keeping the bundle portable.
 
-import { chmodSync, readFileSync, writeFileSync } from "node:fs"
+import { chmodSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 
 const root = resolve(import.meta.dir, "..")
@@ -16,6 +16,13 @@ const server = join(root, "src/web/server.ts")
 
 const toPosix = (path: string): string => path.split(sep).join("/")
 
+// The bundle resolves the external server against its real location, so
+// relativize canonical paths: a symlinked outdir (macOS /tmp) would
+// otherwise miscount the `..` climb and miss the server at runtime.
+mkdirSync(outdir, { recursive: true })
+
+const canonical = (path: string): string => toPosix(realpathSync(path))
+
 const serverPlugin: Bun.Plugin = {
   name: "todo-md-external-web-server",
 
@@ -24,7 +31,7 @@ const serverPlugin: Bun.Plugin = {
     // leave that specifier external, rewritten relative to the output
     // directory, so the bundle loads the server from the installed package.
     build.onResolve({ filter: /^\.\.\/\.\.\/web\/server\.ts$/ }, () => {
-      const specifier = toPosix(relative(outdir, server))
+      const specifier = relative(canonical(outdir), canonical(server))
 
       return { path: specifier.startsWith(".") ? specifier : `./${specifier}`, external: true }
     })
