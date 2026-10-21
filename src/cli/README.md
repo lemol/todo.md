@@ -7,10 +7,15 @@ Built with `effect/cli` on `@effect/platform-bun`.
 
 ## Install
 
-- **As a dependency:** `@lemol/todo-md` declares `bin: { todo: ./src/cli/bin.ts }`,
+- **As a dependency:** `@lemol/todo-md` declares `bin: { todo: ./dist/bin.js }`,
   so `todo` is on the path in `node_modules/.bin` (for example `bunx todo`).
-- **From a checkout:** `bun link` in this repository makes `todo` available
-  globally.
+  The bundle is built on install (`prepare` runs `bun run build:cli`, which
+  bundles `src/cli/bin.ts` with `bun build --target=bun --minify`). The web
+  server and the native resolver stay outside the bundle, so it stays
+  portable: `todo web` loads `src/web/server.ts` from the installed package
+  lazily.
+- **From a checkout:** `bun run build:cli`, then `bun link` in this repository
+  makes `todo` available globally.
 - **Without installing:** `bun src/cli/bin.ts <command>`.
 
 Every command has `--help` (or `-h`) with a description, every flag, and

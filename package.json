@@ -4,7 +4,7 @@
   "private": true,
   "description": "todo.md: a standard for Markdown task lists, its file-system implementation and the `todo` CLI",
   "bin": {
-    "todo": "./src/cli/bin.ts"
+    "todo": "./dist/bin.js"
   },
   "type": "module",
   "exports": {
@@ -22,6 +22,8 @@
   },
   "scripts": {
     "check": "bun run lint && bun run typecheck && bun run test",
+    "build:cli": "bun scripts/build-cli.ts",
+    "prepare": "bun run build:cli",
     "lint": "oxfmt --check && oxlint",
     "fix": "oxlint --fix && oxfmt",
     "typecheck": "tsc -p tsconfig.json",
