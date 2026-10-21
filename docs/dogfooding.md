@@ -8,19 +8,20 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1):**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
-  - Rounds 2 to 5 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`) and 51
-    (`5542b21`), all reviewed. The 49 review filed 52 and the 51 review
-    filed 53.
-  - Proposed **52** alone (`src/web/load.ts`). Nothing else is running, so it
-    shares no instruction text, no `src/runner/git/ops.ts` and no task id
-    with a live run.
-- **Next:** after 52, run 53 (hub test temp-dir flake, `test/`). 50 waits for
-  the person.
+  - Rounds 2 to 6 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
+    (`5542b21`) and 52 (`3cfa7b2`), all reviewed. The 49 review filed 52,
+    the 51 review filed 53, and the 52 review filed nothing.
+  - Proposed **53** alone (hub test temp-dir flake, `test/`). Nothing else
+    is running, so it shares no instruction text, no
+    `src/runner/git/ops.ts` and no task id with a live run.
+- **Next:** after 53, nothing is ready except 50, which waits for the
+  person. Stop the loop there.
 
 ## Runs
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [52 The web JSX loader shifts every tsx stack-trace line by one](dogfooding/runs/52-the-web-jsx-loader-shifts-every-tsx-stack-trace-line-by-one.md) | `3cfa7b2` | none; ratings recorded |
 | [51 The fs watch test that skips git's directory is flaky under load](dogfooding/runs/51-the-fs-watch-test-that-skips-git-s-directory-is-flaky-under.md) | `5542b21` | 53; ratings recorded |
 | [49 todo web from source renders an empty page outside the repository](dogfooding/runs/49-todo-web-from-source-renders-an-empty-page-outside-the.md) | `b8b3f13` | 52; ratings recorded |
 | [47 Hash parse-cache keys with Bun.hash](dogfooding/runs/47-hash-parse-cache-keys-with-bun-hash.md) | `33e317e` | none; ratings recorded |
