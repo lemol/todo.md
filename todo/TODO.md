@@ -17,3 +17,8 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Read cost
 
+- [ ] [46 - Ship the todo CLI as a bundle](./read-cost/46-ship-the-todo-cli-as-a-bundle.md)
+- [ ] [47 - Hash parse-cache keys with Bun.hash](./read-cost/47-hash-parse-cache-keys-with-bun-hash.md)
+
+
+
