@@ -10,7 +10,6 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 
 ## Release
 
-- [ ] [49 - todo web from source renders an empty page outside the repository](./release/49-todo-web-from-source-renders-an-empty-page-outside-the.md)
 - [ ] [50 - Keep the installed todo bin current with the checkout](./release/50-keep-the-installed-todo-bin-current-with-the-checkout.md)
 
 
