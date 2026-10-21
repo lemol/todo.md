@@ -97,5 +97,7 @@ checked by `webViolations`, the web import graph, instead):
 - `core` never imports an adapter.
 - `markdown` does no I/O.
 - Only apps (`cli`, `web`) choose and wire adapters, and only app composition
-  roots touch Bun or Node APIs directly.
+  roots touch Bun or Node APIs directly. One deliberate exception: `fs` calls
+  the global `Bun.hash` for parse-cache keys (`src/fs/parsing.ts`), so `fs`
+  runs on Bun only.
 - Runtime code never imports `spec/testing` or `hub/testing`.
