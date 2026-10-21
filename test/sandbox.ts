@@ -14,9 +14,14 @@
  * no one's work and would fail whichever test happened to be running. The
  * registry and the rest of the home, and this repository's `todo/`, stay
  * watched.
+ *
+ * `bun test` fires no `exit` handler, so directories are removed by the
+ * preload's `afterAll`, which runs once, after the last file and so after
+ * anything a test spawned (those inherit the home). It removes only what
+ * `scratchDirectory` recorded: other runs share these prefixes.
  */
 
-import { afterEach } from "bun:test"
+import { afterAll, afterEach } from "bun:test"
 import { type Dirent, mkdtempSync, readdirSync, statSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join, relative, resolve } from "node:path"
@@ -32,12 +37,24 @@ export const guarded: ReadonlyArray<{ dir: string; skip: ReadonlyArray<string> }
   { dir: realHome, skip: ["cache"] },
 ]
 
+const made: string[] = []
+
+/** A new directory under `tmpdir()` that this run removes after its last file. */
+export const scratchDirectory = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix))
+
+  made.push(dir)
+
+  return dir
+}
+
+afterAll(() => {
+  for (const dir of made.splice(0)) rmSync(dir, { recursive: true, force: true })
+})
+
 // Read before it is replaced, so the guard above watches the real home even
 // though nothing under test can now find it. Spawned processes inherit this.
-const home = mkdtempSync(join(tmpdir(), "todo-md-test-home-"))
-
-process.env.TODO_MD_HOME = home
-process.on("exit", () => rmSync(home, { recursive: true, force: true }))
+process.env.TODO_MD_HOME = scratchDirectory("todo-md-test-home-")
 
 /** Sorted `<path> <size> <mtimeMs> <ino>` lines, without reading file contents.
  * A missing directory is empty; rewrites preserving all metadata go unnoticed.

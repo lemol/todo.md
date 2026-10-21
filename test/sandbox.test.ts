@@ -104,3 +104,55 @@ test("snapshots file metadata without reading contents", () => {
     fs.rmSync(dir, { recursive: true, force: true })
   }
 })
+
+test("a run removes the temporary directories it made, and no others", () => {
+  const dir = temporaryDirectory()
+
+  try {
+    const tmp = join(dir, "tmp")
+
+    // Another run's, on the same machine at the same time: they must outlive this one.
+    fs.mkdirSync(tmp)
+    fs.mkdirSync(join(tmp, "todo-md-test-home-elsewhere"))
+    fs.mkdirSync(join(tmp, "todo-md-git-templates-elsewhere"))
+    fs.writeFileSync(
+      join(dir, "fixture.test.ts"),
+      [
+        'import { expect, test } from "bun:test"',
+        'import { mkdtempSync, rmSync } from "node:fs"',
+        'import { tmpdir } from "node:os"',
+        'import { join } from "node:path"',
+        `import { remoteIn } from ${JSON.stringify(join(import.meta.dir, "git", "helpers.ts"))}`,
+        'test("seeds a git remote, as the git tier does", () => {',
+        '  const root = mkdtempSync(join(tmpdir(), "fixture-"))',
+        "  try {",
+        '    expect(remoteIn(root, { "TODO.md": "# Fixture\\n" })).toBe(join(root, "remote.git"))',
+        "  } finally {",
+        "    rmSync(root, { recursive: true, force: true })",
+        "  }",
+        "})",
+      ].join("\n"),
+    )
+    const result = Bun.spawnSync(
+      [
+        process.execPath,
+        "test",
+        "--preload",
+        join(import.meta.dir, "sandbox.ts"),
+        "./fixture.test.ts",
+      ],
+      { cwd: dir, env: { ...process.env, HOME: dir, TMPDIR: tmp } },
+    )
+
+    expect(result.stderr.toString()).toContain(" 1 pass")
+    expect(result.exitCode).toBe(0)
+    expect(
+      fs
+        .readdirSync(tmp)
+        .filter((name) => name.startsWith("todo-md-"))
+        .sort(),
+    ).toEqual(["todo-md-git-templates-elsewhere", "todo-md-test-home-elsewhere"])
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})

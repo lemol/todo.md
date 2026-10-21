@@ -2,7 +2,8 @@
  * Fixtures for the git source: a bare repository as the remote, a hub home,
  * and the source opened over a clone of it.
  *
- * Everything lives in a temporary directory removed with the test's scope, and
+ * Everything lives in a temporary directory removed with the test's scope (the
+ * seeded templates, with the run), and
  * the identity comes from this process's environment, so the machine's git
  * config decides nothing here and nothing here writes to it.
  */
@@ -15,6 +16,7 @@ import { Context, Effect, Layer, type Scope } from "effect"
 import { type GitConfig, gitSourceWith, makeGit } from "../../src/git/index.ts"
 import type { Source, SourceProject } from "../../src/hub/index.ts"
 import type { TodoStore } from "../../src/spec/index.ts"
+import { scratchDirectory } from "../sandbox.ts"
 
 export const md = (...lines: string[]) => `${lines.join("\n")}\n`
 
@@ -113,12 +115,7 @@ const templateFor = (files: Readonly<Record<string, string>>): string => {
 
   if (found !== undefined) return found
 
-  if (templateHome === undefined) {
-    templateHome = mkdtempSync(join(tmpdir(), "todo-md-git-templates-"))
-    const home = templateHome
-
-    process.on("exit", () => rmSync(home, { recursive: true, force: true }))
-  }
+  templateHome ??= scratchDirectory("todo-md-git-templates-")
 
   const remote = join(templateHome, `remote-${templates.size}.git`)
 
