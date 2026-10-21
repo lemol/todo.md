@@ -18,6 +18,8 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 ## Later
 
 - [ ] [55 - Decide whether a test run gets its own TMPDIR](./later/55-decide-whether-a-test-run-gets-its-own-tmpdir.md)
+- [ ] [56 - A task moved to done/ keeps links that pointed from its old directory](./later/56-a-task-moved-to-done-keeps-links-that-pointed-from-its-old.md)
+
 
 
 
