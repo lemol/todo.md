@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import { DateTime, Effect, Queue } from "effect"
+import { DateTime, Deferred, Effect, Fiber, Queue } from "effect"
 import { TestClock } from "effect/testing"
 import { SyncError } from "../../src/hub/index.ts"
 import { memorySource } from "../../src/hub/testing.ts"
@@ -155,6 +155,40 @@ describe("sync", () => {
       expect(most).toBe(1)
     }),
     diskWith({}),
+  )
+
+  effectTest(
+    "an interrupted sync still finishes the state write it started",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const writing = yield* Deferred.make<void>()
+      const release = yield* Deferred.make<void>()
+      const hub = yield* hubOn([memorySource({ sync: () => Effect.succeed({ summary: "ok" }) })], {
+        wrapFs: (fs) => ({
+          ...fs,
+          writeFileString: (path, data, options) =>
+            path.includes("/state.json")
+              ? Deferred.succeed(writing, undefined).pipe(
+                  Effect.andThen(Deferred.await(release)),
+                  Effect.andThen(fs.writeFileString(path, data, options)),
+                )
+              : fs.writeFileString(path, data, options),
+        }),
+      })
+
+      const sync = yield* Effect.forkChild(hub.sync("m"))
+
+      yield* Deferred.await(writing)
+      const interrupting = yield* Effect.forkChild(Fiber.interrupt(sync))
+
+      yield* Deferred.succeed(release, undefined)
+      yield* Fiber.join(interrupting)
+      expect(yield* disk.tree()).toEqual([
+        ".todo-md/projects.yaml",
+        ".todo-md/projects/m/state.json",
+      ])
+    }),
+    diskWith({ ".todo-md/projects.yaml": md("projects:", "  m:", "    source: memory") }),
   )
 })
 

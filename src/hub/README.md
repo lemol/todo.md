@@ -99,7 +99,7 @@ projects:
 
 ## Status and sync
 
-- **`state.json`:** located at `<home>/projects/<name>/state.json`, shaped `{ version: 1, lastSync?, result, error?, diverged? }`. Written atomically via a temporary file and rename; created with the data directory if missing.
+- **`state.json`:** located at `<home>/projects/<name>/state.json`, shaped `{ version: 1, lastSync?, result, error?, diverged? }`. Written atomically via a temporary file and rename, uninterruptibly: interrupting a sync (hub shutdown, `autoSync` stopping) waits for a write it started, so no temporary file or half-written directory outlives it; created with the data directory if missing.
 - **State reads:** a missing `state.json` yields `{ result: "never" }`; an unreadable or invalid file yields `{ result: "error", error }`.
 - **Live status overlay:** fields from `source.status` (such as `ahead`, `behind`) override `state.json`. A defect in `source.status` is logged at debug level and ignored.
 - **`sync` execution:**

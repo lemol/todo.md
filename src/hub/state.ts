@@ -44,22 +44,23 @@ export const readState = (
       ),
     )
   })
-
 /** Replaces `<dir>/state.json` atomically, creating `dir` if needed. */
 export const writeState = (dir: string, state: Omit<SyncState, "version">) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
-    const file = (yield* Path.Path).join(dir, stateFile)
-    const encoded = yield* Schema.encodeEffect(SyncState)({ version: 1, ...state })
-    const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
-    const temporary = `${file}.${token.toString(36)}.tmp`
+  Effect.uninterruptible(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const file = (yield* Path.Path).join(dir, stateFile)
+      const encoded = yield* Schema.encodeEffect(SyncState)({ version: 1, ...state })
+      const token = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER)
+      const temporary = `${file}.${token.toString(36)}.tmp`
 
-    yield* fs.makeDirectory(dir, { recursive: true })
-    yield* fs.writeFileString(temporary, `${JSON.stringify(encoded, null, 2)}\n`).pipe(
-      Effect.andThen(fs.rename(temporary, file)),
-      Effect.onError(() => Effect.ignore(fs.remove(temporary))),
-    )
-  })
+      yield* fs.makeDirectory(dir, { recursive: true })
+      yield* fs.writeFileString(temporary, `${JSON.stringify(encoded, null, 2)}\n`).pipe(
+        Effect.andThen(fs.rename(temporary, file)),
+        Effect.onError(() => Effect.ignore(fs.remove(temporary))),
+      )
+    }),
+  )
 
 /**
  * A project's status: its state file, overlaid with the source's live fields
