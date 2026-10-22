@@ -59,6 +59,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
     It touches `src/hub/registry.ts`'s error line and its tests. It does
     not touch the reviewer or `do` text or `src/runner/git/ops.ts`, and no
     other run holds its task id.
+  - Round 17 ran 73 (`4633831`), reviewed: filed nothing.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -69,14 +70,18 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 73. The person decides 50 (installed bin), 55
-  (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
-  leak) and 60 (which spelling a reopened own-directory link takes).
+  - **Next:** nothing ready. The only open tasks are 50 (installed
+    bin), 55 (per-run `TMPDIR` or a lint) and 60 (which spelling a
+    reopened own-directory link takes), and the person decides all
+    three. The loop stops here; restart it once a decision makes a
+    task runnable. No closing audit was run (the sample ratings are
+    the closer's step).
 
 ## Runs
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [73 A lone CR in the hub registry shifts a syntax error line](dogfooding/runs/73-a-lone-cr-in-the-hub-registry-shifts-a-syntax-error-line.md) | `4633831` | none; review recorded |
 | [72 A lone CR before a frontmatter syntax error shifts its line](dogfooding/runs/72-a-lone-cr-before-a-frontmatter-syntax-error-shifts-its-line.md) | `b0c1837` | none; review recorded |
 | [70 Editing one hub registry entry reformats the others](dogfooding/runs/70-editing-one-hub-registry-entry-reformats-the-others.md) | `f0171dd` | none; ratings recorded |
 | [71 A hub registry syntax error ends at a colon](dogfooding/runs/71-a-hub-registry-syntax-error-ends-at-a-colon.md) | `8026792` | 73; ratings recorded |
