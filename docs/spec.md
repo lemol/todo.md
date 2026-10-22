@@ -556,6 +556,14 @@ left byte-for-byte intact.
   3. Delete the done file.
 
   The task stays file-backed.
+- **Relative links in a moved file.** When `complete`, `cancel` or `reopen`
+  moves an existing task file to another directory, the relative Markdown link
+  destinations in its body (inline links, images and reference definitions,
+  comments included; not code or frontmatter) are rewritten so they resolve to
+  the same targets. Only a destination that resolves to an existing file
+  before the move is rewritten; its query and fragment are kept. Absolute URLs,
+  paths starting with `/`, anchor-only (`#…`) and unresolved destinations are
+  left as written. Only the destination text changes.
 
 **Recovery.** For `complete` and `reopen`, the done file is the commit
 point: `complete` writes it first, and `reopen` deletes it last.

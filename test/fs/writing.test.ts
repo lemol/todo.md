@@ -359,3 +359,99 @@ describe("itemLinesFor", () => {
     diskWith({}),
   )
 })
+
+const linkBody = md(
+  '[Project](../../product/README.md#intro "Read it")',
+  "![Diagram](../../product/diagram.svg)",
+  "[Reference][project]",
+  "",
+  '[project]: <../../product/my%20notes.md?raw=1#intro> "Notes"',
+  "[Web](https://example.com/a) [Mail](mailto:a@example.com)",
+  "[Anchor](#intro) [Root](/product/README.md) [Network](//example.com/a)",
+  "[Missing](../../missing.md)",
+  "`[Literal](../../product/README.md)`",
+  "```md",
+  "[Fenced](../../product/README.md)",
+  "```",
+  "",
+  "## Comments",
+  "",
+  "### @lemol at 2026-10-21 12:00 +00:00",
+  "",
+  "[Comment](../../product/README.md)",
+)
+
+const doneLinkBody = linkBody
+  .replaceAll("../../product/", "../../../product/")
+  .replace("`[Literal](../../../product/README.md)`", "`[Literal](../../product/README.md)`")
+  .replace("[Fenced](../../../product/README.md)", "[Fenced](../../product/README.md)")
+
+const linkConfig = md("---", "tasks_dir: todo", "done_dir: todo/done", "---", "## Backend", "")
+const openLinkFile = "todo/backend/02-links.md"
+const doneLinkFile = "todo/done/backend/02-links.md"
+const linkSource = md("---", "title: Links # keep this", 'custom: "untouched"', "---") + linkBody
+const linkArchived =
+  md(
+    "---",
+    "title: Links # keep this",
+    'custom: "untouched"',
+    "group: Backend",
+    "completed_at: 2026-10-21T12:00:00Z",
+    "outcome: completed",
+    "---",
+  ) + doneLinkBody
+
+describe("moving a task file keeps its relative links", () => {
+  for (const operation of ["complete", "cancel", "reopen"] as const) {
+    effectTest(
+      `${operation} preserves relative Markdown targets`,
+      Effect.gen(function* () {
+        const store = yield* TodoStore
+        const disk = yield* Disk
+
+        expect(
+          yield* disk.exists(
+            operation === "reopen"
+              ? "todo/done/backend/../../../product/README.md"
+              : "todo/backend/../../product/README.md",
+          ),
+        ).toBe(true)
+
+        if (operation !== "reopen") {
+          const closed =
+            operation === "complete"
+              ? yield* store.complete("2")
+              : yield* store.cancel("2", "Superseded")
+
+          const text = yield* disk.read(doneLinkFile)
+
+          expect(text.slice(text.indexOf("[Project]"))).toBe(doneLinkBody)
+          expect(text).toContain('custom: "untouched"')
+          expect(yield* disk.exists("todo/done/backend/../../../product/README.md")).toBe(true)
+          expect(yield* disk.exists(openLinkFile)).toBe(false)
+          expect(closed.description).toContain("../../../product/README.md#intro")
+          expect((yield* store.get("2")).description).toBe(closed.description)
+        }
+
+        const reopened = yield* store.reopen("2")
+
+        expect(yield* disk.read(openLinkFile)).toBe(linkSource)
+        expect(yield* disk.exists("todo/backend/../../product/README.md")).toBe(true)
+        expect(yield* disk.exists(doneLinkFile)).toBe(false)
+        expect(reopened.description).toContain("../../product/README.md#intro")
+        expect((yield* store.get("2")).description).toBe(reopened.description)
+      }),
+      listWith({
+        "TODO.md":
+          operation === "reopen"
+            ? linkConfig
+            : linkConfig + md("- [ ] [02 - Links](./todo/backend/02-links.md)"),
+        [operation === "reopen" ? doneLinkFile : openLinkFile]:
+          operation === "reopen" ? linkArchived : linkSource,
+        "product/README.md": "# intro\n",
+        "product/diagram.svg": "<svg/>\n",
+        "product/my notes.md": "# intro\n",
+      }),
+    )
+  }
+})

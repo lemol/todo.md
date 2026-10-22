@@ -16,6 +16,7 @@ adapter reads and writes the files.
 | Task files | `parseTaskFile(text, file)` → `TaskFile`. `formatTaskFile(content)` for a new file; `updateTaskFile(text, changes)` and `prependComment(text, comment)` for edits. |
 | Items | `formatInlineItem`, `formatLinkedItem`, `parseHead`, `formatHead`. |
 | Metadata line | `parseMetadataLine`, `formatMetadataLine`, `fitsMetadataLine` (spec §2.5). |
+| Links | `markdownLinkDestinations(source)` → the source ranges of link, image and definition destinations (pure; the caller decides what to rewrite). |
 | Model | `inlineTask`, `fileTask` (format → `Task`); `fitsInline`, `inlineItemFor`, `linkedItemFor`, `taskFileFor` (`Task` → format). |
 | Normalization | `normalize(todo, context)`: assigns IDs and syncs link text, and lists checked items for the caller to complete (spec §2.11). `staleLinkText`. |
 | Conventions | `parseId`, `formatId`, `nextId`, `isId` (spec §2.7); `slug`, `groupSlug`, `taskPath`, `resolveLink`, `linkTarget`, `normalizePath`, `joinPath`, `basename`, `dirname` (spec §2.8). |

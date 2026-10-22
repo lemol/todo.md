@@ -5,6 +5,7 @@ import {
   inlineItemFor,
   type ListConfig,
   linkedItemFor,
+  parseTaskFile,
   removeItem,
   taskFileFor,
   taskPath,
@@ -12,6 +13,7 @@ import {
 } from "../markdown/index.ts"
 import type { StoreError, Task } from "../spec/index.ts"
 import type { Files } from "./files.ts"
+import { rebaseTaskLinks } from "./links.ts"
 import { type Entry, entryTask, type Snapshot, todoPath } from "./snapshot.ts"
 
 /**
@@ -34,6 +36,26 @@ export const itemLinesFor = (
     return linkedItemFor(task, target)
   })
 
+/** The edited text of an entry's task file, its links rebased for the file's new path (spec §2.10). */
+const rebaseEntry = (
+  files: Files,
+  entry: Entry,
+  to: string,
+  edited: string,
+): Effect.Effect<string, StoreError> =>
+  entry.source === undefined || entry.item.path === undefined
+    ? Effect.succeed(edited)
+    : rebaseTaskLinks(files, entry.item.path, to, edited)
+
+/** `task` with the description and comments of the text written to `path`, when the entry has a file. */
+const withBody = (task: Task, entry: Entry, text: string, path: string): Task => {
+  if (entry.source === undefined) return task
+
+  const file = parseTaskFile(text, path)
+
+  return { ...task, description: file.description, comments: file.comments }
+}
+
 /**
  * Completes an entry in the order spec §2.10 requires: write the done file
  * (the commit point), delete the original task file, then remove the item.
@@ -54,7 +76,7 @@ export const completeEntry = (
     }
 
     const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, done.title)
-    const source =
+    const edited =
       entry.source === undefined
         ? formatTaskFile(taskFileFor(done))
         : updateTaskFile(entry.source, {
@@ -63,6 +85,8 @@ export const completeEntry = (
             outcome: "completed",
             ...(entry.file?.title === undefined ? { title: done.title } : {}),
           })
+
+    const source = yield* rebaseEntry(files, entry, donePath, edited)
 
     yield* files.write(donePath, source)
     const original = entry.item.path
@@ -73,7 +97,7 @@ export const completeEntry = (
 
     yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
 
-    return done
+    return withBody(done, entry, source, donePath)
   })
 
 /**
@@ -98,7 +122,7 @@ export const cancelEntry = (
     }
 
     const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, cancelled.title)
-    const source =
+    const edited =
       entry.source === undefined
         ? formatTaskFile(taskFileFor(cancelled))
         : updateTaskFile(entry.source, {
@@ -109,6 +133,8 @@ export const cancelEntry = (
             ...(entry.file?.title === undefined ? { title: cancelled.title } : {}),
           })
 
+    const source = yield* rebaseEntry(files, entry, donePath, edited)
+
     yield* files.write(donePath, source)
     const original = entry.item.path
 
@@ -118,5 +144,5 @@ export const cancelEntry = (
 
     yield* files.write(todoPath, removeItem(snapshot.todo, entry.item))
 
-    return cancelled
+    return withBody(cancelled, entry, source, donePath)
   })

@@ -72,6 +72,13 @@ snapshot reports:
 - `interrupted-completion`
 - `duplicate-id`: across items, and between items and done files
 
+## Moving task files
+
+`complete`, `cancel` and `reopen` move an existing task file to another
+directory. `rebaseTaskLinks` (`links.ts`) rewrites the relative link
+destinations in its body so they keep resolving to the same existing files
+(spec §2.10); other destinations are left as written.
+
 ## Testing
 
 - **Conformance:** `test/fs/conformance.test.ts` runs the conformance suite on

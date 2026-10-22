@@ -17,6 +17,7 @@ import {
   joinPath,
   linkedItemFor,
   nextId,
+  parseTaskFile,
   parseTodoFile,
   prependComment,
   removeItem,
@@ -53,6 +54,7 @@ import {
   validate,
 } from "../spec/index.ts"
 import { type Files, makeFiles } from "./files.ts"
+import { rebaseTaskLinks } from "./links.ts"
 import { type NormalizeReport, normalizeList } from "./normalization.ts"
 import { makeParser, type Parser } from "./parsing.ts"
 import {
@@ -393,8 +395,9 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             // The done file is the commit point, so it is deleted last (spec §2.10).
             const end = (section ?? snapshot.todo.sections[0])?.items.length ?? 0
 
-            yield* writeTodo(insertItem(snapshot.todo, group, end, linkedItemFor(reopened, path)))
-            yield* files.write(
+            const text = yield* rebaseTaskLinks(
+              files,
+              done.path,
               path,
               updateTaskFile(done.source, {
                 group: null,
@@ -403,9 +406,14 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                 cancelledReason: null,
               }),
             )
+
+            yield* writeTodo(insertItem(snapshot.todo, group, end, linkedItemFor(reopened, path)))
+            yield* files.write(path, text)
             yield* files.remove(done.path)
 
-            return reopened
+            const body = parseTaskFile(text, path)
+
+            return { ...reopened, description: body.description, comments: body.comments }
           }),
         ),
 
