@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { BunServices } from "@effect/platform-bun"
 import { Effect } from "effect"
 import { RegistryError } from "../../src/hub/errors.ts"
-import { makeRegistry } from "../../src/hub/registry.ts"
+import { makeRegistry, type RegistryEdit } from "../../src/hub/registry.ts"
 import { effectTest } from "../../src/spec/testing.ts"
 import { Disk, diskWith, md } from "./helpers.ts"
 
@@ -192,6 +192,69 @@ describe("the registry file", () => {
       diskWith({ ".todo-md/projects.yaml": text }),
     )
   }
+})
+
+const untouched = [
+  "# mine",
+  "projects:",
+  "  a: {source: fs, path: /Users/someone/code/a-rather-long-directory-name/and-another-segment/project} # c",
+  "  m: {source: memory}",
+  "  p: { source: memory }",
+  "  b:",
+  "      source: memory # x",
+]
+
+const handwritten = md(...untouched, "  z: {source: memory}")
+
+describe("an edit leaves the entries it does not touch as written", () => {
+  for (const [what, edit, rest] of [
+    ["delete", (registry: RegistryEdit) => registry.delete("z"), []],
+    ["rename", (registry: RegistryEdit) => registry.rename("z", "y"), ["  y: {source: memory}"]],
+    [
+      "add",
+      (registry: RegistryEdit) => registry.add("c", { source: "memory", title: "C" }),
+      ["  z: {source: memory}", "  c:", "    source: memory", "    title: C"],
+    ],
+  ] as const) {
+    effectTest(
+      `${what}: a long flow map, a padless and a padded one, a deep block and comments`,
+      Effect.gen(function* () {
+        const registry = yield* registryOnDisk
+
+        yield* registry.update((registry) => Effect.sync(() => edit(registry)))
+        expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(md(...untouched, ...rest))
+      }),
+      diskWith({ ".todo-md/projects.yaml": handwritten }),
+    )
+  }
+
+  effectTest(
+    "delete takes the comment lines directly above the entry with it",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+
+      yield* registry.update((registry) => Effect.sync(() => registry.delete("a")))
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
+        md("# My projects", "projects:", "  b:", "    source: memory"),
+      )
+    }),
+    diskWith({ ".todo-md/projects.yaml": commented }),
+  )
+
+  effectTest(
+    "an edit to a flow projects map rewrites it on one line without padding",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+
+      yield* registry.update((registry) => Effect.sync(() => registry.delete("b")))
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(
+        md("projects: {a: {source: memory}}"),
+      )
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md("projects: {a: {source: memory}, b: {source: memory}}"),
+    }),
+  )
 })
 
 // Real clock: the lock retries with sleeps.

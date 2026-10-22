@@ -1,19 +1,20 @@
 /**
  * `<home>/projects.yaml`: a map from project name to `{ source, ...config }`
- * under the top-level key `projects`. Edits go through yaml's `Document`, so
- * comments and order survive; they run under `<home>/.todo.lock` on a fresh
- * read and are written atomically.
+ * under the top-level key `projects`. Edits splice the entry they change;
+ * yaml's `Document` parses and validates. Missing, empty or flow-style projects
+ * fall back to Document edits. All edits run under `<home>/.todo.lock` on a
+ * fresh read and are written atomically.
  */
 
 import { Effect, FileSystem, Path } from "effect"
 import {
-  type Document,
   isAlias,
   isMap,
   isNode,
   isScalar,
   type Pair,
   parseDocument,
+  stringify,
   type YAMLMap,
 } from "yaml"
 import { makeLock } from "../fs/index.ts"
@@ -48,7 +49,13 @@ export interface Registry {
 
 const keyOf = (pair: Pair): string => String(isScalar(pair.key) ? pair.key.value : pair.key)
 
-const editOf = (doc: Document): RegistryEdit => {
+const editOf = (
+  original: string,
+): { readonly edit: RegistryEdit; readonly render: () => string } => {
+  let text = original
+  let doc = parseDocument(text)
+  let rewritten = false
+
   const projects = (): YAMLMap | undefined => {
     const node = doc.get("projects", true)
 
@@ -57,10 +64,52 @@ const editOf = (doc: Document): RegistryEdit => {
 
   const pairOf = (name: string) => projects()?.items.find((pair) => keyOf(pair) === name)
 
-  return {
+  const splice = (start: number, end: number, replacement: string) => {
+    text = text.slice(0, start) + replacement + text.slice(end)
+    doc = parseDocument(text)
+  }
+
+  const lineStart = (offset: number) => text.lastIndexOf("\n", offset - 1) + 1
+
+  const lineEnd = (offset: number) => {
+    const end = text.indexOf("\n", offset)
+
+    return end === -1 ? text.length : end + 1
+  }
+
+  const endOf = (pair: Pair) => {
+    const node = pair.value ?? pair.key
+
+    return isNode(node) && node.range != null ? lineEnd(node.range[1] - 1) : undefined
+  }
+
+  const block = (map: YAMLMap | undefined) =>
+    !rewritten && map !== undefined && !map.flow && map.items.length > 0
+
+  const edit: RegistryEdit = {
     has: (name) => pairOf(name) !== undefined,
     add: (name, value) => {
       const map = projects()
+      const first = map?.items[0]?.key
+      const last = map?.items.at(-1)
+      const end = last === undefined ? undefined : endOf(last)
+
+      if (block(map) && isNode(first) && first.range != null && end !== undefined) {
+        const indent = /^ */.exec(text.slice(lineStart(first.range[0])))?.[0] ?? ""
+        const entry = stringify({ [name]: value }, { lineWidth: 0 })
+          .trimEnd()
+          .split("\n")
+          .map((line) => indent + line)
+          .join("\n")
+
+        const separator = end > 0 && text[end - 1] !== "\n" ? "\n" : ""
+
+        splice(end, end, `${separator}${entry}\n`)
+
+        return
+      }
+
+      rewritten = true
 
       if (map === undefined) {
         doc.set("projects", doc.createNode({ [name]: value }))
@@ -78,16 +127,55 @@ const editOf = (doc: Document): RegistryEdit => {
       const map = projects()
       const pair = pairOf(name)
 
-      if (map !== undefined && pair !== undefined) map.items.splice(map.items.indexOf(pair), 1)
+      if (map === undefined || pair === undefined) return
+
+      const key = pair.key
+      const end = endOf(pair)
+
+      if (block(map) && isNode(key) && key.range != null && end !== undefined) {
+        let start = lineStart(key.range[0])
+        const indent = text.slice(start, key.range[0])
+
+        while (start > 0) {
+          const previous = lineStart(start - 1)
+          const line = text.slice(previous, start)
+
+          if (!line.startsWith(`${indent}#`)) break
+
+          start = previous
+        }
+
+        splice(start, end, "")
+
+        return
+      }
+
+      rewritten = true
+      map.items.splice(map.items.indexOf(pair), 1)
     },
     rename: (from, to) => {
       const pair = pairOf(from)
 
       if (pair === undefined) return
 
+      const key = pair.key
+
+      if (block(projects()) && isNode(key) && key.range != null) {
+        splice(key.range[0], key.range[1], stringify(to).trimEnd())
+
+        return
+      }
+
+      rewritten = true
+
       if (isScalar(pair.key)) pair.key.value = to
       else pair.key = doc.createNode(to)
     },
+  }
+
+  return {
+    edit,
+    render: () => (rewritten ? doc.toString({ lineWidth: 0, flowCollectionPadding: false }) : text),
   }
 }
 
@@ -156,7 +244,7 @@ export const makeRegistry = (
                 }))
               : []
 
-            return { doc, entries } as const
+            return { text, entries } as const
           },
           catch: yamlFailure,
         }),
@@ -168,9 +256,19 @@ export const makeRegistry = (
       ),
     )
 
-    const write = (doc: Document) =>
+    const write = (render: () => string) =>
       Effect.try({
-        try: () => doc.toString(),
+        try: () => {
+          const text = render()
+          const doc = parseDocument(text)
+          const [error] = doc.errors
+
+          if (error !== undefined) throw error
+
+          doc.toJS({ mapAsMap: true })
+
+          return text
+        },
         catch: (cause) => {
           // `read` accepted the file, so an unresolved alias here is the edit's doing.
           const alias = /^Unresolved alias[^\n]*: (.+)$/m.exec(
@@ -204,10 +302,11 @@ export const makeRegistry = (
             .makeDirectory(home, { recursive: true })
             .pipe(Effect.mapError(failure(`could not create ${home}`)))
           const edited = Effect.gen(function* () {
-            const { doc } = yield* read
-            const result = yield* edit(editOf(doc))
+            const { text } = yield* read
+            const editor = editOf(text)
+            const result = yield* edit(editor.edit)
 
-            yield* write(doc)
+            yield* write(editor.render)
 
             return result
           })
