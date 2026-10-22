@@ -48,10 +48,11 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Round 14 ran 71 (`8026792`), reviewed: filed 73 (a lone CR above a
     registry syntax error shifts the reported line; it falls between 71
     and 72).
-  - Round 15 proposes 70 alone: width 1, so there is no pairing question.
-    It touches `src/hub/registry.ts`'s edit path and its tests. It does not
-    touch the reviewer or `do` text or `src/runner/git/ops.ts`, and no other
-    run holds its task id. 72 follows, then 73. 73 also edits
+  - Round 15 ran 70 (`f0171dd`), reviewed: filed nothing.
+  - Round 16 proposes 72 alone: width 1, so there is no pairing question.
+    It touches `src/markdown/frontmatter.ts`'s error line and its tests. It
+    does not touch the reviewer or `do` text or `src/runner/git/ops.ts`, and
+    no other run holds its task id. 73 follows. 73 edits
     `src/hub/registry.ts`, so never pair it with 70.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
@@ -63,7 +64,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 70, then 72, then 73. The person decides 50 (installed bin), 55
+- **Next:** 72, then 73. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -71,6 +72,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [70 Editing one hub registry entry reformats the others](dogfooding/runs/70-editing-one-hub-registry-entry-reformats-the-others.md) | `f0171dd` | none; ratings recorded |
 | [71 A hub registry syntax error ends at a colon](dogfooding/runs/71-a-hub-registry-syntax-error-ends-at-a-colon.md) | `8026792` | 73; ratings recorded |
 | [69 A frontmatter syntax error names the YAML line and ends at a colon](dogfooding/runs/69-a-frontmatter-syntax-error-names-the-yaml-line-and-ends-at-a.md) | `7a9dc10` | 72; ratings recorded |
 | [68 An aliased projects map in the hub registry is refused as not a map](dogfooding/runs/68-an-aliased-projects-map-in-the-hub-registry-is-refused-as.md) | `95e9c79` | 70, 71; ratings recorded |
