@@ -32,10 +32,13 @@ process is the `nzila-dogfood` skill in the nzila repository.
     change, including `done`'s `completed_at` and `cancel`'s reason) and
     67 (an unresolved alias in the hub registry crashes every command; the
     65 brief wrongly ruled the registry out).
-  - Round 10 proposes 67 alone: width 1, so no pairing question. It
-    touches `src/hub/registry.ts` and its tests, no reviewer or `do` text,
-    no `src/runner/git/ops.ts`, and no task id another run holds. 66 waits
-    a round: it is larger (store, spec §2.10, CLI) and may want a plan.
+  - Round 10 ran 67 (`6c99e59`), reviewed: filed 68 (an aliased
+    `projects` map reads as "not a map", against 67's README line; `rm`'s
+    alias refusal blames the file, not the edit).
+  - Round 11 proposes 66 alone: width 1, so no pairing question. It
+    touches `src/markdown`, `src/fs`, spec §2.10 and the CLI's error path,
+    no reviewer or `do` text, no `src/runner/git/ops.ts`, and no task id
+    another run holds. 68 waits a round (minor, `src/hub` only).
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -46,7 +49,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 67, then 66. The person decides 50 (installed bin), 55
+- **Next:** 66, then 68. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -54,6 +57,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [67 An unresolved alias in the hub registry crashes every command](dogfooding/runs/67-an-unresolved-alias-in-the-hub-registry-crashes-every.md) | `6c99e59` | 68; ratings recorded |
 | [65 An unresolved YAML alias in frontmatter crashes every read](dogfooding/runs/65-an-unresolved-yaml-alias-in-frontmatter-crashes-every-read.md) | `318d1ca` | 66, 67; ratings recorded |
 | [64 Frontmatter the writer edits by lone-CR lines still reads as invalid](dogfooding/runs/64-frontmatter-the-writer-edits-by-lone-cr-lines-still-reads-as.md) | `d8f93e1` | 65; ratings recorded |
 | [63 A lone carriage return desyncs Markdown positions from the line model](dogfooding/runs/63-a-lone-carriage-return-desyncs-markdown-positions-from-the.md) | `57a5cc6` | 64; ratings recorded |
