@@ -1,7 +1,7 @@
 import { DateTime, Option } from "effect"
 import { type Comment, type Diagnostic, type TaskId, unique } from "../spec/index.ts"
 import { headingText, lineSpan, parseAst } from "./ast.ts"
-import { formatFrontmatter, readFrontmatter, setFrontmatterFields } from "./frontmatter.ts"
+import { formatFrontmatter, frontmatterEdits, readFrontmatter } from "./frontmatter.ts"
 import { parseDependencyId } from "./ids.ts"
 import {
   isBlank,
@@ -337,7 +337,9 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
 
   if (Object.keys(fields).length > 0) {
     if (yaml !== undefined) {
-      text = spliceLines(text, 1, lineSpan(yaml).end - 2, setFrontmatterFields(yaml.value, fields))
+      for (const edit of frontmatterEdits(yaml.value, fields)) {
+        text = spliceLines(text, 1 + edit.start, edit.deleteCount, edit.lines)
+      }
     } else {
       const added = Object.entries(fields).filter(([, value]) => value !== undefined)
 

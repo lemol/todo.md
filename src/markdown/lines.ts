@@ -64,6 +64,22 @@ export const spliceLines = (
   return { ...text, lines, breaks, finalNewline: text.finalNewline || appended }
 }
 
+/** The 0-based line `offset` is on, counting every line ending (CRLF, LF or a lone CR). */
+export const lineAt = (text: string, offset: number): number => {
+  const endings = text.matchAll(/\r\n?|\n/g)
+  let line = 0
+
+  for (const match of endings) {
+    const end = (match.index ?? 0) + match[0].length
+
+    if (end > offset) break
+
+    line++
+  }
+
+  return line
+}
+
 export const isBlank = (line: string | undefined): boolean =>
   line !== undefined && line.trim() === ""
 

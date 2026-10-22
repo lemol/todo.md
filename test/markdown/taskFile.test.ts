@@ -406,6 +406,31 @@ describe("prependComment", () => {
 })
 
 describe("lone carriage returns", () => {
+  test.each([
+    ['---\ntitle: "a\rb"\ntags: [a]\n---\nBody\n', '---\ntitle: "a\rb"\ntags: [b]\n---\nBody\n'],
+    [
+      '---\r\ntitle: "a\rb"\r\ntags: [a]\r\n---\r\nBody\r\n',
+      '---\r\ntitle: "a\rb"\r\ntags: [b]\r\n---\r\nBody\r\n',
+    ],
+    [
+      "---\ntitle: T\n# c\rx\ntags: [a]\n---\nBody\n",
+      "---\ntitle: T\n# c\rx\ntags: [b]\n---\nBody\n",
+    ],
+    [
+      "---\r\ntitle: T\r\n# c\rx\r\ntags: [a]\r\n---\r\nBody\r\n",
+      "---\r\ntitle: T\r\n# c\rx\r\ntags: [b]\r\n---\r\nBody\r\n",
+    ],
+    ["---\ntitle: T\rtags: [a]\n---\nBody\n", "---\ntitle: T\rtags: [b]\n---\nBody\n"],
+  ])("changing a key in %j keeps every other line", (source, updated) => {
+    expect(updateTaskFile(source, { tags: ["b"] })).toBe(updated)
+  })
+
+  test("rewriting a value that holds a lone CR replaces all of its lines", () => {
+    expect(updateTaskFile('---\ntitle: "a\rb"\ntags: [a]\n---\nBody\n', { title: "c" })).toBe(
+      "---\ntitle: c\ntags: [a]\n---\nBody\n",
+    )
+  })
+
   const source = md(
     "---",
     "title: T",
@@ -433,11 +458,22 @@ describe("lone carriage returns", () => {
 
   test("replacing the description keeps the comments", () => {
     expect(updateTaskFile(source, { description: "new" })).toBe(
-      md("---", "title: T", "---", "new", "", "## Comments", "", "### @sam at 2026-01-01 10:00", "", "hi"),
+      md(
+        "---",
+        "title: T",
+        "---",
+        "new",
+        "",
+        "## Comments",
+        "",
+        "### @sam at 2026-01-01 10:00",
+        "",
+        "hi",
+      ),
     )
-    expect(updateTaskFile("---\ntitle: T\n---\nline a\rline b\nmore\n", { description: "new" })).toBe(
-      "---\ntitle: T\n---\nnew\n",
-    )
+    expect(
+      updateTaskFile("---\ntitle: T\n---\nline a\rline b\nmore\n", { description: "new" }),
+    ).toBe("---\ntitle: T\n---\nnew\n")
   })
 })
 

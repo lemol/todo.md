@@ -1,5 +1,5 @@
 import { Document, isMap, isScalar, parseDocument } from "yaml"
-import { textLines } from "./lines.ts"
+import { lineAt, textLines } from "./lines.ts"
 
 export interface FrontmatterData {
   readonly data: Readonly<Record<string, unknown>>
@@ -43,40 +43,66 @@ export const formatFrontmatter = (fields: ReadonlyArray<readonly [string, unknow
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
 
+/** Replaces `deleteCount` frontmatter lines at `start` (0-based, below the opening fence) with `lines`. */
+export interface FrontmatterEdit {
+  readonly start: number
+  readonly deleteCount: number
+  readonly lines: ReadonlyArray<string>
+}
+
 /**
- * Sets top-level keys in frontmatter `yaml`; `undefined` deletes a key. Only
- * the lines of keys whose value changes are rewritten, and new keys are
- * appended, so comments and formatting elsewhere survive (spec §2.10).
- * Returns the new frontmatter lines.
+ * Edits for top-level keys in frontmatter `yaml`; `undefined` deletes a key.
+ * Only the lines of keys whose value changes are rewritten, and new keys are
+ * appended, so comments, quoting and key order elsewhere survive (spec §2.10).
+ * The raw YAML is parsed first, so a lone CR that YAML reads as content keeps
+ * its line; when the raw text has errors, the YAML is read with lone CRs as
+ * line breaks instead, the way the Markdown parser reads them. Last line first.
  */
-export const setFrontmatterFields = (
+export const frontmatterEdits = (
   yaml: string,
   fields: Readonly<Record<string, unknown>>,
-): string[] => {
-  const normalized = yaml === "" ? "" : textLines(yaml).join("\n")
-  const lines = yaml === "" ? [] : textLines(yaml)
-  const doc = parseDocument(normalized)
-  const current = readFrontmatter(normalized).data
-  const map = doc.contents
-  const blockMap = isMap(map) && !map.flow
+): FrontmatterEdit[] => {
+  const lineCount = yaml === "" ? 0 : textLines(yaml).length
+  let text = yaml
+  let doc = parseDocument(yaml)
+  let current = readFrontmatter(yaml).data
+  let map = doc.contents
+  let blockMap = isMap(map) && !map.flow
 
   if (doc.errors.length > 0 || (map !== null && !blockMap)) {
-    const merged = { ...current, ...fields }
+    text = yaml === "" ? "" : textLines(yaml).join("\n")
+    doc = parseDocument(text)
+    current = readFrontmatter(text).data
+    map = doc.contents
+    blockMap = isMap(map) && !map.flow
 
-    return formatFrontmatter(Object.entries(merged).filter(([, value]) => value !== undefined))
+    if (doc.errors.length > 0 || (map !== null && !blockMap)) {
+      const merged = { ...current, ...fields }
+
+      return [
+        {
+          start: 0,
+          deleteCount: lineCount,
+          lines: formatFrontmatter(
+            Object.entries(merged).filter(([, value]) => value !== undefined),
+          ),
+        },
+      ]
+    }
   }
 
-  const lineOf = (offset: number) => normalized.slice(0, offset).split("\n").length - 1
+  const lineOf = (offset: number) => lineAt(text, offset)
 
-  const edits: Array<{ start: number; end: number; lines: string[] }> = []
+  const edits: FrontmatterEdit[] = []
   const appended: string[] = []
 
   for (const [key, value] of Object.entries(fields)) {
     if (same(current[key], value)) continue
 
-    const pair = blockMap
-      ? map.items.find((item) => isScalar(item.key) && item.key.value === key)
-      : undefined
+    const pair =
+      isMap(map) && !map.flow
+        ? map.items.find((item) => isScalar(item.key) && item.key.value === key)
+        : undefined
 
     const keyRange = pair !== undefined && isScalar(pair.key) ? pair.key.range : undefined
 
@@ -88,17 +114,16 @@ export const setFrontmatterFields = (
 
     const valueRange = (pair?.value as { range?: [number, number, number] } | null)?.range
     const end = Math.max((valueRange ?? keyRange)[1] - 1, keyRange[0])
+    const start = lineOf(keyRange[0])
 
     edits.push({
-      start: lineOf(keyRange[0]),
-      end: lineOf(end),
+      start,
+      deleteCount: lineOf(end) - start + 1,
       lines: value === undefined ? [] : entry(key, value),
     })
   }
 
-  for (const edit of edits.sort((a, b) => b.start - a.start)) {
-    lines.splice(edit.start, edit.end - edit.start + 1, ...edit.lines)
-  }
+  if (appended.length > 0) edits.push({ start: lineCount, deleteCount: 0, lines: appended })
 
-  return [...lines, ...appended]
+  return edits.sort((a, b) => b.start - a.start)
 }

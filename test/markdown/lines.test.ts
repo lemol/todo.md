@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
   joinLines,
+  lineAt,
   spliceLines,
   splitLines,
   textLines,
@@ -83,5 +84,13 @@ describe("lone carriage returns", () => {
     expect(joinLines(spliceLines(splitLines("a\rb\r\nc\r\n"), 1, 0, ["x"]))).toBe(
       "a\rx\r\nb\r\nc\r\n",
     )
+  })
+
+  test("lineAt counts every line ending before an offset", () => {
+    const text = "a\r\nb\rc\nd"
+
+    expect([0, 1, 2, 3, 4, 5, 7].map((offset) => lineAt(text, offset))).toEqual([
+      0, 0, 0, 1, 1, 2, 3,
+    ])
   })
 })
