@@ -33,23 +33,58 @@ const parseYaml = (yaml: string): { readonly doc: Document.Parsed; readonly text
 const notMapping = "frontmatter must be a mapping"
 
 /**
+ * The 1-based line and column of `offset` in `text`, counting CRLF, LF and
+ * a lone CR as line endings, the way `splitLines` does. `yaml` counts lines
+ * by LF only, so its `linePos` falls short below a lone CR.
+ */
+const offsetLineCol = (
+  text: string,
+  offset: number,
+): { readonly line: number; readonly col: number } => {
+  let line = 1
+  let start = 0
+
+  for (const match of text.matchAll(/\r\n?|\n/g)) {
+    const end = (match.index ?? 0) + match[0].length
+
+    if (end > offset) break
+
+    line++
+
+    start = end
+  }
+
+  return { line, col: offset - start + 1 }
+}
+
+/**
  * Reads frontmatter YAML (without the `---` fences) into a plain object; never
  * throws. YAML that fails to parse or resolve is reported in `error`.
  */
 export const readFrontmatter = (yaml: string): FrontmatterData => {
-  const { doc } = parseYaml(yaml)
+  const { doc, text } = parseYaml(yaml)
   const [first] = doc.errors
 
   if (first !== undefined) {
     const head = textLines(first.message.replace(/\s*at line \d+, column \d+[\s\S]*$/, ""))[0] ?? ""
+    const offset = first.pos?.[0]
     const start = first.linePos?.[0]
 
-    if (start === undefined) return { data: {}, error: head.replace(/:$/, "") }
+    if (offset === undefined) {
+      if (start === undefined) return { data: {}, error: head.replace(/:$/, "") }
+
+      // YAML counts from the first line below the opening fence.
+      const errorLine = start.line + 1
+
+      return { data: {}, error: `${head} at line ${errorLine}, column ${start.col}`, errorLine }
+    }
+
+    const { line, col } = offsetLineCol(text, offset)
 
     // YAML counts from the first line below the opening fence.
-    const errorLine = start.line + 1
+    const errorLine = line + 1
 
-    return { data: {}, error: `${head} at line ${errorLine}, column ${start.col}`, errorLine }
+    return { data: {}, error: `${head} at line ${errorLine}, column ${col}`, errorLine }
   }
 
   let value: unknown

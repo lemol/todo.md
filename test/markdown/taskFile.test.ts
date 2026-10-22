@@ -614,3 +614,18 @@ test.each(["\n", "\r\n"])("syntax errors use file coordinates (%j)", (eol) => {
   ])
   expect(updateTaskFile(source, { assignee: "y" })).toEqual(Result.fail(message))
 })
+
+test("syntax errors below a lone CR use file coordinates", () => {
+  const source = '---\ntitle: "a\rb"\nnote: "c\rd"\nx: [\n---\nBody\n'
+  const message =
+    "Flow sequence in block collection must be sufficiently indented and end with a ] at line 6, column 5"
+
+  expect(readFrontmatter('title: "a\rb"\nnote: "c\rd"\nx: [').error).toBe(message)
+  expect(parseTaskFile(source, "later/2-syn.md").diagnostics).toEqual([
+    { severity: "error", code: "invalid-frontmatter", message, file: "later/2-syn.md", line: 6 },
+  ])
+  expect(parseTodoFile(source).diagnostics).toEqual([
+    { severity: "error", code: "invalid-frontmatter", message, file: "TODO.md", line: 6 },
+  ])
+  expect(updateTaskFile(source, { assignee: "y" })).toEqual(Result.fail(message))
+})
