@@ -9,7 +9,15 @@ export interface MarkdownLinkDestination {
   readonly url: string
 }
 
-const unescape = (raw: string) => raw.replace(/\\([!-/:-@[-`{-~])/g, "$1")
+const decodedDestination = (raw: string): string | undefined => {
+  if (!raw.includes("&")) return raw.replace(/\\([!-/:-@[-`{-~])/g, "$1")
+
+  // Reuse CommonMark's character-reference rules rather than a separate decoder.
+  const paragraph = parseAst(`[x](<${raw}>)`).children[0]
+  const link = paragraph?.type === "paragraph" ? paragraph.children[0] : undefined
+
+  return link?.type === "link" ? link.url : undefined
+}
 
 /** The offset just past the `]` closing the label that opens at `open`, or `undefined`. */
 const labelEnd = (source: string, open: number, limit: number): number | undefined => {
@@ -23,11 +31,26 @@ const labelEnd = (source: string, open: number, limit: number): number | undefin
     } else if (char === "`") {
       let run = 1
 
-      while (source[i + run] === "`") run++
+      while (i + run < limit && source[i + run] === "`") run++
 
-      const closing = source.indexOf("`".repeat(run), i + run)
+      let closing: number | undefined
 
-      i = closing === -1 ? i + run - 1 : closing + run - 1
+      for (let j = i + run; j < limit; j++) {
+        if (source[j] !== "`") continue
+
+        let closingRun = 1
+
+        while (j + closingRun < limit && source[j + closingRun] === "`") closingRun++
+
+        if (closingRun === run) {
+          closing = j
+          break
+        }
+
+        j += closingRun - 1
+      }
+
+      i = closing === undefined ? i + run - 1 : closing + run - 1
     } else if (char === "[") {
       depth++
     } else if (char === "]") {
@@ -105,7 +128,10 @@ export const markdownLinkDestinations = (
         if (closed !== undefined && source[closed] === next) {
           const span = destinationAt(source, closed + 1, end)
 
-          if (span !== undefined && unescape(source.slice(span[0], span[1])) === node.url) {
+          if (
+            span !== undefined &&
+            decodedDestination(source.slice(span[0], span[1])) === node.url
+          ) {
             found.push({ from: span[0], to: span[1], url: node.url })
           }
         }
