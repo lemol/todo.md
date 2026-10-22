@@ -124,7 +124,7 @@ export const makeRegistry = (
 
             // `toJS` throws what `parseDocument` leaves unreported: an alias to a missing
             // anchor, or an alias bomb. Checking the whole document here covers every caller.
-            doc.toJS()
+            doc.toJS({ mapAsMap: true })
 
             if (doc.contents !== null && !isMap(doc.contents)) {
               return { failed: "expected a map" } as const

@@ -203,6 +203,33 @@ const aliasBomb = md(
   "  p: [*d, *d, *d, *d, *d, *d, *d, *d, *d, *d]",
 )
 
+describe("collection keys", () => {
+  effectTest(
+    "a registry with a collection key reads without a process warning",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+      const warnings: unknown[] = []
+      const original = process.emitWarning
+
+      process.emitWarning = ((warning: unknown) => {
+        warnings.push(warning)
+      }) as typeof process.emitWarning
+
+      const entries = yield* registry.entries.pipe(
+        Effect.ensuring(
+          Effect.sync(() => {
+            process.emitWarning = original
+          }),
+        ),
+      )
+
+      expect(entries).toHaveLength(1)
+      expect(warnings).toEqual([])
+    }),
+    diskWith({ ".todo-md/projects.yaml": "projects:\n  ? [a, b]\n  : {source: fs}\n" }),
+  )
+})
+
 describe("alias failures", () => {
   for (const [text, message] of [
     ["projects:\n  p: *a\n", "Unresolved alias (the anchor must be set before the alias): a"],
