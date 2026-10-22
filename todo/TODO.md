@@ -21,6 +21,7 @@ sources. Design: [hub design](../docs/superpowers/specs/2026-09-13-hub-design.md
 - [ ] [60 - A bare sibling link comes back with a ./ prefix after done and reopen](./later/60-a-bare-sibling-link-comes-back-with-a-prefix-after-done-and.md)
 - [ ] [70 - Editing one hub registry entry reformats the others](./later/70-editing-one-hub-registry-entry-reformats-the-others.md)
 - [ ] [72 - A lone CR before a frontmatter syntax error shifts its line](./later/72-a-lone-cr-before-a-frontmatter-syntax-error-shifts-its-line.md)
+- [ ] [73 - A lone CR in the hub registry shifts a syntax error line](./later/73-a-lone-cr-in-the-hub-registry-shifts-a-syntax-error-line.md)
 
 
 
