@@ -39,10 +39,10 @@ adapter reads and writes the files.
   reader and the writer. YAML whose aliases do not resolve is an
   `invalid-frontmatter` diagnostic; an edit to a block map still splices only
   the keys it sets or deletes and leaves the rest of the frontmatter, the bad
-   alias included, as it is; any other frontmatter the reader reports an error
-   for (a syntax error, a non-mapping, a flow map with a bad alias) makes
-   `frontmatterEdits` and `updateTaskFile` return a failure with the reader's
-   message, and `fs` fails the write (spec §2.10).
+  alias included, as it is; any other frontmatter the reader reports an error
+  for (a syntax error, a non-mapping, a flow map with a bad alias) makes
+  `frontmatterEdits` and `updateTaskFile` return a failure with the reader's
+  message, and `fs` fails the write (spec §2.10).
 - **Line endings:** a lone CR is a line ending, as it is to micromark, so
   mdast line numbers index `splitLines` lines. A lone CR on a line no edit
   touches is kept because YAML reads it as content (`title: "a\rb"` is valid,
