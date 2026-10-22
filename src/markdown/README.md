@@ -36,7 +36,10 @@ adapter reads and writes the files.
   the lines of the keys whose value changes are rewritten, so comments,
   quoting and key order elsewhere survive. YAML which only parses with lone
   CRs as line breaks is read and edited by those lines, the same way by the
-  reader and the writer.
+  reader and the writer. YAML whose aliases do not resolve is an
+  `invalid-frontmatter` diagnostic; an edit still splices only the keys it sets
+  or deletes and leaves the rest of the frontmatter, the bad alias included,
+  as it is.
 - **Line endings:** a lone CR is a line ending, as it is to micromark, so
   mdast line numbers index `splitLines` lines. A lone CR on a line no edit
   touches is kept because YAML reads it as content (`title: "a\rb"` is valid,

@@ -75,6 +75,15 @@ describe("formatFrontmatter", () => {
 })
 
 describe("frontmatterEdits", () => {
+  test("splices keys of YAML whose aliases do not resolve, leaving the other lines", () => {
+    const unresolved = ["title: T", "assignee: z", "x: *a"].join("\n")
+
+    expect(frontmatterEdits(unresolved, { assignee: undefined, estimate: 3 })).toEqual([
+      { start: 3, deleteCount: 0, lines: ["estimate: 3"] },
+      { start: 1, deleteCount: 1, lines: [] },
+    ])
+  })
+
   test("rewrites only the changed key", () => {
     expect(frontmatterEdits(yaml, { assignee: "claude", title: "Add rate limiting" })).toEqual([
       { start: 2, deleteCount: 1, lines: ["assignee: claude"] },

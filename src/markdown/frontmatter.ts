@@ -85,6 +85,7 @@ export interface FrontmatterEdit {
  * Edits for top-level keys in frontmatter `yaml`; `undefined` deletes a key.
  * Only the lines of keys whose value changes are rewritten, and new keys are
  * appended, so comments, quoting and key order elsewhere survive (spec §2.10).
+ * When aliases do not resolve, requested keys are spliced and other lines kept.
  * The raw YAML is parsed first, so a lone CR that YAML reads as content keeps
  * its line; when the raw text has errors, the YAML is read with lone CRs as
  * line breaks instead, the way the Markdown parser reads them. Last line first.
@@ -96,7 +97,7 @@ export const frontmatterEdits = (
   const lineCount = yaml === "" ? 0 : textLines(yaml).length
   const parsed = parseYaml(yaml)
   const { text, doc } = parsed
-  const current = readFrontmatter(yaml).data
+  const { data: current, error } = readFrontmatter(yaml)
   const map = doc.contents
 
   if (doc.errors.length > 0 || (map !== null && !(isMap(map) && !map.flow))) {
@@ -117,7 +118,7 @@ export const frontmatterEdits = (
   const appended: string[] = []
 
   for (const [key, value] of Object.entries(fields)) {
-    if (same(current[key], value)) continue
+    if (error === undefined && same(current[key], value)) continue
 
     const pair =
       isMap(map) && !map.flow
