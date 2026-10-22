@@ -34,14 +34,19 @@ adapter reads and writes the files.
   canonical forms. Nothing is ever re-serialized from the AST.
 - **Frontmatter:** read with `yaml`. Edits rewrite only the lines of the keys
   whose value changes, so comments, quoting and key order elsewhere survive.
-- **Line endings:** new and rewritten lines take the file's most common
-  line ending (LF on a tie or with none), so CRLF files stay CRLF. Text that
-  becomes lines (descriptions, comment bodies, frontmatter kept or read back
-  from YAML errors) is split on every line ending
-  (CRLF, LF or a lone CR) and never carries a `\r` in. A file with mixed
-  endings, as another tool may leave it, has its minority lines rewritten on
-  the next edit: the smallest diff one ending per file allows. Keeping each
-  line's own ending is not done.
+- **Line endings:** a lone CR is a line ending, as it is to micromark, so
+  mdast line numbers index `splitLines` lines. A lone CR on a line no edit
+  touches is kept because YAML reads it as content (`title: "a\rb"` is valid,
+  and with LF instead it is not), while new and rewritten lines take the
+  file's most common ending (LF on a tie or with none), so CRLF files stay
+  CRLF. Text that becomes lines (descriptions, comment bodies, frontmatter
+  kept or read back from YAML errors) is split on every line ending
+  (CRLF, LF or a lone CR) and never carries a `\r` in. Mapping mdast spans
+  onto LF/CRLF lines instead is not done: two nodes can share such a line
+  (`- [ ] a\r- [ ] b` is two items), so a whole-line splice would edit both.
+  A file with mixed endings, as another tool may leave it, has its minority
+  lines rewritten on the next edit: the smallest diff one ending per file
+  allows. Keeping each line's own ending is not done.
 
 It runs anywhere JavaScript runs (Bun, Node, browsers).
 

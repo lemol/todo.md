@@ -64,3 +64,24 @@ describe("mixed line endings", () => {
     expect(joinLines(splitLines(text))).toBe(joined)
   })
 })
+
+describe("lone carriage returns", () => {
+  test.each([
+    ["a\rb\nc\n", ["a", "b", "c"]],
+    ["a\rb\r\nc\r\n", ["a", "b", "c"]],
+    ["a\r", ["a"]],
+    ["a\r\rb", ["a", "", "b"]],
+  ])("split %j into lines and join it back unchanged", (text, lines) => {
+    const split = splitLines(text)
+
+    expect(split.lines).toEqual(lines)
+    expect(joinLines(split)).toBe(text)
+  })
+
+  test("a line an edit writes takes the file's line ending", () => {
+    expect(joinLines(spliceLines(splitLines("a\rb\nc\n"), 0, 1, ["x"]))).toBe("x\nb\nc\n")
+    expect(joinLines(spliceLines(splitLines("a\rb\r\nc\r\n"), 1, 0, ["x"]))).toBe(
+      "a\rx\r\nb\r\nc\r\n",
+    )
+  })
+})

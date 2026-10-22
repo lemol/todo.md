@@ -405,6 +405,42 @@ describe("prependComment", () => {
   })
 })
 
+describe("lone carriage returns", () => {
+  const source = md(
+    "---",
+    "title: T",
+    "---",
+    "line a\rline b",
+    "more",
+    "",
+    "## Comments",
+    "",
+    "### @sam at 2026-01-01 10:00",
+    "",
+    "hi",
+  )
+
+  test("reads a description and comments across a lone CR", () => {
+    const parsed = parseTaskFile(
+      "---\ntitle: T\n---\nline a\rline b\n\n## Comments\n\n### @sam at 2026-01-01 10:00\n\nhi\rthere\n",
+      "07-x.md",
+    )
+
+    expect(parsed.description).toBe("line a\nline b")
+    expect(parsed.comments.map((comment) => comment.body)).toEqual(["hi\nthere"])
+    expect(parseTaskFile(source, "07-x.md").description).toBe("line a\nline b\nmore")
+  })
+
+  test("replacing the description keeps the comments", () => {
+    expect(updateTaskFile(source, { description: "new" })).toBe(
+      md("---", "title: T", "---", "new", "", "## Comments", "", "### @sam at 2026-01-01 10:00", "", "hi"),
+    )
+    expect(updateTaskFile("---\ntitle: T\n---\nline a\rline b\nmore\n", { description: "new" })).toBe(
+      "---\ntitle: T\n---\nnew\n",
+    )
+  })
+})
+
 describe("hasUnescapedHeading", () => {
   test("detects unescaped ATX and setext headings", () => {
     expect(hasUnescapedHeading("## Heading 2")).toBe(true)

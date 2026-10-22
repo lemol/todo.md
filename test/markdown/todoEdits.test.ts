@@ -134,3 +134,46 @@ test("formatTodoFile writes a title and optional description", () => {
     "# Acme API\n\nBacklog.\n",
   )
 })
+
+describe("lone carriage returns", () => {
+  const source = "# L\n\n## Now\n\n- [ ] one\rstill one\n- [ ] [two](02-two.md)\n- [ ] three\n"
+  const todo = parseTodoFile(source)
+  const [one, two, three] = todo.sections[1]?.items ?? []
+
+  test("parseTodoFile reads every item at its own lines", () => {
+    expect(
+      todo.sections[1]?.items.map(({ title, start, end, linked, description }) => ({
+        title,
+        start,
+        end,
+        linked,
+        description,
+      })),
+    ).toEqual([
+      { title: "one", start: 4, end: 6, linked: false, description: "still one" },
+      { title: "two", start: 6, end: 7, linked: true, description: "" },
+      { title: "three", start: 7, end: 8, linked: false, description: "" },
+    ])
+  })
+
+  test("removeItem removes exactly one item and keeps the lone CR elsewhere", () => {
+    if (one === undefined || two === undefined) throw new Error("missing items")
+
+    expect(removeItem(todo, one)).toBe("# L\n\n## Now\n\n- [ ] [two](02-two.md)\n- [ ] three\n")
+    expect(removeItem(todo, two)).toBe("# L\n\n## Now\n\n- [ ] one\rstill one\n- [ ] three\n")
+  })
+
+  test("insertItem and setItemHead edit only their own lines", () => {
+    if (two === undefined || three === undefined) throw new Error("missing items")
+
+    expect(insertItem(todo, "Now", 1, ["- [ ] new"])).toBe(
+      "# L\n\n## Now\n\n- [ ] one\rstill one\n- [ ] new\n- [ ] [two](02-two.md)\n- [ ] three\n",
+    )
+    expect(setItemHead(todo, two, "2", "two")).toBe(
+      "# L\n\n## Now\n\n- [ ] one\rstill one\n- [ ] [02 - two](02-two.md)\n- [ ] three\n",
+    )
+    expect(setItemHead(todo, three, "3", "three")).toBe(
+      "# L\n\n## Now\n\n- [ ] one\rstill one\n- [ ] [two](02-two.md)\n- [ ] 03 - three\n",
+    )
+  })
+})
