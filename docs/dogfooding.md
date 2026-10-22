@@ -8,14 +8,15 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 - **Loop `01M5GFQE4CEH965H2CH9XZYRSS` (intensive, width 1): running.**
   - Resumed from loop `01M5FHVVJ6H539ZGYMN78TTRXJ`'s close (`6f0889a`).
-  - Round 1 ran 56 (`756b909`), reviewed: filed 57 (rebased links are
-    re-spelled with percent escapes) and 58 (group `move` and
-    `renameGroup` don't rebase links); filing them showed 59 (`add` with a
-    newline-terminated description adds a stray blank line to `TODO.md`).
-  - Round 2 proposes 57 alone: width 1, so no pairing question. It touches
-    `src/fs/links.ts` and its tests, no reviewer or `do` text, no
-    `src/runner/git/ops.ts`. 58 follows (it touches `src/fs/FsTodoStore.ts`
-    and reuses `rebaseTaskLinks`, so run it after 57).
+  - Round 1 ran 56 (`756b909`), reviewed: filed 57, 58 and 59.
+  - Round 2 ran 57 (`d9ecf4c`), reviewed: filed 60 (a decision: a bare
+    link into the task's own directory now reopens as `./…`; the archived
+    text cannot carry both spellings).
+  - Round 3 proposes 58 alone: width 1, so no pairing question. It touches
+    `src/fs/FsTodoStore.ts`, the spec and `test/fs/`, no reviewer or `do`
+    text, no `src/runner/git/ops.ts`; it reuses `rebaseTaskLinks` as it
+    stands, and 60's decision changes only which spelling a reopen writes.
+    59 follows.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -26,14 +27,15 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 57, then 58 and 59. The person decides 50 (installed bin) and 55
+- **Next:** 58, then 59. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
-  leak).
+  leak) and 60 (which spelling a reopened own-directory link takes).
 
 ## Runs
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [57 A rebased link is re-spelled with percent escapes](dogfooding/runs/57-a-rebased-link-is-re-spelled-with-percent-escapes.md) | `d9ecf4c` | 60; ratings recorded |
 | [56 A task moved to done/ keeps links that pointed from its old directory](dogfooding/runs/56-a-task-moved-to-done-keeps-links-that-pointed-from-its-old.md) | `756b909` | 57, 58, 59; ratings recorded |
 | [54 A test run leaves its temporary directories behind](dogfooding/runs/54-a-test-run-leaves-its-temporary-directories-behind.md) | `fceb4e2` | 55 (filed at the close); ratings recorded |
 | [53 A hub test's temporary list vanishes under concurrent test runs](dogfooding/runs/53-a-hub-test-s-temporary-list-vanishes-under-concurrent-test.md) | `67e4a6b` | 54; ratings recorded |
