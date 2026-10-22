@@ -408,3 +408,38 @@ describe("hasUnescapedHeading", () => {
     expect(hasUnescapedHeading("---\n\n---")).toBe(false)
   })
 })
+
+describe("carriage returns in new text", () => {
+  test("formatTaskFile writes a CRLF description as LF lines", () => {
+    const file = formatTaskFile({ ...content, description: "A\r\n\r\nB", comments: [] })
+
+    expect(file).not.toContain("\r")
+    expect(parseTaskFile(file, "t.md").description).toBe("A\n\nB")
+  })
+
+  test("updateTaskFile keeps an LF file LF", () => {
+    expect(
+      updateTaskFile(md("---", "title: T", "---", "Old"), { description: "New\r\nMore" }),
+    ).toBe(md("---", "title: T", "---", "New", "More"))
+  })
+
+  test("prependComment keeps an LF file LF", () => {
+    const comment = { author: "claude", at: utc("2026-09-13T08:00:00Z"), body: "C\r\nD" }
+
+    expect(prependComment(md("---", "title: T", "---", "Notes."), comment)).toBe(
+      md(
+        "---",
+        "title: T",
+        "---",
+        "Notes.",
+        "",
+        "## Comments",
+        "",
+        "### @claude at 2026-09-13 08:00 +00:00",
+        "",
+        "C",
+        "D",
+      ),
+    )
+  })
+})

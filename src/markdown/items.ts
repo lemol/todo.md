@@ -1,6 +1,6 @@
 import type { TaskId } from "../spec/index.ts"
 import { formatId } from "./ids.ts"
-import { isBlank } from "./lines.ts"
+import { isBlank, textLines } from "./lines.ts"
 import { formatMetadataLine, type InlineFields, parseMetadataLine } from "./metadata.ts"
 import { linkTarget } from "./paths.ts"
 
@@ -37,7 +37,7 @@ export interface InlineItem {
 /** The canonical lines of an inline task item (spec §2.4, §2.5). */
 export const formatInlineItem = (item: InlineItem): string[] => {
   const metadata = formatMetadataLine(item.fields)
-  const description = item.description === "" ? [] : item.description.split("\n")
+  const description = item.description === "" ? [] : textLines(item.description)
 
   // Terminal blank lines fall outside the parsed item and would survive promotion.
   while (description.length > 0 && isBlank(description[description.length - 1])) {

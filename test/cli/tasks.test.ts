@@ -269,6 +269,93 @@ describe("add preserves section spacing", () => {
   }
 })
 
+describe("a description's line endings leave TODO.md's alone", () => {
+  const before = md(
+    "# L",
+    "",
+    "## Later",
+    "",
+    "- [ ] 01 - Existing",
+    "",
+    "",
+    "## Next",
+    "",
+    "- [ ] 02 - Keep",
+    "",
+  )
+
+  const crlf = before.replaceAll("\n", "\r\n")
+  const linked = "- [ ] [03 - Record the cause](./later/03-record-the-cause.md)"
+
+  effectTest(
+    "a CRLF description added to an LF list changes only the item line",
+    Effect.gen(function* () {
+      const result = yield* runTodo(
+        ["add", "Record the cause", "--group", "Later", "--description", "-"],
+        { stdin: "Body\r\n" },
+      )
+
+      const disk = yield* Disk
+
+      expect(result.code).toBe(0)
+      expect(yield* disk.read("TODO.md")).toBe(
+        before.replace("- [ ] 01 - Existing\n", `- [ ] 01 - Existing\n${linked}\n`),
+      )
+      expect(yield* disk.read("later/03-record-the-cause.md")).toBe(
+        md("---", "title: Record the cause", "---", "Body"),
+      )
+    }),
+    diskWith({ "TODO.md": before }),
+  )
+
+  for (const [body, item, description] of [
+    ["Body\r\n", "  Body\n", "Body"],
+    ["Body\r", "  Body\n", "Body"],
+    ["Body\r\n\r\nMore\r\n", "  Body\n\n  More\n", "Body\n\nMore"],
+  ] as const) {
+    effectTest(
+      `--inline writes ${JSON.stringify(body)} as LF lines`,
+      Effect.gen(function* () {
+        const result = yield* runTodo(
+          ["add", "Record the cause", "--group", "Later", "--inline", "--description", "-"],
+          { stdin: body },
+        )
+
+        expect(result.code).toBe(0)
+        expect(yield* (yield* Disk).read("TODO.md")).toBe(
+          before.replace(
+            "- [ ] 01 - Existing\n",
+            `- [ ] 01 - Existing\n- [ ] 03 - Record the cause\n${item}`,
+          ),
+        )
+        expect((yield* showJson("3")).description).toBe(description)
+      }),
+      diskWith({ "TODO.md": before }),
+    )
+  }
+
+  effectTest(
+    "an LF description added to a CRLF list keeps it CRLF",
+    Effect.gen(function* () {
+      const result = yield* runTodo(
+        ["add", "Record the cause", "--group", "Later", "--description", "-"],
+        { stdin: "Body\n" },
+      )
+
+      const disk = yield* Disk
+
+      expect(result.code).toBe(0)
+      expect(yield* disk.read("TODO.md")).toBe(
+        crlf.replace("- [ ] 01 - Existing\r\n", `- [ ] 01 - Existing\r\n${linked}\r\n`),
+      )
+      expect(yield* disk.read("later/03-record-the-cause.md")).toBe(
+        md("---", "title: Record the cause", "---", "Body"),
+      )
+    }),
+    diskWith({ "TODO.md": crlf }),
+  )
+})
+
 describe("todo promote", () => {
   effectTest(
     "moves an inline task into its own file and leaves a link",

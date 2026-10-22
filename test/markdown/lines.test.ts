@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { joinLines, spliceLines, splitLines, trimBlock } from "../../src/markdown/lines.ts"
+import {
+  joinLines,
+  spliceLines,
+  splitLines,
+  textLines,
+  trimBlock,
+} from "../../src/markdown/lines.ts"
 
 describe("splitLines / joinLines", () => {
   test.each([
@@ -35,4 +41,26 @@ describe("spliceLines", () => {
 
 test("trimBlock drops leading and trailing blank lines", () => {
   expect(trimBlock(["", "a", "", "b", " ", ""])).toBe("a\n\nb")
+})
+
+describe("textLines", () => {
+  test.each([
+    ["a", ["a"]],
+    ["a\nb", ["a", "b"]],
+    ["a\r\nb", ["a", "b"]],
+    ["a\rb", ["a", "b"]],
+    ["a\r\n", ["a", ""]],
+  ])("splits %j on any line ending", (text, lines) => {
+    expect(textLines(text)).toEqual(lines)
+  })
+})
+
+describe("mixed line endings", () => {
+  test.each([
+    ["a\nb\r\nc\n", "a\nb\nc\n"],
+    ["a\r\nb\nc\r\n", "a\r\nb\r\nc\r\n"],
+    ["a\r\nb\n", "a\nb\n"],
+  ])("writes %j in its most common line ending, LF on a tie", (text, joined) => {
+    expect(joinLines(splitLines(text))).toBe(joined)
+  })
 })

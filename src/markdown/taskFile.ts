@@ -3,7 +3,15 @@ import { type Comment, type Diagnostic, type TaskId, unique } from "../spec/inde
 import { headingText, lineSpan, parseAst } from "./ast.ts"
 import { formatFrontmatter, readFrontmatter, setFrontmatterFields } from "./frontmatter.ts"
 import { parseDependencyId } from "./ids.ts"
-import { isBlank, joinLines, type Lines, spliceLines, splitLines, trimBlock } from "./lines.ts"
+import {
+  isBlank,
+  joinLines,
+  type Lines,
+  spliceLines,
+  splitLines,
+  textLines,
+  trimBlock,
+} from "./lines.ts"
 
 /** What a task file holds (spec §2.6). */
 export interface TaskFileContent {
@@ -220,7 +228,7 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
 const commentLines = (comment: Comment): string[] => [
   `### @${comment.author} at ${formatTimestamp(comment.at)}`,
   "",
-  ...comment.body.split("\n"),
+  ...textLines(comment.body),
 ]
 
 /** The frontmatter entries of `content`, in canonical order (spec §2.6). */
@@ -248,7 +256,7 @@ const entries = (content: Partial<TaskFileContent>): Array<readonly [string, unk
 /** A new task file for `content` (spec §2.6). */
 export const formatTaskFile = (content: TaskFileContent): string => {
   const blocks = [
-    ...(content.description === "" ? [] : [content.description.split("\n")]),
+    ...(content.description === "" ? [] : [textLines(content.description)]),
     ...(content.comments.length === 0
       ? []
       : [
@@ -286,7 +294,7 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
 
   if (changes.description !== undefined && changes.description !== current.description) {
     const end = comments ?? text.lines.length
-    const block = changes.description === "" ? [] : changes.description.split("\n")
+    const block = changes.description === "" ? [] : textLines(changes.description)
     const lines = comments !== undefined && block.length > 0 ? [...block, ""] : block
 
     text = spliceLines(text, bodyStart, end - bodyStart, lines)

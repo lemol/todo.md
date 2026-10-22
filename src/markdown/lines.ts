@@ -9,12 +9,20 @@ export interface Lines {
 }
 
 export const splitLines = (text: string): Lines => {
-  const eol = text.includes("\r\n") ? "\r\n" : "\n"
+  const crlf = text.match(/\r\n/g)?.length ?? 0
+  const lf = (text.match(/\n/g)?.length ?? 0) - crlf
+  const eol = crlf > lf ? "\r\n" : "\n"
   const finalNewline = text.endsWith("\n")
   const body = finalNewline ? text.slice(0, text.endsWith("\r\n") ? -2 : -1) : text
 
   return { lines: text === "" ? [] : body.split(/\r?\n/), eol, finalNewline }
 }
+
+/**
+ * Splits text that is about to become lines on every line ending (CRLF, LF or
+ * a lone CR), so no `\r` is carried into a file whose lines end another way.
+ */
+export const textLines = (text: string): string[] => text.split(/\r\n?|\n/)
 
 export const joinLines = ({ lines, eol, finalNewline }: Lines): string =>
   lines.length === 0 ? "" : lines.join(eol) + (finalNewline ? eol : "")
