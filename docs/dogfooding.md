@@ -6,6 +6,12 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 ## Now
 
+- **Loop `01M5GFQE4CEH965H2CH9XZYRSS` (intensive, width 1): running.**
+  - Resumed from loop `01M5FHVVJ6H539ZGYMN78TTRXJ`'s close (`6f0889a`)
+    and the open list: 50 and 55 still wait for the person; 56 (filed by
+    the person at `619e7fa`) is ready and needs no decision.
+  - Round 1 proposes 56 alone: width 1, so no pairing question; it touches
+    `src/core` moves and `src/markdown` links, no reviewer or `do` text.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
