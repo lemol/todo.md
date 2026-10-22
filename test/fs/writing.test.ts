@@ -455,3 +455,126 @@ describe("moving a task file keeps its relative links", () => {
     )
   }
 })
+
+const groupTodo = md(
+  "## Backend",
+  "",
+  "- [ ] [02 - Links](./backend/02-links.md)",
+  "- [ ] [03 - Other](./backend/03-other.md)",
+  "",
+  "## Frontend",
+  "",
+)
+
+const groupLinks = md(
+  "---",
+  "title: Links",
+  "---",
+  "[Sibling](./sib.md)",
+  "[Other](./03-other.md)",
+  "[Named](../backend/03-other.md)",
+  "[Self](./02-links.md)",
+  "[Product](../product/README.md)",
+  "[Missing](./missing.md)",
+)
+
+const groupFiles = {
+  "TODO.md": groupTodo,
+  "backend/02-links.md": groupLinks,
+  "backend/03-other.md": md("---", "title: Other", "---"),
+  "backend/sib.md": "# sibling\n",
+  "product/README.md": "# product\n",
+}
+
+/** The inline link destinations in `text`. */
+const destinations = (text: string) => [...text.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1]!)
+
+describe("moving a task file to another group keeps its relative links", () => {
+  effectTest(
+    "move to another group rebases the moved file's links",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+
+      yield* (yield* TodoStore).move("2", { group: "Frontend" })
+
+      const text = yield* disk.read("frontend/02-links.md")
+
+      expect(text).toBe(
+        md(
+          "---",
+          "title: Links",
+          "---",
+          "[Sibling](../backend/sib.md)",
+          "[Other](../backend/03-other.md)",
+          "[Named](../backend/03-other.md)",
+          "[Self](./02-links.md)",
+          "[Product](../product/README.md)",
+          "[Missing](./missing.md)",
+        ),
+      )
+
+      for (const destination of destinations(text).filter((d) => d !== "./missing.md")) {
+        expect(yield* disk.exists(`frontend/${destination}`)).toBe(true)
+      }
+    }),
+    listWith(groupFiles),
+  )
+
+  effectTest(
+    "renameGroup into an existing directory rebases each moved file's links",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+
+      yield* (yield* TodoStore).renameGroup("Backend", "Server")
+      expect(yield* disk.tree()).toEqual([
+        "TODO.md",
+        "backend/sib.md",
+        "product/README.md",
+        "server/02-links.md",
+        "server/03-other.md",
+        "server/notes.md",
+      ])
+
+      const text = yield* disk.read("server/02-links.md")
+
+      expect(text).toBe(
+        md(
+          "---",
+          "title: Links",
+          "---",
+          "[Sibling](../backend/sib.md)",
+          "[Other](./03-other.md)",
+          "[Named](./03-other.md)",
+          "[Self](./02-links.md)",
+          "[Product](../product/README.md)",
+          "[Missing](./missing.md)",
+        ),
+      )
+
+      for (const destination of destinations(text).filter((d) => d !== "./missing.md")) {
+        expect(yield* disk.exists(`server/${destination}`)).toBe(true)
+      }
+    }),
+    listWith({ ...groupFiles, "server/notes.md": "# notes\n" }),
+  )
+
+  effectTest(
+    "renameGroup moving the whole directory rebases links naming the old directory",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+
+      yield* (yield* TodoStore).renameGroup("Backend", "Server")
+
+      const text = yield* disk.read("server/02-links.md")
+
+      expect(text).toBe(
+        groupLinks.replace("[Named](../backend/03-other.md)", "[Named](./03-other.md)"),
+      )
+
+      for (const destination of destinations(text).filter((d) => d !== "./missing.md")) {
+        expect(yield* disk.exists(`server/${destination}`)).toBe(true)
+      }
+    }),
+    listWith(groupFiles),
+  )
+})

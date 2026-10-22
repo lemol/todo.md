@@ -335,7 +335,15 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                 ) {
                   const path = joinPath(groupDir(tasksDir, target.group), basename(item.path))
 
+                  const body =
+                    entry.source === undefined
+                      ? undefined
+                      : yield* rebaseTaskLinks(files, item.path, path, entry.source)
+
                   yield* files.move(item.path, path)
+
+                  if (body !== undefined && body !== entry.source) yield* files.write(path, body)
+
                   lines = linkedItemFor(task, path)
                 }
 
@@ -472,6 +480,37 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
             if (oldDir !== newDir && (yield* files.exists(oldDir))) {
               const moveWhole = !(yield* files.exists(newDir))
 
+              const inside = (candidate: string) => candidate.startsWith(`${oldDir}/`)
+              const newPathOf = (candidate: string) =>
+                `${newDir}/${candidate.slice(oldDir.length + 1)}`
+
+              const moving = new Set(
+                snapshot.entries.flatMap(({ item }) =>
+                  item.path !== undefined && inside(item.path) ? [item.path] : [],
+                ),
+              )
+
+              const relocate = (candidate: string) =>
+                inside(candidate) && (moveWhole || moving.has(candidate))
+                  ? newPathOf(candidate)
+                  : candidate
+
+              const rebased = new Map<string, string>()
+
+              for (const { item, source } of snapshot.entries) {
+                if (item.path === undefined || source === undefined || !inside(item.path)) continue
+
+                const body = yield* rebaseTaskLinks(
+                  files,
+                  item.path,
+                  newPathOf(item.path),
+                  source,
+                  relocate,
+                )
+
+                if (body !== source) rebased.set(newPathOf(item.path), body)
+              }
+
               if (moveWhole) yield* files.move(oldDir, newDir)
 
               while (true) {
@@ -485,6 +524,10 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                 const path = `${newDir}/${item.path.slice(oldDir.length + 1)}`
 
                 if (!moveWhole) yield* files.move(item.path, path)
+
+                const body = rebased.get(path)
+
+                if (body !== undefined) yield* files.write(path, body)
 
                 text = replaceItem(
                   todo,
