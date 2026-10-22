@@ -137,6 +137,72 @@ for (const syntax of ["link", "image", "definition"] as const) {
   )
 }
 
+for (const [written, archivedInner, target] of [
+  ["../a+b.md", "../../a+b.md", "a+b.md"],
+  ["../über.md", "../../über.md", "über.md"],
+  ["<../My Notes.md>", "<../../My Notes.md>", "My Notes.md"],
+  ["../a,b@c.md", "../../a,b@c.md", "a,b@c.md"],
+] as const) {
+  for (const syntax of ["link", "image", "definition"] as const) {
+    const source =
+      syntax === "definition"
+        ? `[ref]: ${written}\n`
+        : `${syntax === "image" ? "!" : ""}[x](${written})\n`
+
+    const expectedArchived =
+      syntax === "definition"
+        ? `[ref]: ${archivedInner}\n`
+        : `${syntax === "image" ? "!" : ""}[x](${archivedInner})\n`
+
+    effectTest(
+      `rebased ${syntax} preserves spelling ${written} byte-for-byte`,
+      Effect.gen(function* () {
+        const disk = yield* Disk
+        const files = yield* makeFiles(disk.root).pipe(Effect.provide(BunServices.layer))
+        const archived = yield* rebaseTaskLinks(
+          files,
+          "group/task.md",
+          "done/group/task.md",
+          source,
+        )
+
+        expect(archived).toBe(expectedArchived)
+        expect(yield* rebaseTaskLinks(files, "done/group/task.md", "group/task.md", archived)).toBe(
+          source,
+        )
+      }),
+      diskWith({ [target]: "target", "group/.keep": "", "done/group/.keep": "" }),
+    )
+  }
+}
+
+for (const syntax of ["link", "image", "definition"] as const) {
+  const source =
+    syntax === "definition"
+      ? "[ref]: ./sib.md\n"
+      : `${syntax === "image" ? "!" : ""}[x](./sib.md)\n`
+
+  const expectedArchived =
+    syntax === "definition"
+      ? "[ref]: ../../group/sib.md\n"
+      : `${syntax === "image" ? "!" : ""}[x](../../group/sib.md)\n`
+
+  effectTest(
+    `rebased ${syntax} preserves spelling ./sib.md byte-for-byte`,
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const files = yield* makeFiles(disk.root).pipe(Effect.provide(BunServices.layer))
+      const archived = yield* rebaseTaskLinks(files, "group/task.md", "done/group/task.md", source)
+
+      expect(archived).toBe(expectedArchived)
+      expect(yield* rebaseTaskLinks(files, "done/group/task.md", "group/task.md", archived)).toBe(
+        source,
+      )
+    }),
+    diskWith({ "group/sib.md": "target", "group/.keep": "", "done/group/.keep": "" }),
+  )
+}
+
 for (const source of [
   "[a`b](../ok.md)\n\n`later`\n",
   "[a``b](../ok.md)\n\n```later```\n",
