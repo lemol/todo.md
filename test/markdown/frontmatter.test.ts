@@ -19,6 +19,29 @@ describe("readFrontmatter", () => {
     })
   })
 
+  test("reports aliases that do not resolve, and reads ones that do", () => {
+    expect(readFrontmatter("title: T\nx: *a")).toEqual({
+      data: {},
+      error: "Unresolved alias (the anchor must be set before the alias): a",
+    })
+    expect(readFrontmatter("a: &x 1\nb: *x")).toEqual({ data: { a: 1, b: 1 }, error: undefined })
+  })
+
+  test("reports an alias bomb", () => {
+    const bomb = [
+      "a: &a [x, x, x, x, x, x, x, x, x, x]",
+      "b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]",
+      "c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]",
+      "d: &d [*c, *c, *c, *c, *c, *c, *c, *c, *c, *c]",
+      "e: [*d, *d, *d, *d, *d, *d, *d, *d, *d, *d]",
+    ].join("\n")
+
+    expect(readFrontmatter(bomb)).toEqual({
+      data: {},
+      error: "Excessive alias count indicates a resource exhaustion attack",
+    })
+  })
+
   test("treats empty frontmatter as no fields", () => {
     expect(readFrontmatter("")).toEqual({ data: {}, error: undefined })
   })

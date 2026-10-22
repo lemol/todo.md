@@ -187,6 +187,26 @@ describe("todo show", () => {
 
 describe("todo check", () => {
   effectTest(
+    "reports a task file whose frontmatter alias does not resolve",
+    Effect.gen(function* () {
+      expect(yield* todo("check")).toEqual({
+        code: 1,
+        stdout: lines(
+          "error    later/1-bad.md:1  invalid-frontmatter  Unresolved alias (the anchor must be set before the alias): a",
+          "",
+          "1 error",
+        ),
+        stderr: "",
+      })
+    }),
+    diskWith({
+      "TODO.md": md("- [ ] [1 - Bad](./later/1-bad.md)", "- [ ] [2 - Good](./later/2-good.md)"),
+      "later/1-bad.md": md("---", "title: Bad", "x: *a", "---", "Body"),
+      "later/2-good.md": md("---", "title: Good", "---", "Body"),
+    }),
+  )
+
+  effectTest(
     "reports a clean list",
     Effect.gen(function* () {
       expect(yield* todo("check")).toEqual({ code: 0, stdout: "No problems found.", stderr: "" })

@@ -565,3 +565,29 @@ describe("frontmatter read with lone CRs as line breaks", () => {
     expect(file.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
   })
 })
+
+describe("frontmatter aliases", () => {
+  const source = "---\ntitle: T\nx: *a\n---\nBody\n"
+
+  test("an alias to a missing anchor is invalid frontmatter", () => {
+    const file = parseTaskFile(source, "x.md")
+
+    expect(file.diagnostics.map((d) => [d.code, d.message, d.line])).toEqual([
+      ["invalid-frontmatter", "Unresolved alias (the anchor must be set before the alias): a", 1],
+    ])
+    expect(file.description).toBe("Body")
+  })
+
+  test("an edit splices only the changed key", () => {
+    expect(updateTaskFile(source, { assignee: "y" })).toBe(
+      "---\ntitle: T\nx: *a\nassignee: y\n---\nBody\n",
+    )
+  })
+
+  test("an alias to an anchor that exists still reads", () => {
+    const file = parseTaskFile("---\ntitle: T\na: &x 1\nb: *x\n---\nBody\n", "x.md")
+
+    expect(file.diagnostics).toEqual([])
+    expect(file.extra).toEqual({ a: 1, b: 1 })
+  })
+})

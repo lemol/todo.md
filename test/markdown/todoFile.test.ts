@@ -149,6 +149,15 @@ describe("parseTodoFile", () => {
     expect(parsed.diagnostics.map((d) => [d.code, d.line])).toEqual([["duplicate-group", 3]])
   })
 
+  test("reports an alias to a missing anchor and keeps the defaults", () => {
+    const parsed = parseTodoFile(md("---", "x: *a", "---", "# T"))
+
+    expect(parsed.config).toEqual({ tasksDir: ".", doneDir: "done" })
+    expect(parsed.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["invalid-frontmatter", "Unresolved alias (the anchor must be set before the alias): a"],
+    ])
+  })
+
   test("reports invalid configuration and keeps the defaults", () => {
     const parsed = parseTodoFile(md("---", "tasks_dir: ../elsewhere", "---", "# T"))
 

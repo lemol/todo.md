@@ -27,14 +27,25 @@ const parseYaml = (yaml: string): { readonly doc: Document.Parsed; readonly text
   return lines.errors.length === 0 ? { doc: lines, text } : { doc: raw, text: yaml }
 }
 
-/** Reads frontmatter YAML (without the `---` fences) into a plain object. */
+/**
+ * Reads frontmatter YAML (without the `---` fences) into a plain object; never
+ * throws. YAML that fails to parse or resolve is reported in `error`.
+ */
 export const readFrontmatter = (yaml: string): FrontmatterData => {
   const { doc } = parseYaml(yaml)
   const [first] = doc.errors
 
   if (first !== undefined) return { data: {}, error: textLines(first.message)[0] }
 
-  const value: unknown = doc.toJS()
+  let value: unknown
+
+  try {
+    value = doc.toJS()
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause)
+
+    return { data: {}, error: textLines(message)[0] }
+  }
 
   if (value === null || value === undefined) return { data: {}, error: undefined }
 
