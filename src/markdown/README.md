@@ -43,6 +43,8 @@ adapter reads and writes the files.
   for (a syntax error, a non-mapping, a flow map with a bad alias) makes
   `frontmatterEdits` and `updateTaskFile` return a failure with the reader's
   message, and `fs` fails the write (spec §2.10).
+  A YAML syntax error's message and diagnostic line use file coordinates
+  (the opening fence counts as line 1) and end without a colon.
 - **Line endings:** a lone CR is a line ending, as it is to micromark, so
   mdast line numbers index `splitLines` lines. A lone CR on a line no edit
   touches is kept because YAML reads it as content (`title: "a\rb"` is valid,

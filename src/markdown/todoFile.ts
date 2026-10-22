@@ -79,12 +79,12 @@ const dedent = (line: string, columns: number): string =>
   line.slice(Math.min(columns, line.length - line.trimStart().length))
 
 const readConfig = (yaml: string, diagnostics: Diagnostic[]): ListConfig => {
-  const { data, error } = readFrontmatter(yaml)
+  const { data, error, errorLine } = readFrontmatter(yaml)
 
-  const report = (message: string) =>
-    diagnostics.push({ severity: "error", code: "invalid-frontmatter", message, file, line: 1 })
+  const report = (message: string, line = 1) =>
+    diagnostics.push({ severity: "error", code: "invalid-frontmatter", message, file, line })
 
-  if (error !== undefined) report(error)
+  if (error !== undefined) report(error, errorLine)
 
   const dir = (key: string, fallback: string): string => {
     const value = data[key]

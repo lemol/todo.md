@@ -6,6 +6,8 @@ export interface FrontmatterData {
   readonly data: Readonly<Record<string, unknown>>
   /** Why the YAML could not be read, if it could not. */
   readonly error: string | undefined
+  /** The 1-based file line of a YAML syntax error, counting the opening fence; absent otherwise. */
+  readonly errorLine?: number
 }
 
 /**
@@ -38,7 +40,17 @@ export const readFrontmatter = (yaml: string): FrontmatterData => {
   const { doc } = parseYaml(yaml)
   const [first] = doc.errors
 
-  if (first !== undefined) return { data: {}, error: textLines(first.message)[0] }
+  if (first !== undefined) {
+    const head = textLines(first.message.replace(/\s*at line \d+, column \d+[\s\S]*$/, ""))[0] ?? ""
+    const start = first.linePos?.[0]
+
+    if (start === undefined) return { data: {}, error: head.replace(/:$/, "") }
+
+    // YAML counts from the first line below the opening fence.
+    const errorLine = start.line + 1
+
+    return { data: {}, error: `${head} at line ${errorLine}, column ${start.col}`, errorLine }
+  }
 
   let value: unknown
 

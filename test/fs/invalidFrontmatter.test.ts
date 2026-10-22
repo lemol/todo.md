@@ -18,7 +18,7 @@ const shapes = [
   [
     "YAML with a syntax error",
     ["title: Bad", "x: ["],
-    "Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 5:",
+    "Flow sequence in block collection must be sufficiently indented and end with a ] at line 3, column 5",
   ],
   ["a sequence", ["- a", "- b"], "frontmatter must be a mapping"],
   ["a scalar", ["hello"], "frontmatter must be a mapping"],

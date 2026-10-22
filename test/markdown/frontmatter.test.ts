@@ -56,7 +56,9 @@ describe("readFrontmatter", () => {
   })
 
   test("diagnostics stop at every line ending", () => {
-    expect(readFrontmatter('a: "\\\rX"\r\nb: 1').error).toBe("Invalid escape sequence \\")
+    expect(readFrontmatter('a: "\\\rX"\r\nb: 1').error).toBe(
+      "Invalid escape sequence \\ at line 2, column 5",
+    )
   })
 })
 
@@ -95,11 +97,11 @@ describe("frontmatterEdits", () => {
     fails("{title: T, x: *a}", "Unresolved alias (the anchor must be set before the alias): a")
     fails(
       "title: Bad\nx: [",
-      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 5:",
+      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 3, column 5",
     )
     fails(
       "unclosed: [a, b",
-      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 1, column 16:",
+      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 16",
     )
     fails("- a\n- b", "frontmatter must be a mapping")
     fails("hello", "frontmatter must be a mapping")

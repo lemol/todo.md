@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { DateTime, Result } from "effect"
+import { readFrontmatter } from "../../src/markdown/frontmatter.ts"
 import {
   formatTaskFile,
   formatTimestamp,
@@ -11,6 +12,7 @@ import {
   type TaskFileContent,
   updateTaskFile,
 } from "../../src/markdown/taskFile.ts"
+import { parseTodoFile } from "../../src/markdown/todoFile.ts"
 import { md } from "./fixtures.ts"
 
 const edit = (source: string, changes: TaskFileChanges) =>
@@ -595,4 +597,20 @@ describe("frontmatter aliases", () => {
     expect(file.diagnostics).toEqual([])
     expect(file.extra).toEqual({ a: 1, b: 1 })
   })
+})
+
+test.each(["\n", "\r\n"])("syntax errors use file coordinates (%j)", (eol) => {
+  const source = ["---", "title: Syn", "x: [", "---", "Body", ""].join(eol)
+  const message =
+    "Flow sequence in block collection must be sufficiently indented and end with a ] at line 3, column 5"
+
+  expect(readFrontmatter(`title: Syn${eol}x: [`).error).toBe(message)
+  expect(readFrontmatter(`title: Syn${eol}x: [`).error).not.toMatch(/:$/)
+  expect(parseTaskFile(source, "later/2-syn.md").diagnostics).toEqual([
+    { severity: "error", code: "invalid-frontmatter", message, file: "later/2-syn.md", line: 3 },
+  ])
+  expect(parseTodoFile(source).diagnostics).toEqual([
+    { severity: "error", code: "invalid-frontmatter", message, file: "TODO.md", line: 3 },
+  ])
+  expect(updateTaskFile(source, { assignee: "y" })).toEqual(Result.fail(message))
 })

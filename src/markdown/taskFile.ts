@@ -100,7 +100,7 @@ const layout = (source: string) => {
  * The version of `parseTaskFile`'s output. Parses are cached by content, so
  * bump this whenever the same text would parse to something different.
  */
-export const taskFileParserVersion = 4
+export const taskFileParserVersion = 5
 
 /** Parses a task file. `file` (its root-relative path) locates diagnostics. Never fails. */
 export const parseTaskFile = (source: string, file: string): TaskFile => {
@@ -110,9 +110,9 @@ export const parseTaskFile = (source: string, file: string): TaskFile => {
   const report = (code: string, message: string, line: number) =>
     diagnostics.push({ severity: "error", code, message, file, line })
 
-  const { data, error } = readFrontmatter(yaml?.value ?? "")
+  const { data, error, errorLine } = readFrontmatter(yaml?.value ?? "")
 
-  if (error !== undefined) report("invalid-frontmatter", error, 1)
+  if (error !== undefined) report("invalid-frontmatter", error, errorLine ?? 1)
 
   const invalid = (key: string, expected: string) =>
     report("invalid-frontmatter", `${key} must be ${expected}`, 1)

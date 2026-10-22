@@ -208,4 +208,34 @@ describe("makeParser", () => {
     }),
     diskWith({}),
   )
+
+  effectTest(
+    "discards version 4 diagnostics and reparses the file",
+    Effect.gen(function* () {
+      const disk = yield* Disk
+      const source = md("---", "title: Syn", "x: [", "---", "Body")
+      const files = { "02-syn.md": source }
+
+      yield* read(yield* parserWith(), files)
+      const [cacheFile] = yield* disk.tree()
+      const saved = JSON.parse(yield* disk.read(cacheFile ?? ""))
+
+      saved.version = 4
+      saved.entries[keyOf("02-syn.md", source)].diagnostics[0].message = "stale syntax diagnostic"
+      yield* disk.write(cacheFile ?? "", JSON.stringify(saved))
+      const [restored] = yield* read(yield* parserWith(), files)
+
+      expect(restored?.diagnostics).toEqual([
+        {
+          severity: "error",
+          code: "invalid-frontmatter",
+          message:
+            "Flow sequence in block collection must be sufficiently indented and end with a ] at line 3, column 5",
+          file: "02-syn.md",
+          line: 3,
+        },
+      ])
+    }),
+    diskWith({}),
+  )
 })
