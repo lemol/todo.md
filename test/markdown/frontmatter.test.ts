@@ -88,6 +88,12 @@ describe("frontmatterEdits", () => {
     expect(frontmatterEdits("{title: T, x: *a}", { assignee: "y" })).toEqual([])
   })
 
+  test("replaces frontmatter that is not a mapping", () => {
+    expect(frontmatterEdits("- a\n- b", { assignee: "y" })).toEqual([
+      { start: 0, deleteCount: 2, lines: ["assignee: y"] },
+    ])
+  })
+
   test("rewrites only the changed key", () => {
     expect(frontmatterEdits(yaml, { assignee: "claude", title: "Add rate limiting" })).toEqual([
       { start: 2, deleteCount: 1, lines: ["assignee: claude"] },

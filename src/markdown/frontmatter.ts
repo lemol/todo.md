@@ -27,6 +27,8 @@ const parseYaml = (yaml: string): { readonly doc: Document.Parsed; readonly text
   return lines.errors.length === 0 ? { doc: lines, text } : { doc: raw, text: yaml }
 }
 
+const notMapping = "frontmatter must be a mapping"
+
 /**
  * Reads frontmatter YAML (without the `---` fences) into a plain object; never
  * throws. YAML that fails to parse or resolve is reported in `error`.
@@ -50,7 +52,7 @@ export const readFrontmatter = (yaml: string): FrontmatterData => {
   if (value === null || value === undefined) return { data: {}, error: undefined }
 
   if (typeof value !== "object" || Array.isArray(value)) {
-    return { data: {}, error: "frontmatter must be a mapping" }
+    return { data: {}, error: notMapping }
   }
 
   return { data: value as Record<string, unknown>, error: undefined }
@@ -99,10 +101,11 @@ export const frontmatterEdits = (
   const parsed = parseYaml(yaml)
   const { text, doc } = parsed
   const { data: current, error } = readFrontmatter(yaml)
+  const unresolved = doc.errors.length === 0 && error !== undefined && error !== notMapping
   const map = doc.contents
 
   if (doc.errors.length > 0 || (map !== null && !(isMap(map) && !map.flow))) {
-    if (doc.errors.length === 0 && error !== undefined) return []
+    if (unresolved) return []
 
     const merged = { ...current, ...fields }
 
@@ -121,7 +124,7 @@ export const frontmatterEdits = (
   const appended: string[] = []
 
   for (const [key, value] of Object.entries(fields)) {
-    if (error === undefined && same(current[key], value)) continue
+    if (!unresolved && same(current[key], value)) continue
 
     const pair =
       isMap(map) && !map.flow
