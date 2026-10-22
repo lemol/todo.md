@@ -1,4 +1,4 @@
-import { DateTime, Option } from "effect"
+import { DateTime, Option, Result } from "effect"
 import { type Comment, type Diagnostic, type TaskId, unique } from "../spec/index.ts"
 import { headingText, lineSpan, parseAst } from "./ast.ts"
 import { formatFrontmatter, frontmatterEdits, readFrontmatter } from "./frontmatter.ts"
@@ -286,8 +286,11 @@ export interface TaskFileChanges {
   readonly cancelledReason?: string | null
 }
 
-/** Applies `changes`, rewriting only the frontmatter keys and description that change (spec §2.10). */
-export const updateTaskFile = (source: string, changes: TaskFileChanges): string => {
+/** Applies `changes`, rewriting only the frontmatter keys and description that change (spec §2.10). Fails with the reader's message when `changes` touches frontmatter the writer cannot edit key by key. */
+export const updateTaskFile = (
+  source: string,
+  changes: TaskFileChanges,
+): Result.Result<string, string> => {
   const current = parseTaskFile(source, "")
   const { yaml, bodyStart, comments } = layout(source)
   let text: Lines = splitLines(source)
@@ -337,7 +340,11 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
 
   if (Object.keys(fields).length > 0) {
     if (yaml !== undefined) {
-      for (const edit of frontmatterEdits(yaml.value, fields)) {
+      const edits = frontmatterEdits(yaml.value, fields)
+
+      if (Result.isFailure(edits)) return Result.fail(edits.failure)
+
+      for (const edit of edits.success) {
         text = spliceLines(text, 1 + edit.start, edit.deleteCount, edit.lines)
       }
     } else {
@@ -349,7 +356,7 @@ export const updateTaskFile = (source: string, changes: TaskFileChanges): string
     }
   }
 
-  return joinLines(text)
+  return Result.succeed(joinLines(text))
 }
 
 /** Adds a comment at the top of the comments section, creating the section if needed (spec §2.10). */

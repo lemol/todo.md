@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { DateTime } from "effect"
+import { DateTime, Result } from "effect"
 import {
   formatTaskFile,
   formatTimestamp,
@@ -7,10 +7,14 @@ import {
   parseCommentHeading,
   parseTaskFile,
   prependComment,
+  type TaskFileChanges,
   type TaskFileContent,
   updateTaskFile,
 } from "../../src/markdown/taskFile.ts"
 import { md } from "./fixtures.ts"
+
+const edit = (source: string, changes: TaskFileChanges) =>
+  Result.getOrThrow(updateTaskFile(source, changes))
 
 const utc = (iso: string) => DateTime.makeUnsafe(iso)
 
@@ -303,41 +307,37 @@ describe("updateTaskFile", () => {
   const crlfSource = "---\r\ntitle: T   # keep\r\ntags: [a]\r\nestimate: 3\r\n---\r\nBody\r\n"
 
   test("changing a key preserves other CRLF lines", () => {
-    expect(updateTaskFile(crlfSource, { tags: ["b"] })).toBe(
-      crlfSource.replace("tags: [a]", "tags: [b]"),
-    )
+    expect(edit(crlfSource, { tags: ["b"] })).toBe(crlfSource.replace("tags: [a]", "tags: [b]"))
   })
 
   test("deleting a key preserves other CRLF lines", () => {
-    expect(updateTaskFile(crlfSource, { tags: [] })).toBe(crlfSource.replace("tags: [a]\r\n", ""))
+    expect(edit(crlfSource, { tags: [] })).toBe(crlfSource.replace("tags: [a]\r\n", ""))
   })
 
   test("appending a key preserves other CRLF lines", () => {
-    expect(updateTaskFile(crlfSource, { assignee: "sam" })).toBe(
+    expect(edit(crlfSource, { assignee: "sam" })).toBe(
       crlfSource.replace("estimate: 3\r\n", "estimate: 3\r\nassignee: sam\r\n"),
     )
   })
 
   test("rewrites only the changed frontmatter keys", () => {
-    expect(updateTaskFile(example, { assignee: "claude", title: "Add rate limiting" })).toBe(
+    expect(edit(example, { assignee: "claude", title: "Add rate limiting" })).toBe(
       example.replace("assignee: lemol", "assignee: claude"),
     )
   })
 
   test("removes fields set to null or emptied", () => {
-    expect(updateTaskFile(example, { assignee: null, tags: [], dependsOn: [] })).toBe(
+    expect(edit(example, { assignee: null, tags: [], dependsOn: [] })).toBe(
       example.replace("tags: [api, security]\nassignee: lemol\ndepends_on: [3]\n", ""),
     )
   })
 
   test("replaces extra fields as a whole", () => {
-    expect(updateTaskFile(example, { extra: { size: "m" } })).toBe(
-      example.replace("estimate: 3", "size: m"),
-    )
+    expect(edit(example, { extra: { size: "m" } })).toBe(example.replace("estimate: 3", "size: m"))
   })
 
   test("replaces the description and keeps the comments", () => {
-    const updated = updateTaskFile(example, { description: "New plan." })
+    const updated = edit(example, { description: "New plan." })
 
     expect(updated).toBe(
       example.replace(
@@ -348,7 +348,7 @@ describe("updateTaskFile", () => {
   })
 
   test("records completion and clears it", () => {
-    const done = updateTaskFile(example, {
+    const done = edit(example, {
       group: "Backend",
       completedAt: utc("2026-09-12T10:31:00Z"),
     })
@@ -359,19 +359,15 @@ describe("updateTaskFile", () => {
         "estimate: 3\ngroup: Backend\ncompleted_at: 2026-09-12T10:31:00Z\n",
       ),
     )
-    expect(updateTaskFile(done, { group: null, completedAt: null })).toBe(example)
+    expect(edit(done, { group: null, completedAt: null })).toBe(example)
   })
 
   test("adds frontmatter to a file without one", () => {
-    expect(updateTaskFile("Notes.\n", { title: "Notes" })).toBe(
-      md("---", "title: Notes", "---", "Notes."),
-    )
+    expect(edit("Notes.\n", { title: "Notes" })).toBe(md("---", "title: Notes", "---", "Notes."))
   })
 
   test("changes nothing when nothing changes", () => {
-    expect(updateTaskFile(example, { title: "Add rate limiting", tags: ["api", "security"] })).toBe(
-      example,
-    )
+    expect(edit(example, { title: "Add rate limiting", tags: ["api", "security"] })).toBe(example)
   })
 })
 
@@ -422,11 +418,11 @@ describe("lone carriage returns", () => {
     ],
     ["---\ntitle: T\rtags: [a]\n---\nBody\n", "---\ntitle: T\rtags: [b]\n---\nBody\n"],
   ])("changing a key in %j keeps every other line", (source, updated) => {
-    expect(updateTaskFile(source, { tags: ["b"] })).toBe(updated)
+    expect(edit(source, { tags: ["b"] })).toBe(updated)
   })
 
   test("rewriting a value that holds a lone CR replaces all of its lines", () => {
-    expect(updateTaskFile('---\ntitle: "a\rb"\ntags: [a]\n---\nBody\n', { title: "c" })).toBe(
+    expect(edit('---\ntitle: "a\rb"\ntags: [a]\n---\nBody\n', { title: "c" })).toBe(
       "---\ntitle: c\ntags: [a]\n---\nBody\n",
     )
   })
@@ -457,7 +453,7 @@ describe("lone carriage returns", () => {
   })
 
   test("replacing the description keeps the comments", () => {
-    expect(updateTaskFile(source, { description: "new" })).toBe(
+    expect(edit(source, { description: "new" })).toBe(
       md(
         "---",
         "title: T",
@@ -471,9 +467,9 @@ describe("lone carriage returns", () => {
         "hi",
       ),
     )
-    expect(
-      updateTaskFile("---\ntitle: T\n---\nline a\rline b\nmore\n", { description: "new" }),
-    ).toBe("---\ntitle: T\n---\nnew\n")
+    expect(edit("---\ntitle: T\n---\nline a\rline b\nmore\n", { description: "new" })).toBe(
+      "---\ntitle: T\n---\nnew\n",
+    )
   })
 })
 
@@ -508,9 +504,9 @@ describe("carriage returns in new text", () => {
   })
 
   test("updateTaskFile keeps an LF file LF", () => {
-    expect(
-      updateTaskFile(md("---", "title: T", "---", "Old"), { description: "New\r\nMore" }),
-    ).toBe(md("---", "title: T", "---", "New", "More"))
+    expect(edit(md("---", "title: T", "---", "Old"), { description: "New\r\nMore" })).toBe(
+      md("---", "title: T", "---", "New", "More"),
+    )
   })
 
   test("prependComment keeps an LF file LF", () => {
@@ -547,7 +543,7 @@ describe("frontmatter read with lone CRs as line breaks", () => {
   })
 
   test("an edit reads back through the parser", () => {
-    const edited = updateTaskFile("---\ntitle: T\rassignee: z\n---\nBody\n", { assignee: "y" })
+    const edited = edit("---\ntitle: T\rassignee: z\n---\nBody\n", { assignee: "y" })
     const file = parseTaskFile(edited, "x.md")
 
     expect(file.diagnostics).toEqual([])
@@ -579,8 +575,17 @@ describe("frontmatter aliases", () => {
   })
 
   test("an edit splices only the changed key", () => {
-    expect(updateTaskFile(source, { assignee: "y" })).toBe(
-      "---\ntitle: T\nx: *a\nassignee: y\n---\nBody\n",
+    expect(edit(source, { assignee: "y" })).toBe("---\ntitle: T\nx: *a\nassignee: y\n---\nBody\n")
+  })
+
+  test("an edit to frontmatter it cannot splice fails; a description edit does not", () => {
+    const flow = "---\n{title: T, x: *a}\n---\nBody\n"
+
+    expect(updateTaskFile(flow, { assignee: "y" })).toEqual(
+      Result.fail("Unresolved alias (the anchor must be set before the alias): a"),
+    )
+    expect(updateTaskFile(flow, { description: "New" })).toEqual(
+      Result.succeed("---\n{title: T, x: *a}\n---\nNew\n"),
     )
   })
 

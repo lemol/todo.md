@@ -1,4 +1,4 @@
-import { DateTime, Effect } from "effect"
+import { DateTime, Effect, Result } from "effect"
 import {
   fitsInline,
   formatTaskFile,
@@ -9,9 +9,10 @@ import {
   removeItem,
   taskFileFor,
   taskPath,
+  type TaskFileChanges,
   updateTaskFile,
 } from "../markdown/index.ts"
-import type { StoreError, Task } from "../spec/index.ts"
+import { StoreError, type Task } from "../spec/index.ts"
 import type { Files } from "./files.ts"
 import { rebaseTaskLinks } from "./links.ts"
 import { type Entry, entryTask, type Snapshot, todoPath } from "./snapshot.ts"
@@ -47,6 +48,20 @@ const rebaseEntry = (
     ? Effect.succeed(edited)
     : rebaseTaskLinks(files, entry.item.path, to, edited)
 
+/** The edited text of `source` with `changes`, failing when the frontmatter cannot be edited key by key (spec §2.10). Computed before any write, so a failure leaves every file as it was. */
+export const editTaskFile = (
+  path: string,
+  source: string,
+  changes: TaskFileChanges,
+): Effect.Effect<string, StoreError> =>
+  Effect.fromResult(
+    Result.mapError(
+      updateTaskFile(source, changes),
+      (message) =>
+        new StoreError({ message: `cannot edit ${path}: invalid-frontmatter: ${message}` }),
+    ),
+  )
+
 /** `task` with the description and comments of the text written to `path`, when the entry has a file. */
 const withBody = (task: Task, entry: Entry, text: string, path: string): Task => {
   if (entry.source === undefined) return task
@@ -77,9 +92,9 @@ export const completeEntry = (
 
     const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, done.title)
     const edited =
-      entry.source === undefined
+      entry.source === undefined || entry.item.path === undefined
         ? formatTaskFile(taskFileFor(done))
-        : updateTaskFile(entry.source, {
+        : yield* editTaskFile(entry.item.path, entry.source, {
             group: group ?? null,
             completedAt: done.completedAt ?? null,
             outcome: "completed",
@@ -123,9 +138,9 @@ export const cancelEntry = (
 
     const donePath = taskPath(snapshot.todo.config.doneDir, group, entry.id, cancelled.title)
     const edited =
-      entry.source === undefined
+      entry.source === undefined || entry.item.path === undefined
         ? formatTaskFile(taskFileFor(cancelled))
-        : updateTaskFile(entry.source, {
+        : yield* editTaskFile(entry.item.path, entry.source, {
             group: group ?? null,
             completedAt: cancelled.completedAt ?? null,
             outcome: "cancelled",

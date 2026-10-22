@@ -28,7 +28,6 @@ import {
   type TodoFile,
   taskFileFor,
   taskPath,
-  updateTaskFile,
 } from "../markdown/index.ts"
 import {
   allCapabilities,
@@ -66,7 +65,7 @@ import {
   type Snapshot,
   todoPath,
 } from "./snapshot.ts"
-import { cancelEntry, completeEntry, itemLinesFor } from "./writing.ts"
+import { cancelEntry, completeEntry, editTaskFile, itemLinesFor } from "./writing.ts"
 
 export interface Options {
   /** Absolute path of the list root: the directory that contains `TODO.md`. */
@@ -273,7 +272,10 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                 const done = snapshot.done.find((candidate) => candidate.id === id)
 
                 if (done !== undefined) {
-                  yield* files.write(done.path, updateTaskFile(done.source, changesOf(valid)))
+                  yield* files.write(
+                    done.path,
+                    yield* editTaskFile(done.path, done.source, changesOf(valid)),
+                  )
 
                   return updated
                 }
@@ -289,12 +291,12 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
 
                   yield* writeTodo(replaceItem(snapshot.todo, item, lines))
                 } else if (item.path !== undefined) {
-                  yield* files.write(
-                    item.path,
+                  const edited =
                     entry.source === undefined
                       ? formatTaskFile(taskFileFor(updated))
-                      : updateTaskFile(entry.source, changesOf(valid)),
-                  )
+                      : yield* editTaskFile(item.path, entry.source, changesOf(valid))
+
+                  yield* files.write(item.path, edited)
 
                   if (updated.title !== item.title) {
                     yield* writeTodo(setItemHead(snapshot.todo, item, id, updated.title))
@@ -407,7 +409,7 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
               files,
               done.path,
               path,
-              updateTaskFile(done.source, {
+              yield* editTaskFile(done.path, done.source, {
                 group: null,
                 completedAt: null,
                 outcome: null,

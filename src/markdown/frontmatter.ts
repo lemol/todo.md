@@ -1,3 +1,4 @@
+import { Result } from "effect"
 import { Document, isMap, isScalar, parseDocument } from "yaml"
 import { lineAt, textLines } from "./lines.ts"
 
@@ -87,8 +88,13 @@ export interface FrontmatterEdit {
  * Edits for top-level keys in frontmatter `yaml`; `undefined` deletes a key.
  * Only the lines of keys whose value changes are rewritten, and new keys are
  * appended, so comments, quoting and key order elsewhere survive (spec §2.10).
- * When aliases do not resolve in a block map, requested keys are spliced
- * and other lines kept; otherwise the frontmatter is left as it is.
+ * A block map whose aliases do not resolve is still edited key by key, and
+ * its other lines, the bad alias included, stay as written. Any other
+ * frontmatter the reader reports an error for (a syntax error, a non-mapping,
+ * a flow map with a bad alias) fails with the reader's message instead of
+ * dropping the fields or replacing the frontmatter (spec §2.10). Valid
+ * frontmatter in flow style, or a null document, is rewritten in block style
+ * with every key kept.
  * The raw YAML is parsed first, so a lone CR that YAML reads as content keeps
  * its line; when the raw text has errors, the YAML is read with lone CRs as
  * line breaks instead, the way the Markdown parser reads them. Last line first.
@@ -96,7 +102,7 @@ export interface FrontmatterEdit {
 export const frontmatterEdits = (
   yaml: string,
   fields: Readonly<Record<string, unknown>>,
-): FrontmatterEdit[] => {
+): Result.Result<FrontmatterEdit[], string> => {
   const lineCount = yaml === "" ? 0 : textLines(yaml).length
   const parsed = parseYaml(yaml)
   const { text, doc } = parsed
@@ -104,18 +110,20 @@ export const frontmatterEdits = (
   const unresolved = doc.errors.length === 0 && error !== undefined && error !== notMapping
   const map = doc.contents
 
-  if (doc.errors.length > 0 || (map !== null && !(isMap(map) && !map.flow))) {
-    if (unresolved) return []
+  if (error !== undefined && !(unresolved && isMap(map) && !map.flow)) {
+    return Result.fail(error)
+  }
 
+  if (doc.errors.length > 0 || (map !== null && !(isMap(map) && !map.flow))) {
     const merged = { ...current, ...fields }
 
-    return [
+    return Result.succeed([
       {
         start: 0,
         deleteCount: lineCount,
         lines: formatFrontmatter(Object.entries(merged).filter(([, value]) => value !== undefined)),
       },
-    ]
+    ])
   }
 
   const lineOf = (offset: number) => lineAt(text, offset)
@@ -152,5 +160,5 @@ export const frontmatterEdits = (
 
   if (appended.length > 0) edits.push({ start: lineCount, deleteCount: 0, lines: appended })
 
-  return edits.sort((a, b) => b.start - a.start)
+  return Result.succeed(edits.sort((a, b) => b.start - a.start))
 }
