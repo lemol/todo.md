@@ -13,7 +13,12 @@ const decodedDestination = (raw: string): string | undefined => {
   if (!raw.includes("&")) return raw.replace(/\\([!-/:-@[-`{-~])/g, "$1")
 
   // Reuse CommonMark's character-reference rules rather than a separate decoder.
-  const paragraph = parseAst(`[x](<${raw}>)`).children[0]
+  // A plain destination may hold `<` and `>`, which the angle form must escape.
+  const angled = raw.replace(/\\[\s\S]|[<>]/g, (match) =>
+    match.length === 2 ? match : `\\${match}`,
+  )
+
+  const paragraph = parseAst(`[x](<${angled}>)`).children[0]
   const link = paragraph?.type === "paragraph" ? paragraph.children[0] : undefined
 
   return link?.type === "link" ? link.url : undefined

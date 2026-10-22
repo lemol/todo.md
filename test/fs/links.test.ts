@@ -56,6 +56,9 @@ for (const [destination, target] of [
   ["../a&amp;b.md", "a&b.md"],
   ["../a&#38;b.md", "a&b.md"],
   ["../a&#x26;b.md", "a&b.md"],
+  ["../a&amp;>b.md", "a&>b.md"],
+  ["../a&amp;<b.md", "a&<b.md"],
+  ["../a&amp;\\>b.md", "a&>b.md"],
 ] as const) {
   for (const syntax of ["link", "image", "definition"] as const) {
     const source =
