@@ -568,13 +568,17 @@ describe("moving a task file to another group keeps its relative links", () => {
       const text = yield* disk.read("server/02-links.md")
 
       expect(text).toBe(
-        groupLinks.replace("[Named](../backend/03-other.md)", "[Named](./03-other.md)"),
+        groupLinks.replace("[Named](../backend/03-other.md)", "[Named](./03-other.md)") +
+          md("[Dir](./)", "[NamedDir](./)", "[Dot](.)"),
       )
 
       for (const destination of destinations(text).filter((d) => d !== "./missing.md")) {
         expect(yield* disk.exists(`server/${destination}`)).toBe(true)
       }
     }),
-    listWith(groupFiles),
+    listWith({
+      ...groupFiles,
+      "backend/02-links.md": groupLinks + md("[Dir](./)", "[NamedDir](../backend/)", "[Dot](.)"),
+    }),
   )
 })

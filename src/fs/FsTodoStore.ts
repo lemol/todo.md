@@ -491,9 +491,11 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
               )
 
               const relocate = (candidate: string) =>
-                inside(candidate) && (moveWhole || moving.has(candidate))
-                  ? newPathOf(candidate)
-                  : candidate
+                moveWhole && candidate === oldDir
+                  ? newDir
+                  : inside(candidate) && (moveWhole || moving.has(candidate))
+                    ? newPathOf(candidate)
+                    : candidate
 
               const rebased = new Map<string, string>()
 
