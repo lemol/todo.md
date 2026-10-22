@@ -21,7 +21,8 @@ The file-system format (spec Part 2) is implemented by two modules: a pure
   (§2.10) holds. `remark-stringify` is deliberately not used, because it
   rewrites the whole document.
 - **Frontmatter edits rewrite only the changed keys' lines**, using the
-  source ranges `yaml` reports, so comments and formatting elsewhere survive.
+  source ranges `yaml` reports, so comments and formatting elsewhere survive;
+  frontmatter they cannot edit that way fails the write instead of being replaced.
 - **It also owns:**
   - the text-only steps of normalization (assigning IDs, syncing link text);
     the `fs` adapter does the steps that move files;

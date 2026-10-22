@@ -521,6 +521,16 @@ produce a **minimal diff**: only the lines the operation is about change. Hand-
 written prose, blank lines, bullet styles and unknown fields elsewhere MUST be
 left byte-for-byte intact.
 
+- **Frontmatter a writer cannot edit.** A write sets and deletes frontmatter
+  keys line by line. Frontmatter that does not parse, is not a mapping, or is
+  not a block mapping and has aliases that do not resolve (all
+  `invalid-frontmatter`, §2.6) cannot be edited that way. A write that would
+  change it MUST fail and leave the list unchanged, rather than drop the
+  fields or replace the frontmatter. A block mapping whose aliases do not
+  resolve is still edited key by key, and its other lines, the bad alias
+  included, stay as written. Writes that leave the frontmatter alone (a
+  description, a comment) proceed. Valid frontmatter in flow style MAY be
+  rewritten in block style with every key kept.
 - **add:**
   1. Allocate an ID (§2.7).
   2. Write an inline item, or a task file plus a linked item when the input
