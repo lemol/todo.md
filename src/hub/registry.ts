@@ -16,6 +16,7 @@ import {
   parseDocument,
   stringify,
   type YAMLMap,
+  YAMLParseError,
 } from "yaml"
 import { makeLock } from "../fs/index.ts"
 import { RegistryError } from "./errors.ts"
@@ -48,6 +49,27 @@ export interface Registry {
 }
 
 const keyOf = (pair: Pair): string => String(isScalar(pair.key) ? pair.key.value : pair.key)
+
+/** Count complete LF, CRLF and lone CR endings, matching the file line model. */
+const offsetLineCol = (
+  text: string,
+  offset: number,
+): { readonly line: number; readonly col: number } => {
+  let line = 1
+  let start = 0
+
+  for (const match of text.matchAll(/\r\n?|\n/g)) {
+    const end = (match.index ?? 0) + match[0].length
+
+    if (end > offset) break
+
+    line++
+
+    start = end
+  }
+
+  return { line, col: offset - start + 1 }
+}
 
 const editOf = (
   original: string,
@@ -190,15 +212,23 @@ export const makeRegistry = (
 
     const failure = (message: string) => (cause: unknown) => new RegistryError({ message, cause })
 
-    // Keep the file position, but not the colon introducing YAML's omitted code frame.
-    const yamlFailure = (cause: unknown) => {
+    // Replace YAML's LF-only position, omitting the colon that introduces its code frame.
+    const yamlFailure = (cause: unknown, text?: string) => {
       const head =
         (cause instanceof Error ? cause.message : String(cause)).split(/\r\n|\r|\n/)[0] ?? ""
 
-      return new RegistryError({
-        message: `${file}: ${head.replace(/( at line \d+, column \d+):$/, "$1")}`,
-        cause,
-      })
+      const offset = cause instanceof YAMLParseError ? cause.pos?.[0] : undefined
+
+      let message = head.replace(/( at line \d+, column \d+):$/, "$1")
+
+      // With no LF, preserve YAML's diagnostic: all-CR parsing is not handled here.
+      if (text !== undefined && text.includes("\n") && offset !== undefined) {
+        const { line, col } = offsetLineCol(text, offset)
+
+        message = head.replace(/ at line \d+, column \d+:$/, ` at line ${line}, column ${col}`)
+      }
+
+      return new RegistryError({ message: `${file}: ${message}`, cause })
     }
 
     const read = Effect.gen(function* () {
@@ -246,7 +276,7 @@ export const makeRegistry = (
 
             return { text, entries } as const
           },
-          catch: yamlFailure,
+          catch: (cause) => yamlFailure(cause, text),
         }),
       ),
       Effect.flatMap((result) =>
@@ -257,32 +287,34 @@ export const makeRegistry = (
     )
 
     const write = (render: () => string) =>
-      Effect.try({
-        try: () => {
-          const text = render()
-          const doc = parseDocument(text)
-          const [error] = doc.errors
+      Effect.try({ try: render, catch: (cause) => yamlFailure(cause) }).pipe(
+        Effect.flatMap((text) =>
+          Effect.try({
+            try: () => {
+              const doc = parseDocument(text)
+              const [error] = doc.errors
 
-          if (error !== undefined) throw error
+              if (error !== undefined) throw error
 
-          doc.toJS({ mapAsMap: true })
+              doc.toJS({ mapAsMap: true })
 
-          return text
-        },
-        catch: (cause) => {
-          // `read` accepted the file, so an unresolved alias here is the edit's doing.
-          const alias = /^Unresolved alias[^\n]*: (.+)$/m.exec(
-            cause instanceof Error ? cause.message : "",
-          )
+              return text
+            },
+            catch: (cause) => {
+              // `read` accepted the file, so an unresolved alias here is the edit's doing.
+              const alias = /^Unresolved alias[^\n]*: (.+)$/m.exec(
+                cause instanceof Error ? cause.message : "",
+              )
 
-          return alias === null
-            ? yamlFailure(cause)
-            : new RegistryError({
-                message: `${file}: the edit would leave alias *${alias[1]} unresolved`,
-                cause,
-              })
-        },
-      }).pipe(
+              return alias === null
+                ? yamlFailure(cause, text)
+                : new RegistryError({
+                    message: `${file}: the edit would leave alias *${alias[1]} unresolved`,
+                    cause,
+                  })
+            },
+          }),
+        ),
         Effect.flatMap((text) =>
           fs
             .writeFileString(`${file}.tmp`, text)

@@ -161,6 +161,22 @@ describe("the registry file", () => {
       "Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1",
     ],
     ["projects: !!map *x\n", "An alias node must not specify any properties at line 1, column 17"],
+    [
+      'projects:\n  a: "x\ry"\n  b: [\n',
+      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 5, column 1",
+    ],
+    [
+      'projects:\r\n  a: "x\ry"\r\n  b: [\r\n',
+      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 5, column 1",
+    ],
+    [
+      'projects:\n  a: "x\ry"\n  b: !!map *x\n',
+      "An alias node must not specify any properties at line 4, column 12",
+    ],
+    [
+      "projects:\r  a: 1\r  b: [\r",
+      "Nested mappings are not allowed in compact mappings at line 1, column 10",
+    ],
   ] as const) {
     effectTest(
       `syntax errors keep their file position without a dangling colon: ${text.trim()}`,

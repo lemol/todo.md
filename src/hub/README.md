@@ -79,6 +79,9 @@ projects:
   or an alias bomb. A resolving alias is fine as an entry's value (`q: *b`)
   but not as `projects` itself (`projects: *x` fails with "projects must be a
   map, not an alias"); the message names the file and the error's first line.
+  Syntax positions count LF, CRLF and lone CR as line breaks, with 1-based
+  lines and columns. Files without any LF retain YAML's original position;
+  parsing an all-lone-CR registry is not corrected here.
   An edit that would leave an unresolved alias (deleting an anchor another
   entry still uses) fails the write with "the edit would leave alias *b
   unresolved", and the file is unchanged. A bad entry never does.
