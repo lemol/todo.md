@@ -17,10 +17,14 @@ process is the `nzila-dogfood` skill in the nzila repository.
     rewrites all of `TODO.md` to CRLF; predates 59).
   - Round 5 ran 61 (`6af1afe`), reviewed: filed 62 (a CRLF task file's
     frontmatter edit writes `\r\r\n`; the planner's follow-up).
-  - Round 6 proposes 62 alone: width 1, so no pairing question. It touches
-    `src/markdown/frontmatter.ts` and its caller in `taskFile.ts`, no
-    reviewer or `do` text, no `src/runner/git/ops.ts`, and no task id
-    another run holds.
+  - Round 6 ran 62 (`ca024dd`), reviewed: filed 63 (a lone CR desyncs
+    mdast positions from `splitLines`, so edits drop frontmatter lines and
+    the fence, and TODO.md items garble; 62 made the frontmatter case
+    worse).
+  - Round 7 proposes 63 alone: width 1, so no pairing question. It touches
+    `src/markdown/lines.ts`, `frontmatter.ts`, `taskFile.ts` and
+    `todoFile.ts`, no reviewer or `do` text, no `src/runner/git/ops.ts`,
+    and no task id another run holds.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -31,7 +35,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 62. The person decides 50 (installed bin), 55
+- **Next:** 63. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -39,6 +43,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [62 Editing a CRLF task file's frontmatter writes a stray carriage return](dogfooding/runs/62-editing-a-crlf-task-file-s-frontmatter-writes-a-stray.md) | `ca024dd` | 63; ratings recorded |
 | [61 A CRLF description rewrites every line of TODO.md to CRLF](dogfooding/runs/61-a-crlf-description-rewrites-every-line-of-todo-md-to-crlf.md) | `6af1afe` | 62; ratings recorded |
 | [59 A description ending in a newline adds a stray blank line to TODO.md](dogfooding/runs/59-a-description-ending-in-a-newline-adds-a-stray-blank-line-to.md) | `877b01e` | 61; ratings recorded |
 | [58 Moving a task to another group keeps links relative to its old group directory](dogfooding/runs/58-moving-a-task-to-another-group-keeps-links-relative-to-its.md) | `5b497de` | none; ratings recorded |
