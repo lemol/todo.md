@@ -6,7 +6,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 ## Now
 
-- **Loop `01M5GFQE4CEH965H2CH9XZYRSS` (intensive, width 1): running.**
+- **Loop `01M5GFQE4CEH965H2CH9XZYRSS` (intensive, width 1): stopped.**
   - Resumed from loop `01M5FHVVJ6H539ZGYMN78TTRXJ`'s close (`6f0889a`).
   - Round 1 ran 56 (`756b909`), reviewed: filed 57, 58 and 59.
   - Round 2 ran 57 (`d9ecf4c`), reviewed: filed 60 (a decision: a bare
@@ -60,6 +60,13 @@ process is the `nzila-dogfood` skill in the nzila repository.
     not touch the reviewer or `do` text or `src/runner/git/ops.ts`, and no
     other run holds its task id.
   - Round 17 ran 73 (`4633831`), reviewed: filed nothing.
+  - Stopped after 73: the only open tasks are 50 (installed bin), 55
+    (per-run `TMPDIR` or a lint) and 60 (which spelling a reopened
+    own-directory link takes), and the person decides all three. The
+    loop stops here; restart it once a decision makes a task runnable.
+  - Closed (todo-md:n34): the closing audit rated 63's review
+    (cc_sonnet_m 3). No loop member was reviewed by a profile the stats
+    call stale, so the sample took the fewest-rated one.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
