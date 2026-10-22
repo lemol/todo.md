@@ -15,8 +15,10 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Round 3 ran 58 (`5b497de`), reviewed: filed nothing.
   - Round 4 ran 59 (`877b01e`), reviewed: filed 61 (a CRLF description
     rewrites all of `TODO.md` to CRLF; predates 59).
-  - Round 5 proposes 61 alone: width 1, so no pairing question. It touches
-    the markdown line handling (`formatInlineItem`, `splitLines`), no
+  - Round 5 ran 61 (`6af1afe`), reviewed: filed 62 (a CRLF task file's
+    frontmatter edit writes `\r\r\n`; the planner's follow-up).
+  - Round 6 proposes 62 alone: width 1, so no pairing question. It touches
+    `src/markdown/frontmatter.ts` and its caller in `taskFile.ts`, no
     reviewer or `do` text, no `src/runner/git/ops.ts`, and no task id
     another run holds.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
@@ -29,7 +31,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 61. The person decides 50 (installed bin), 55
+- **Next:** 62. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -37,6 +39,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [61 A CRLF description rewrites every line of TODO.md to CRLF](dogfooding/runs/61-a-crlf-description-rewrites-every-line-of-todo-md-to-crlf.md) | `6af1afe` | 62; ratings recorded |
 | [59 A description ending in a newline adds a stray blank line to TODO.md](dogfooding/runs/59-a-description-ending-in-a-newline-adds-a-stray-blank-line-to.md) | `877b01e` | 61; ratings recorded |
 | [58 Moving a task to another group keeps links relative to its old group directory](dogfooding/runs/58-moving-a-task-to-another-group-keeps-links-relative-to-its.md) | `5b497de` | none; ratings recorded |
 | [57 A rebased link is re-spelled with percent escapes](dogfooding/runs/57-a-rebased-link-is-re-spelled-with-percent-escapes.md) | `d9ecf4c` | 60; ratings recorded |
