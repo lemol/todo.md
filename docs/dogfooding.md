@@ -54,6 +54,11 @@ process is the `nzila-dogfood` skill in the nzila repository.
     does not touch the reviewer or `do` text or `src/runner/git/ops.ts`, and
     no other run holds its task id. 73 follows. 73 edits
     `src/hub/registry.ts`, so never pair it with 70.
+  - Round 16 ran 72 (`b0c1837`), reviewed: filed nothing.
+  - Round 17 proposes 73 alone: width 1, so there is no pairing question.
+    It touches `src/hub/registry.ts`'s error line and its tests. It does
+    not touch the reviewer or `do` text or `src/runner/git/ops.ts`, and no
+    other run holds its task id.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -64,7 +69,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 72, then 73. The person decides 50 (installed bin), 55
+- **Next:** 73. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -72,6 +77,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [72 A lone CR before a frontmatter syntax error shifts its line](dogfooding/runs/72-a-lone-cr-before-a-frontmatter-syntax-error-shifts-its-line.md) | `b0c1837` | none; review recorded |
 | [70 Editing one hub registry entry reformats the others](dogfooding/runs/70-editing-one-hub-registry-entry-reformats-the-others.md) | `f0171dd` | none; ratings recorded |
 | [71 A hub registry syntax error ends at a colon](dogfooding/runs/71-a-hub-registry-syntax-error-ends-at-a-colon.md) | `8026792` | 73; ratings recorded |
 | [69 A frontmatter syntax error names the YAML line and ends at a colon](dogfooding/runs/69-a-frontmatter-syntax-error-names-the-yaml-line-and-ends-at-a.md) | `7a9dc10` | 72; ratings recorded |
