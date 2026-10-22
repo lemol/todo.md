@@ -39,12 +39,17 @@ const encodeFresh = (segment: string, isAngle: boolean): string => {
  * (list-root-relative). A destination is rebased only when it resolved to an
  * existing file before the move; URLs, absolute paths, anchors and unresolved
  * links stay as written (spec §2.10). Only the destination text is spliced.
+ *
+ * A link to the moved file itself follows it, and `relocate` maps any other
+ * target's list-root-relative path before the operation to its path after it,
+ * for targets that move with the file (a renamed group directory).
  */
 export const rebaseTaskLinks = Effect.fnUntraced(function* (
   files: Files,
   from: string,
   to: string,
   source: string,
+  relocate: (path: string) => string = (path) => path,
 ): Effect.fn.Return<string, StoreError, Path.Path> {
   const path = yield* Path.Path
   const fromDir = path.dirname(from)
@@ -72,9 +77,11 @@ export const rebaseTaskLinks = Effect.fnUntraced(function* (
 
     if (pathname === "" || decoded === undefined) continue
 
-    const target = path.join(oldBase, decoded)
+    const before = path.relative(files.root, path.join(oldBase, decoded))
 
-    if (!(yield* files.exists(path.relative(files.root, target)))) continue
+    if (!(yield* files.exists(before))) continue
+
+    const target = path.join(files.root, before === from ? to : relocate(before))
 
     const fallbackSuffix =
       cut === -1

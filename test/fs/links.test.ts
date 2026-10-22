@@ -7,7 +7,7 @@ import { rebaseTaskLinks } from "../../src/fs/links.ts"
 import { parseAst } from "../../src/markdown/ast.ts"
 import { markdownLinkDestinations } from "../../src/markdown/index.ts"
 import { effectTest } from "../../src/spec/testing.ts"
-import { Disk, diskWith, md } from "./helpers.ts"
+import { Disk, diskWith, filesOnDisk, md } from "./helpers.ts"
 
 test("destination spans exclude syntax, titles, code and YAML", () => {
   const source = md(
@@ -253,4 +253,23 @@ effectTest(
     ).toBe(source)
   }),
   diskWith({ "product/README.md": "# intro\n", "todo/.keep": "" }),
+)
+
+effectTest(
+  "keeps links to the moved file itself and to targets that move with it",
+  Effect.gen(function* () {
+    const files = yield* filesOnDisk
+    const source = "[Self](./02-links.md)\n[Other](./03-other.md)\n[Note](./sib.md)\n"
+
+    const relocate = (path: string) =>
+      path === "backend/03-other.md" ? "server/03-other.md" : path
+
+    expect(
+      yield* rebaseTaskLinks(files, "backend/02-links.md", "server/02-links.md", source),
+    ).toBe("[Self](./02-links.md)\n[Other](../backend/03-other.md)\n[Note](../backend/sib.md)\n")
+    expect(
+      yield* rebaseTaskLinks(files, "backend/02-links.md", "server/02-links.md", source, relocate),
+    ).toBe("[Self](./02-links.md)\n[Other](./03-other.md)\n[Note](../backend/sib.md)\n")
+  }),
+  diskWith({ "backend/02-links.md": "", "backend/03-other.md": "", "backend/sib.md": "" }),
 )
