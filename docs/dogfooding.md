@@ -42,10 +42,13 @@ process is the `nzila-dogfood` skill in the nzila repository.
     reformats the entries it did not touch; a long flow map becomes five
     lines) and 71 (a registry YAML syntax error ends at a colon, which 69
     leaves out).
-  - Round 13 proposes 69 alone: width 1, so no pairing question. It
-    touches only `src/markdown` and its CLI test. It does not touch the
+  - Round 13 ran 69 (`7a9dc10`), reviewed: filed 72 (a lone CR above a
+    frontmatter syntax error shifts the reported line; `yaml` counts LF
+    only).
+  - Round 14 proposes 71 alone: width 1, so no pairing question. It
+    touches only `src/hub/registry.ts` and its tests. It does not touch the
     reviewer or `do` text or `src/runner/git/ops.ts`, and no other run
-    holds its task id. 71 then reuses 69's message form, and 70 follows.
+    holds its task id. 70 follows, then 72.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -56,7 +59,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 69, then 71, then 70. The person decides 50 (installed bin), 55
+- **Next:** 71, then 70, then 72. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -64,6 +67,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [69 A frontmatter syntax error names the YAML line and ends at a colon](dogfooding/runs/69-a-frontmatter-syntax-error-names-the-yaml-line-and-ends-at-a.md) | `7a9dc10` | 72; ratings recorded |
 | [68 An aliased projects map in the hub registry is refused as not a map](dogfooding/runs/68-an-aliased-projects-map-in-the-hub-registry-is-refused-as.md) | `95e9c79` | 70, 71; ratings recorded |
 | [66 A write to frontmatter the writer cannot edit reports success and loses the change](dogfooding/runs/66-a-write-to-frontmatter-the-writer-cannot-edit-reports.md) | `1efcb60` | 69; ratings recorded |
 | [67 An unresolved alias in the hub registry crashes every command](dogfooding/runs/67-an-unresolved-alias-in-the-hub-registry-crashes-every.md) | `6c99e59` | 68; ratings recorded |
