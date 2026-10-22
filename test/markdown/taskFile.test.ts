@@ -533,3 +533,35 @@ describe("carriage returns in new text", () => {
     )
   })
 })
+
+describe("frontmatter read with lone CRs as line breaks", () => {
+  test.each([
+    ["LF", "---\ntitle: T\rtags: [a]\n---\nBody\n"],
+    ["CRLF", "---\r\ntitle: T\rtags: [a]\r\n---\r\nBody\r\n"],
+  ])("reads keys the raw YAML cannot parse (%s)", (_name, source) => {
+    const file = parseTaskFile(source, "x.md")
+
+    expect(file.diagnostics).toEqual([])
+    expect(file.title).toBe("T")
+    expect(file.tags).toEqual(["a"])
+  })
+
+  test("an edit reads back through the parser", () => {
+    const edited = updateTaskFile("---\ntitle: T\rassignee: z\n---\nBody\n", { assignee: "y" })
+    const file = parseTaskFile(edited, "x.md")
+
+    expect(file.diagnostics).toEqual([])
+    expect(file.title).toBe("T")
+    expect(file.assignee).toBe("y")
+  })
+
+  test("raw-valid YAML keeps a lone CR as content", () => {
+    expect(parseTaskFile('---\ntitle: "a\rb"\n---\nBody\n', "x.md").title).toBe("a\rb")
+  })
+
+  test("YAML that fails both ways is invalid", () => {
+    const file = parseTaskFile("---\ntitle: [a\rtags: b\n---\nBody\n", "x.md")
+
+    expect(file.diagnostics.map((d) => d.code)).toEqual(["invalid-frontmatter"])
+  })
+})

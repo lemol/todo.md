@@ -7,9 +7,29 @@ export interface FrontmatterData {
   readonly error: string | undefined
 }
 
+/**
+ * Parses frontmatter YAML: the raw text first, so a lone CR that YAML reads as
+ * content keeps its meaning, and only when that has errors the text with lone
+ * CRs as line breaks, the way the Markdown parser reads them. `text` is the
+ * text `doc` was parsed from; if both fail, `doc` is the raw parse.
+ */
+const parseYaml = (yaml: string): { readonly doc: Document.Parsed; readonly text: string } => {
+  const raw = parseDocument(yaml)
+
+  if (raw.errors.length === 0) return { doc: raw, text: yaml }
+
+  const text = yaml === "" ? "" : textLines(yaml).join("\n")
+
+  if (text === yaml) return { doc: raw, text: yaml }
+
+  const lines = parseDocument(text)
+
+  return lines.errors.length === 0 ? { doc: lines, text } : { doc: raw, text: yaml }
+}
+
 /** Reads frontmatter YAML (without the `---` fences) into a plain object. */
 export const readFrontmatter = (yaml: string): FrontmatterData => {
-  const doc = parseDocument(yaml)
+  const { doc } = parseYaml(yaml)
   const [first] = doc.errors
 
   if (first !== undefined) return { data: {}, error: textLines(first.message)[0] }
@@ -63,32 +83,21 @@ export const frontmatterEdits = (
   fields: Readonly<Record<string, unknown>>,
 ): FrontmatterEdit[] => {
   const lineCount = yaml === "" ? 0 : textLines(yaml).length
-  let text = yaml
-  let doc = parseDocument(yaml)
-  let current = readFrontmatter(yaml).data
-  let map = doc.contents
-  let blockMap = isMap(map) && !map.flow
+  const parsed = parseYaml(yaml)
+  const { text, doc } = parsed
+  const current = readFrontmatter(yaml).data
+  const map = doc.contents
 
-  if (doc.errors.length > 0 || (map !== null && !blockMap)) {
-    text = yaml === "" ? "" : textLines(yaml).join("\n")
-    doc = parseDocument(text)
-    current = readFrontmatter(text).data
-    map = doc.contents
-    blockMap = isMap(map) && !map.flow
+  if (doc.errors.length > 0 || (map !== null && !(isMap(map) && !map.flow))) {
+    const merged = { ...current, ...fields }
 
-    if (doc.errors.length > 0 || (map !== null && !blockMap)) {
-      const merged = { ...current, ...fields }
-
-      return [
-        {
-          start: 0,
-          deleteCount: lineCount,
-          lines: formatFrontmatter(
-            Object.entries(merged).filter(([, value]) => value !== undefined),
-          ),
-        },
-      ]
-    }
+    return [
+      {
+        start: 0,
+        deleteCount: lineCount,
+        lines: formatFrontmatter(Object.entries(merged).filter(([, value]) => value !== undefined)),
+      },
+    ]
   }
 
   const lineOf = (offset: number) => lineAt(text, offset)

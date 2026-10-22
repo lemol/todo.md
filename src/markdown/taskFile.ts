@@ -100,7 +100,7 @@ const layout = (source: string) => {
  * The version of `parseTaskFile`'s output. Parses are cached by content, so
  * bump this whenever the same text would parse to something different.
  */
-export const taskFileParserVersion = 3
+export const taskFileParserVersion = 4
 
 /** Parses a task file. `file` (its root-relative path) locates diagnostics. Never fails. */
 export const parseTaskFile = (source: string, file: string): TaskFile => {
