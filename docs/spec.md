@@ -538,8 +538,8 @@ left byte-for-byte intact.
   1. Remove the item (with its body) from its old position and insert it at
      the new one.
   2. If the group changed and the task file sits in the old group's
-     conventional directory, move the file to the new group's directory and
-     rewrite the link.
+     conventional directory, move the file to the new group's directory,
+     rebase its relative links (below) and rewrite the link.
 - **complete** runs in this order:
   1. Build the done file's content: from the task file, or, for an inline
      task, from the item as promotion would (§2.9), without writing an
@@ -556,14 +556,20 @@ left byte-for-byte intact.
   3. Delete the done file.
 
   The task stays file-backed.
-- **Relative links in a moved file.** When `complete`, `cancel` or `reopen`
-  moves an existing task file to another directory, the relative Markdown link
-  destinations in its body (inline links, images and reference definitions,
-  comments included; not code or frontmatter) are rewritten so they resolve to
-  the same targets. Only a destination that resolves to an existing file
+- **Relative links in a moved file.** When `move`, `renameGroup`,
+  `complete`, `cancel` or `reopen` moves an existing task file to another
+  directory, the relative Markdown link destinations in its body (inline links,
+  images and reference definitions, comments included; not code or
+  frontmatter) are rewritten so they resolve to the same targets, where those
+  targets are after the operation: a link to the file itself, or to a file the
+  same operation moves (for `renameGroup`, the moved task files, or everything
+  in the old directory when the whole directory moves), points to its new
+  path. So `./sibling.md` between two tasks of a renamed group stays as
+  written, and `../<old-slug>/x.md` becomes `./x.md`. Only a destination that resolves to an existing file
   before the move is rewritten; its query and fragment are kept. Absolute URLs,
   paths starting with `/`, anchor-only (`#…`) and unresolved destinations are
-  left as written. Only the destination text changes.
+  left as written. Only the destination text changes. Links from other files to
+  a moved file are not rewritten.
 
 **Recovery.** For `complete` and `reopen`, the done file is the commit
 point: `complete` writes it first, and `reopen` deletes it last.
@@ -584,8 +590,10 @@ point: `complete` writes it first, and `reopen` deletes it last.
   file.
 - **renameGroup:**
   1. Rewrite the level-2 heading.
-  2. Move `<tasks_dir>/<old-slug>/` to `<tasks_dir>/<new-slug>/`.
-  3. Rewrite the links that pointed into it.
+  2. Move `<tasks_dir>/<old-slug>/` to `<tasks_dir>/<new-slug>/`; when that
+     directory already exists, move each linked task file into it instead.
+  3. Rebase the relative links of each moved task file (below).
+  4. Rewrite the links that pointed into it.
 
   Files outside the old directory stay where they are. Done files are not
   touched.

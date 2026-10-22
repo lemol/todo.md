@@ -264,9 +264,9 @@ effectTest(
     const relocate = (path: string) =>
       path === "backend/03-other.md" ? "server/03-other.md" : path
 
-    expect(
-      yield* rebaseTaskLinks(files, "backend/02-links.md", "server/02-links.md", source),
-    ).toBe("[Self](./02-links.md)\n[Other](../backend/03-other.md)\n[Note](../backend/sib.md)\n")
+    expect(yield* rebaseTaskLinks(files, "backend/02-links.md", "server/02-links.md", source)).toBe(
+      "[Self](./02-links.md)\n[Other](../backend/03-other.md)\n[Note](../backend/sib.md)\n",
+    )
     expect(
       yield* rebaseTaskLinks(files, "backend/02-links.md", "server/02-links.md", source, relocate),
     ).toBe("[Self](./02-links.md)\n[Other](./03-other.md)\n[Note](../backend/sib.md)\n")

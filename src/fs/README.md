@@ -74,10 +74,12 @@ snapshot reports:
 
 ## Moving task files
 
-`complete`, `cancel` and `reopen` move an existing task file to another
-directory. `rebaseTaskLinks` (`links.ts`) rewrites the relative link
+`move` (to another group), `renameGroup`, `complete`, `cancel` and `reopen`
+move an existing task file to another directory. `rebaseTaskLinks` (`links.ts`) rewrites the relative link
 destinations in its body so they keep resolving to the same existing files
-(spec §2.10); other destinations are left as written.
+(spec §2.10); other destinations are left as written. Its `relocate` argument maps targets
+that move with the file (a renamed group directory); a link to the file itself
+always follows it.
 
 ## Testing
 
