@@ -12,11 +12,10 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Round 2 ran 57 (`d9ecf4c`), reviewed: filed 60 (a decision: a bare
     link into the task's own directory now reopens as `./…`; the archived
     text cannot carry both spellings).
-  - Round 3 proposes 58 alone: width 1, so no pairing question. It touches
-    `src/fs/FsTodoStore.ts`, the spec and `test/fs/`, no reviewer or `do`
-    text, no `src/runner/git/ops.ts`; it reuses `rebaseTaskLinks` as it
-    stands, and 60's decision changes only which spelling a reopen writes.
-    59 follows.
+  - Round 3 ran 58 (`5b497de`), reviewed: filed nothing.
+  - Round 4 proposes 59 alone: width 1, so no pairing question. It touches
+    `add`'s description path (CLI and the `TODO.md` splice), no reviewer or
+    `do` text, no `src/runner/git/ops.ts`, and no task id another run holds.
 - **Loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (intensive, width 1): stopped.**
   - Round 1 ran 46 (`a1df35a`), which filed 48, 49, 50 and 51.
   - Rounds 2 to 8 ran 48 (`f454ec5`), 47 (`33e317e`), 49 (`b8b3f13`), 51
@@ -27,7 +26,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
   - Closed (todo-md:n14): the closing audit rated 46's two reviews
     (pi_sol_m 5, cc_opus_m 4). No loop member was reviewed by a profile
     the stats call stale, so the sample took the fewest-rated ones.
-- **Next:** 58, then 59. The person decides 50 (installed bin), 55
+- **Next:** 59. The person decides 50 (installed bin), 55
   (54's note (a): a per-run `TMPDIR` or a lint, so a raw `mkdtemp` can't
   leak) and 60 (which spelling a reopened own-directory link takes).
 
@@ -35,6 +34,7 @@ process is the `nzila-dogfood` skill in the nzila repository.
 
 | Run | Landed | Follow-ups |
 | --- | --- | --- |
+| [58 Moving a task to another group keeps links relative to its old group directory](dogfooding/runs/58-moving-a-task-to-another-group-keeps-links-relative-to-its.md) | `5b497de` | none; ratings recorded |
 | [57 A rebased link is re-spelled with percent escapes](dogfooding/runs/57-a-rebased-link-is-re-spelled-with-percent-escapes.md) | `d9ecf4c` | 60; ratings recorded |
 | [56 A task moved to done/ keeps links that pointed from its old directory](dogfooding/runs/56-a-task-moved-to-done-keeps-links-that-pointed-from-its-old.md) | `756b909` | 57, 58, 59; ratings recorded |
 | [54 A test run leaves its temporary directories behind](dogfooding/runs/54-a-test-run-leaves-its-temporary-directories-behind.md) | `fceb4e2` | 55 (filed at the close); ratings recorded |
