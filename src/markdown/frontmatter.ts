@@ -1,4 +1,5 @@
 import { Document, isMap, isScalar, parseDocument } from "yaml"
+import { textLines } from "./lines.ts"
 
 export interface FrontmatterData {
   readonly data: Readonly<Record<string, unknown>>
@@ -11,7 +12,7 @@ export const readFrontmatter = (yaml: string): FrontmatterData => {
   const doc = parseDocument(yaml)
   const [first] = doc.errors
 
-  if (first !== undefined) return { data: {}, error: first.message.split("\n")[0] }
+  if (first !== undefined) return { data: {}, error: textLines(first.message)[0] }
 
   const value: unknown = doc.toJS()
 
@@ -52,9 +53,10 @@ export const setFrontmatterFields = (
   yaml: string,
   fields: Readonly<Record<string, unknown>>,
 ): string[] => {
-  const lines = yaml === "" ? [] : yaml.split("\n")
-  const doc = parseDocument(yaml)
-  const current = readFrontmatter(yaml).data
+  const normalized = yaml === "" ? "" : textLines(yaml).join("\n")
+  const lines = yaml === "" ? [] : textLines(yaml)
+  const doc = parseDocument(normalized)
+  const current = readFrontmatter(normalized).data
   const map = doc.contents
   const blockMap = isMap(map) && !map.flow
 
@@ -64,7 +66,7 @@ export const setFrontmatterFields = (
     return formatFrontmatter(Object.entries(merged).filter(([, value]) => value !== undefined))
   }
 
-  const lineOf = (offset: number) => yaml.slice(0, offset).split("\n").length - 1
+  const lineOf = (offset: number) => normalized.slice(0, offset).split("\n").length - 1
 
   const edits: Array<{ start: number; end: number; lines: string[] }> = []
   const appended: string[] = []

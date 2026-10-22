@@ -27,6 +27,10 @@ describe("readFrontmatter", () => {
     expect(readFrontmatter("a: [unclosed").error).toBeString()
     expect(readFrontmatter("- a").error).toBe("frontmatter must be a mapping")
   })
+
+  test("diagnostics stop at every line ending", () => {
+    expect(readFrontmatter('a: "\\\rX"\r\nb: 1').error).toBe("Invalid escape sequence \\")
+  })
 })
 
 describe("formatFrontmatter", () => {
@@ -95,5 +99,11 @@ describe("setFrontmatterFields", () => {
       "keep2: unchanged",
       "key3: new3",
     ])
+  })
+
+  test("keeps YAML ranges aligned after a multiline CRLF value", () => {
+    expect(
+      setFrontmatterFields("title: |\r\n  T\r\ntags: [a]\r\nestimate: 3", { tags: ["b"] }),
+    ).toEqual(["title: |", "  T", "tags: [b]", "estimate: 3"])
   })
 })

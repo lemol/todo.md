@@ -36,7 +36,8 @@ adapter reads and writes the files.
   whose value changes, so comments, quoting and key order elsewhere survive.
 - **Line endings:** new and rewritten lines take the file's most common
   line ending (LF on a tie or with none), so CRLF files stay CRLF. Text that
-  becomes lines (descriptions, comment bodies) is split on every line ending
+  becomes lines (descriptions, comment bodies, frontmatter kept or read back
+  from YAML errors) is split on every line ending
   (CRLF, LF or a lone CR) and never carries a `\r` in. A file with mixed
   endings, as another tool may leave it, has its minority lines rewritten on
   the next edit: the smallest diff one ending per file allows. Keeping each

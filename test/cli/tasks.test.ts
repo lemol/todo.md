@@ -477,6 +477,25 @@ describe("todo edit", () => {
     }),
     diskWith(acme),
   )
+
+  const crlfTask = "---\r\ntitle: T\r\ntags: [a]\r\nestimate: 3\r\n---\r\nBody\r\n"
+
+  effectTest(
+    "todo edit --tag preserves CRLF task frontmatter",
+    Effect.gen(function* () {
+      const result = yield* todo("edit", "1", "--tag", "b")
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe("")
+      expect(yield* (yield* Disk).read("01-t.md")).toBe(
+        crlfTask.replace("tags: [a]", "tags: [a, b]"),
+      )
+    }),
+    diskWith({
+      "TODO.md": "# Tasks\r\n\r\n- [ ] [01 - T](./01-t.md)\r\n",
+      "01-t.md": crlfTask,
+    }),
+  )
 })
 
 describe("todo done and reopen", () => {

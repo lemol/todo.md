@@ -300,6 +300,24 @@ describe("formatTaskFile", () => {
 })
 
 describe("updateTaskFile", () => {
+  const crlfSource = "---\r\ntitle: T   # keep\r\ntags: [a]\r\nestimate: 3\r\n---\r\nBody\r\n"
+
+  test("changing a key preserves other CRLF lines", () => {
+    expect(updateTaskFile(crlfSource, { tags: ["b"] })).toBe(
+      crlfSource.replace("tags: [a]", "tags: [b]"),
+    )
+  })
+
+  test("deleting a key preserves other CRLF lines", () => {
+    expect(updateTaskFile(crlfSource, { tags: [] })).toBe(crlfSource.replace("tags: [a]\r\n", ""))
+  })
+
+  test("appending a key preserves other CRLF lines", () => {
+    expect(updateTaskFile(crlfSource, { assignee: "sam" })).toBe(
+      crlfSource.replace("estimate: 3\r\n", "estimate: 3\r\nassignee: sam\r\n"),
+    )
+  })
+
   test("rewrites only the changed frontmatter keys", () => {
     expect(updateTaskFile(example, { assignee: "claude", title: "Add rate limiting" })).toBe(
       example.replace("assignee: lemol", "assignee: claude"),
