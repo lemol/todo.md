@@ -102,12 +102,16 @@ export const makeRegistry = (
 
     const failure = (message: string) => (cause: unknown) => new RegistryError({ message, cause })
 
-    // A YAML error's message can span lines (a code frame); the first line says what is wrong.
-    const yamlFailure = (cause: unknown) =>
-      new RegistryError({
-        message: `${file}: ${(cause instanceof Error ? cause.message : String(cause)).split(/\r\n|\r|\n/)[0]}`,
+    // Keep the file position, but not the colon introducing YAML's omitted code frame.
+    const yamlFailure = (cause: unknown) => {
+      const head =
+        (cause instanceof Error ? cause.message : String(cause)).split(/\r\n|\r|\n/)[0] ?? ""
+
+      return new RegistryError({
+        message: `${file}: ${head.replace(/( at line \d+, column \d+):$/, "$1")}`,
         cause,
       })
+    }
 
     const read = Effect.gen(function* () {
       const text = (yield* fs.exists(file)) ? yield* fs.readFileString(file) : ""

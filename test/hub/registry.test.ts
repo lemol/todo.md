@@ -155,8 +155,28 @@ describe("the registry file", () => {
     diskWith({ ".todo-md/projects.yaml": commented }),
   )
 
+  for (const [text, message] of [
+    [
+      "projects: [\n",
+      "Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1",
+    ],
+    ["projects: !!map *x\n", "An alias node must not specify any properties at line 1, column 17"],
+  ] as const) {
+    effectTest(
+      `syntax errors keep their file position without a dangling colon: ${text.trim()}`,
+      Effect.gen(function* () {
+        const { root } = yield* Disk
+        const registry = yield* registryOnDisk
+        const error = yield* Effect.flip(registry.entries)
+
+        expect(error).toBeInstanceOf(RegistryError)
+        expect(error.message).toBe(`${root}/.todo-md/projects.yaml: ${message}`)
+      }),
+      diskWith({ ".todo-md/projects.yaml": text }),
+    )
+  }
+
   for (const [text, reason] of [
-    ["projects: [\n", "unparsable YAML"],
     ["- a\n", "a top level that is not a map"],
     ["projects: [a, b]\n", "projects that is not a map"],
   ] as const) {
