@@ -38,6 +38,12 @@ export interface InlineItem {
 export const formatInlineItem = (item: InlineItem): string[] => {
   const metadata = formatMetadataLine(item.fields)
   const description = item.description === "" ? [] : item.description.split("\n")
+
+  // Terminal blank lines fall outside the parsed item and would survive promotion.
+  while (description.length > 0 && isBlank(description[description.length - 1])) {
+    description.pop()
+  }
+
   const [firstLine] = description
   const separate =
     metadata === "" && firstLine !== undefined && parseMetadataLine(firstLine) !== undefined

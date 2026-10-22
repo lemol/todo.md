@@ -54,6 +54,26 @@ describe("formatInlineItem", () => {
     ).toEqual(["- [ ] 03 - T", "", "  note:important"])
   })
 
+  for (const description of ["Body", "Body\n", "Body\n\n", "Body\n  \n"]) {
+    test(`inline item excludes terminal blank lines: ${JSON.stringify(description)}`, () => {
+      expect(formatInlineItem({ id: "3", title: "T", fields: noFields, description })).toEqual([
+        "- [ ] 03 - T",
+        "  Body",
+      ])
+    })
+  }
+
+  test("inline item preserves internal blank lines and Markdown hard breaks", () => {
+    expect(
+      formatInlineItem({
+        id: "3",
+        title: "T",
+        fields: noFields,
+        description: "Body  \nMore\n\nEnd\n",
+      }),
+    ).toEqual(["- [ ] 03 - T", "  Body  ", "  More", "", "  End"])
+  })
+
   test("writes a checked box", () => {
     expect(
       formatInlineItem({ id: "3", title: "T", checked: true, fields: noFields, description: "" }),

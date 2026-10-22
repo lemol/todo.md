@@ -190,7 +190,7 @@ describe("todo add --description -", () => {
   const body = "Run `git rev-parse HEAD` and $(date), \"quoted\" and 'single'.\n\n- A list\n"
 
   effectTest(
-    "writes what was piped in byte for byte",
+    "preserves shell-sensitive text and internal blank lines in the task file",
     Effect.gen(function* () {
       const { root } = yield* Disk
       const result = yield* runTodo(
@@ -223,6 +223,50 @@ describe("todo add --description -", () => {
     }),
     diskWith(acme),
   )
+})
+
+describe("add preserves section spacing", () => {
+  const before = md(
+    "# L",
+    "",
+    "## Later",
+    "",
+    "- [ ] 01 - Existing",
+    "",
+    "",
+    "## Next",
+    "",
+    "- [ ] 02 - Keep",
+    "",
+  )
+
+  for (const body of ["Body", "Body\n", "Body\n\nMore", "Body\n\nMore\n", "Body\n\n"]) {
+    for (const stdin of [true, false]) {
+      effectTest(
+        `${JSON.stringify(body)}, stdin=${stdin}`,
+        Effect.gen(function* () {
+          const result = yield* runTodo(
+            ["add", "Record the cause", "--group", "Later", "--description", stdin ? "-" : body],
+            stdin ? { stdin: body } : {},
+          )
+
+          const disk = yield* Disk
+
+          expect(result.code).toBe(0)
+          expect(yield* disk.read("TODO.md")).toBe(
+            before.replace(
+              "- [ ] 01 - Existing\n",
+              "- [ ] 01 - Existing\n- [ ] [03 - Record the cause](./later/03-record-the-cause.md)\n",
+            ),
+          )
+          expect(yield* disk.read("later/03-record-the-cause.md")).toBe(
+            md("---", "title: Record the cause", "---", body.trimEnd()),
+          )
+        }),
+        diskWith({ "TODO.md": before }),
+      )
+    }
+  }
 })
 
 describe("todo promote", () => {

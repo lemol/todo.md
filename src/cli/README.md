@@ -62,7 +62,8 @@ Where it helps, arguments are forgiving:
   shell: `todo add "Record the cause" --group Ops --description - <<'EOF'`.
   `todo cancel --reason -` and a `todo comment` whose text is a lone `-`
   (`todo comment 3 - <<'EOF'`) read stdin the same way. A dash among other
-  words stays a dash.
+  words stays a dash. Default `add` task files normalize trailing blank description
+  lines and end with one newline, identically for literal and stdin descriptions.
 
 A `TaskView` is `{ task, state: "ready" | "blocked" | "done", blockedBy: id[] }`;
 see [`core`](../core).
