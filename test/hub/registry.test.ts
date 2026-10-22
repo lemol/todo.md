@@ -235,6 +235,7 @@ describe("alias failures", () => {
     ["projects:\n  p: *a\n", "Unresolved alias (the anchor must be set before the alias): a"],
     [aliasBomb, "Excessive alias count indicates a resource exhaustion attack"],
     ["unused: *a\nprojects: {}\n", "Unresolved alias (the anchor must be set before the alias): a"],
+    ["all: &x {p: {source: memory}}\nprojects: *x\n", "projects must be a map, not an alias"],
   ] as const) {
     effectTest(
       `entries fail with a RegistryError: ${text.slice(0, 20)}`,
@@ -304,7 +305,7 @@ describe("alias failures", () => {
 
       expect(error).toBeInstanceOf(RegistryError)
       expect(error.message).toBe(
-        `${root}/.todo-md/projects.yaml: Unresolved alias (the anchor must be set before the alias): p`,
+        `${root}/.todo-md/projects.yaml: the edit would leave alias *p unresolved`,
       )
       expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(before)
     }),

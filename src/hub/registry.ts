@@ -8,6 +8,7 @@
 import { Effect, FileSystem, Path } from "effect"
 import {
   type Document,
+  isAlias,
   isMap,
   isNode,
   isScalar,
@@ -132,6 +133,10 @@ export const makeRegistry = (
 
             const projects = doc.get("projects", true)
 
+            if (isAlias(projects)) {
+              return { failed: "projects must be a map, not an alias" } as const
+            }
+
             if (
               projects !== undefined &&
               !isMap(projects) &&
@@ -160,7 +165,22 @@ export const makeRegistry = (
     )
 
     const write = (doc: Document) =>
-      Effect.try({ try: () => doc.toString(), catch: yamlFailure }).pipe(
+      Effect.try({
+        try: () => doc.toString(),
+        catch: (cause) => {
+          // `read` accepted the file, so an unresolved alias here is the edit's doing.
+          const alias = /^Unresolved alias[^\n]*: (.+)$/m.exec(
+            cause instanceof Error ? cause.message : "",
+          )
+
+          return alias === null
+            ? yamlFailure(cause)
+            : new RegistryError({
+                message: `${file}: the edit would leave alias *${alias[1]} unresolved`,
+                cause,
+              })
+        },
+      }).pipe(
         Effect.flatMap((text) =>
           fs
             .writeFileString(`${file}.tmp`, text)
