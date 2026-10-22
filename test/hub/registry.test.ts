@@ -193,3 +193,94 @@ test("concurrent updates from two registries over one home all land", () =>
       expect(names).toEqual(["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"])
     }).pipe(Effect.provide(diskWith({}))),
   ))
+
+const aliasBomb = md(
+  "a: &a [x, x, x, x, x, x, x, x, x, x]",
+  "b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]",
+  "c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]",
+  "d: &d [*c, *c, *c, *c, *c, *c, *c, *c, *c, *c]",
+  "projects:",
+  "  p: [*d, *d, *d, *d, *d, *d, *d, *d, *d, *d]",
+)
+
+describe("alias failures", () => {
+  for (const [text, message] of [
+    ["projects:\n  p: *a\n", "Unresolved alias (the anchor must be set before the alias): a"],
+    [aliasBomb, "Excessive alias count indicates a resource exhaustion attack"],
+    ["unused: *a\nprojects: {}\n", "Unresolved alias (the anchor must be set before the alias): a"],
+  ] as const) {
+    effectTest(
+      `entries fail with a RegistryError: ${text.slice(0, 20)}`,
+      Effect.gen(function* () {
+        const { root } = yield* Disk
+        const registry = yield* registryOnDisk
+        const error = yield* Effect.flip(registry.entries)
+
+        expect(error).toBeInstanceOf(RegistryError)
+        expect(error.message).toBe(`${root}/.todo-md/projects.yaml: ${message}`)
+      }),
+      diskWith({ ".todo-md/projects.yaml": text }),
+    )
+
+    effectTest(
+      `update refuses without calling edit: ${text.slice(0, 20)}`,
+      Effect.gen(function* () {
+        const { root } = yield* Disk
+        const registry = yield* registryOnDisk
+        let called = false
+        const error = yield* Effect.flip(
+          registry.update(() =>
+            Effect.sync(() => {
+              called = true
+            }),
+          ),
+        )
+
+        expect(error).toBeInstanceOf(RegistryError)
+        expect(error.message).toBe(`${root}/.todo-md/projects.yaml: ${message}`)
+        expect(called).toBe(false)
+        expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(text)
+      }),
+      diskWith({ ".todo-md/projects.yaml": text }),
+    )
+  }
+
+  effectTest(
+    "resolving aliases reused by two projects still read",
+    Effect.gen(function* () {
+      const registry = yield* registryOnDisk
+
+      expect(yield* registry.entries).toEqual([
+        { name: "p", value: { source: "fs", path: "/x" } },
+        { name: "q", value: { source: "fs", path: "/x" } },
+      ])
+    }),
+    diskWith({
+      ".todo-md/projects.yaml": md(
+        "base: &b {source: fs, path: /x}",
+        "projects:",
+        "  p: *b",
+        "  q: *b",
+      ),
+    }),
+  )
+
+  effectTest(
+    "deleting an anchor still used by another project refuses the write",
+    Effect.gen(function* () {
+      const { root } = yield* Disk
+      const registry = yield* registryOnDisk
+      const before = yield* (yield* Disk).read(".todo-md/projects.yaml")
+      const error = yield* Effect.flip(
+        registry.update((edit) => Effect.sync(() => edit.delete("p"))),
+      )
+
+      expect(error).toBeInstanceOf(RegistryError)
+      expect(error.message).toBe(
+        `${root}/.todo-md/projects.yaml: Unresolved alias (the anchor must be set before the alias): p`,
+      )
+      expect(yield* (yield* Disk).read(".todo-md/projects.yaml")).toBe(before)
+    }),
+    diskWith({ ".todo-md/projects.yaml": "projects:\n  p: &p {source: memory}\n  q: *p\n" }),
+  )
+})

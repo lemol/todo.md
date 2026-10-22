@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -51,5 +51,45 @@ describe("the todo executable", () => {
     expect(run("done", "9")).toMatchObject({ code: 1, stdout: "", stderr: "error: no task 9\n" })
     expect(run("mv", "1").code).toBe(2)
     expect(run("--version").stdout).toContain("0.2.0")
+  }, 15000)
+
+  test("a bad registry is one error line, and --dir does not need it", () => {
+    const scratch = mkdtempSync(join(dir, "alias-"))
+    const registryHome = join(scratch, "home", ".todo-md")
+    const file = join(registryHome, "projects.yaml")
+
+    mkdirSync(registryHome, { recursive: true })
+    writeFileSync(file, "projects:\n  p: *a\n")
+    writeFileSync(join(scratch, "TODO.md"), "# Good\n\n- [ ] 01 - First\n")
+
+    const invoke = (...args: string[]) => {
+      const result = Bun.spawnSync(["bun", bin, ...args], {
+        cwd: scratch,
+        env: {
+          ...process.env,
+          HOME: join(scratch, "home"),
+          TODO_MD_HOME: registryHome,
+          NO_COLOR: "1",
+        },
+      })
+
+      return {
+        code: result.exitCode,
+        stdout: result.stdout.toString(),
+        stderr: result.stderr.toString(),
+      }
+    }
+
+    expect(invoke("projects", "ls")).toEqual({
+      code: 1,
+      stdout: "",
+      stderr: `error: ${file}: Unresolved alias (the anchor must be set before the alias): a\n`,
+    })
+
+    const listed = invoke("--dir", scratch, "list")
+
+    expect(listed.code).toBe(0)
+    expect(listed.stdout).toContain("First")
+    expect(listed.stderr).toBe("")
   }, 15000)
 })

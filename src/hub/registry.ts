@@ -101,56 +101,78 @@ export const makeRegistry = (
 
     const failure = (message: string) => (cause: unknown) => new RegistryError({ message, cause })
 
+    // A YAML error's message can span lines (a code frame); the first line says what is wrong.
+    const yamlFailure = (cause: unknown) =>
+      new RegistryError({
+        message: `${file}: ${(cause instanceof Error ? cause.message : String(cause)).split(/\r\n|\r|\n/)[0]}`,
+        cause,
+      })
+
     const read = Effect.gen(function* () {
       const text = (yield* fs.exists(file)) ? yield* fs.readFileString(file) : ""
 
-      return parseDocument(text)
+      return text
     }).pipe(
       Effect.mapError(failure(`could not read ${file}`)),
-      Effect.flatMap((doc) => {
-        const [error] = doc.errors
+      Effect.flatMap((text) =>
+        Effect.try({
+          try: () => {
+            const doc = parseDocument(text)
+            const [error] = doc.errors
 
-        if (error !== undefined) {
-          return Effect.fail(new RegistryError({ message: `${file}: ${error.message}` }))
-        }
+            if (error !== undefined) throw error
 
-        if (doc.contents !== null && !isMap(doc.contents)) {
-          return Effect.fail(new RegistryError({ message: `${file}: expected a map` }))
-        }
+            // `toJS` throws what `parseDocument` leaves unreported: an alias to a missing
+            // anchor, or an alias bomb. Checking the whole document here covers every caller.
+            doc.toJS()
 
-        const projects = doc.get("projects", true)
+            if (doc.contents !== null && !isMap(doc.contents)) {
+              return { failed: "expected a map" } as const
+            }
 
-        if (
-          projects !== undefined &&
-          !isMap(projects) &&
-          !(isScalar(projects) && projects.value === null)
-        ) {
-          return Effect.fail(new RegistryError({ message: `${file}: projects must be a map` }))
-        }
+            const projects = doc.get("projects", true)
 
-        return Effect.succeed(doc)
-      }),
+            if (
+              projects !== undefined &&
+              !isMap(projects) &&
+              !(isScalar(projects) && projects.value === null)
+            ) {
+              return { failed: "projects must be a map" } as const
+            }
+
+            const entries: ReadonlyArray<RegistryEntry> = isMap(projects)
+              ? projects.items.map((pair) => ({
+                  name: keyOf(pair),
+                  value: isNode(pair.value) ? pair.value.toJS(doc) : pair.value,
+                }))
+              : []
+
+            return { doc, entries } as const
+          },
+          catch: yamlFailure,
+        }),
+      ),
+      Effect.flatMap((result) =>
+        "failed" in result
+          ? Effect.fail(new RegistryError({ message: `${file}: ${result.failed}` }))
+          : Effect.succeed(result),
+      ),
     )
 
     const write = (doc: Document) =>
-      fs
-        .writeFileString(`${file}.tmp`, doc.toString())
-        .pipe(
-          Effect.andThen(fs.rename(`${file}.tmp`, file)),
-          Effect.mapError(failure(`could not write ${file}`)),
-        )
+      Effect.try({ try: () => doc.toString(), catch: yamlFailure }).pipe(
+        Effect.flatMap((text) =>
+          fs
+            .writeFileString(`${file}.tmp`, text)
+            .pipe(
+              Effect.andThen(fs.rename(`${file}.tmp`, file)),
+              Effect.mapError(failure(`could not write ${file}`)),
+            ),
+        ),
+      )
 
     return {
-      entries: Effect.map(read, (doc) => {
-        const projects = doc.get("projects", true)
-
-        if (!isMap(projects)) return []
-
-        return projects.items.map((pair) => ({
-          name: keyOf(pair),
-          value: isNode(pair.value) ? pair.value.toJS(doc) : pair.value,
-        }))
-      }),
+      entries: Effect.map(read, ({ entries }) => entries),
 
       update: <A, E>(edit: (registry: RegistryEdit) => Effect.Effect<A, E>) =>
         Effect.gen(function* () {
@@ -158,7 +180,7 @@ export const makeRegistry = (
             .makeDirectory(home, { recursive: true })
             .pipe(Effect.mapError(failure(`could not create ${home}`)))
           const edited = Effect.gen(function* () {
-            const doc = yield* read
+            const { doc } = yield* read
             const result = yield* edit(editOf(doc))
 
             yield* write(doc)

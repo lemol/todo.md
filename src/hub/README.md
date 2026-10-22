@@ -70,7 +70,10 @@ projects:
   writes `projects.yaml.tmp` and renames it over. Nothing is written from a
   stale document.
 - Unparsable YAML, a top level that is not a map, or `projects` that is not
-  a map fail reads with `RegistryError`. A bad entry never does.
+  a map fail reads with `RegistryError`, as does an alias to a missing anchor
+  or an alias bomb (a resolving alias is fine); the message names the file and
+  the error's first line. An edit that would leave an unresolved alias fails
+  the write the same way. A bad entry never does.
 - Names are validated on read too: a key that is not a valid name (`My App`,
   `..`) is listed as a broken entry, with no data directory.
 - `~` or `~/…` at the start of a top-level string value expands to
