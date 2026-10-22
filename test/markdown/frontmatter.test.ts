@@ -84,6 +84,10 @@ describe("frontmatterEdits", () => {
     ])
   })
 
+  test("leaves flow-map frontmatter whose aliases do not resolve as it is", () => {
+    expect(frontmatterEdits("{title: T, x: *a}", { assignee: "y" })).toEqual([])
+  })
+
   test("rewrites only the changed key", () => {
     expect(frontmatterEdits(yaml, { assignee: "claude", title: "Add rate limiting" })).toEqual([
       { start: 2, deleteCount: 1, lines: ["assignee: claude"] },
