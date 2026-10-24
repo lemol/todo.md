@@ -65,7 +65,7 @@
       "source": "remix-run/remix",
       "sourceType": "github",
       "skillPath": ".agents/skills/remix/SKILL.md",
-      "computedHash": "ed1086a8265d5d62f7b4e57fd6ef00186f0a0f9c8c94e8d9494a3053c54633ea"
+      "computedHash": "56aad49331285a2bd92ca421b6064f21a3d645f3ca107e8ee6b25d3fd418faa0"
     },
     "requesting-code-review": {
       "source": "obra/superpowers",
