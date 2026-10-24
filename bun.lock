@@ -7,7 +7,7 @@
       "dependencies": {
         "@effect/platform-bun": "4.0.0",
         "@effect/platform-node-shared": "4.0.0",
-        "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.2.0",
+        "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.3.1",
         "hast-util-to-html": "^9.0.5",
         "mdast-util-from-markdown": "^2.0.3",
         "mdast-util-frontmatter": "^2.0.1",
@@ -136,7 +136,7 @@
 
     "@keyv/serialize": ["@keyv/serialize@1.1.1", "", {}, "sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA=="],
 
-    "@lemol/ui": ["@lemol/ui@git+ssh://git@github.com/lemol/ui.git#dc9c78b089028a1cec38f17352934df87bea7619", { "peerDependencies": { "remix": "3.0.0" } }, "dc9c78b089028a1cec38f17352934df87bea7619"],
+    "@lemol/ui": ["@lemol/ui@git+ssh://git@github.com/lemol/ui.git#c2b50ab4a212a7255a6118f372bcbbd9b5f6cd71", { "peerDependencies": { "remix": "3.1.0" } }, "c2b50ab4a212a7255a6118f372bcbbd9b5f6cd71"],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || ^2.0.0-alpha.4", "@emnapi/runtime": "^1.7.1 || ^2.0.0-alpha.4" } }, "sha512-AJxoUD2/15ESHbvpcyjU274nsAPLuOtPHCk0vKJM5pj//Fg/B1FXNWjPnXTT9PymCYYiHo4zPj0ZomXBKhoy7g=="],
 
