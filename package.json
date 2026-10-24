@@ -35,7 +35,7 @@
   "dependencies": {
     "@effect/platform-bun": "4.0.0",
     "@effect/platform-node-shared": "4.0.0",
-    "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.2.0",
+    "@lemol/ui": "git+ssh://git@github.com/lemol/ui.git#ui@0.3.1",
     "hast-util-to-html": "^9.0.5",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-frontmatter": "^2.0.1",
