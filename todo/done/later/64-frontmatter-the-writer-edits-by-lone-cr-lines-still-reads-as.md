@@ -41,7 +41,7 @@ The invalid-YAML fallback that rewrites the whole frontmatter from what parsed (
 
 ## Comments
 
-### @nzila at 2026-10-22 03:23:23 +00:00
+### @agent at 2026-10-22 03:23:23 +00:00
 
 Done: Added a shared `parseYaml` helper in `src/markdown/frontmatter.ts`. It parses the raw YAML first and falls back to lone-CR-as-line-break text only when the raw parse has errors. `readFrontmatter` and `frontmatterEdits` both use it, so the reader and writer can't drift. If both parses fail, the raw error is reported.
 
@@ -84,12 +84,9 @@ Repeated reads: writer still parses for source ranges and again through readFron
 
 Comments: read the brief (no Pre-start task comments section) and the complete current todo/later/64-frontmatter-the-writer-edits-by-lone-cr-lines-still-reads-as.md (ends at Out of scope, no Comments section). Count 0; authors none. No comment requirements to disposition.
 
-Implementer gaps: not running the whole gate is done by check#1: check.command is bun run check, check.passed=380e224, 1561 tests / 107 files. I did not rerun the whole gate. Lack of a literal version-number test is pushed back as unnecessary here: the actual bump and schema consumer were inspected, and cache tests pass; pinning a constant would not prove reader behavior. No other stated gaps or separate plan/Decision requirements were supplied. Sole listed commit 380e224 matches the task's reader-fallback, parser-version and documentation rules; no unrelated nzila commit.
+Implementer gaps: not running the whole gate is done by check#1: check.command is bun run check, check.passed=380e224, 1561 tests / 107 files. I did not rerun the whole gate. Lack of a literal version-number test is pushed back as unnecessary here: the actual bump and schema consumer were inspected, and cache tests pass; pinning a constant would not prove reader behavior. No other stated gaps or separate plan/Decision requirements were supplied. Sole listed commit 380e224 matches the task's reader-fallback, parser-version and documentation rules; no unrelated orchestrator commit.
 
 Verification observed here: bun test test/markdown test/fs: 425 pass, 0 fail, 757 expects, 25 files (matches the implementer's 425/0 claim). bun run typecheck passed. bun run lint passed after scratch removal. A first lint while the nested scratch existed hit duplicate local-plugin registration; removing scratch resolved it without branch changes. Gate log records 0 warnings / 0 errors (no warning class). Base scratch lint also exited 0 with no warning diagnostics; its output did not print a warning-count line, so no numeric baseline warning count is inferred. Current lint likewise exited 0 without a warnings line. Full gate log explicitly shows lint, typecheck and tests, so its passed command is bun run check, not merely my narrower test run.
 
 Stale-reference checks: proved the search on base README (“CRs as line breaks” matched line 38), then searched the whole tree including hidden files, todo and docs. Current README is live and updated; the old wording in task 64's Cause is historical evidence at 57a5cc6. Version-value search found version 3 in todo/done/later/63 (lines 47,70) and docs/dogfooding/runs/63 (line 19): all historical task-63 records, not current configuration. Other matches were unrelated spec level-3 headings and a plan's Step 3. Live constant is 4; fs uses the constant rather than another literal. No specification conflict found: minimal-diff splicing and existing invalid-field diagnostics remain unchanged.
 
-Branch: nzila/01M5GSN1918XK88YR3V42Q38CC
-
-nzila run 01M5GSN1918XK88YR3V42Q38CC

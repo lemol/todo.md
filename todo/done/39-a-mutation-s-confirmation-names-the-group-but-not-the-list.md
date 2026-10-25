@@ -3,13 +3,13 @@ title: A mutation's confirmation names the group but not the list it wrote to
 completed_at: 2026-10-20T03:55:04Z
 outcome: completed
 ---
-On 2026-10-16 three xonton tasks were filed into nzila's list: the caller's shell had changed directory underneath it, discovery did its job for the directory it was given, and nothing in the output said so. `add` answered "Added 538 Three tabs exhaust the browser's sockets … to Live updates", naming the id and the group but not the project or list root, and it created the `Live updates` group in a list that never had one without a word. The caller noticed only because the ids continued nzila's sequence. Every mutation (`add`, `edit`, `done`, `reopen`, `cancel`, `mv`, `rm`, `promote`, `comment`) should name the list it acted on, as the registered project's name when one owns it or the list root otherwise, and `add` should say when it created a group, since a new group is as often a typo or a wrong list as an intention. Agents file tasks through this CLI from whatever directory their shell happens to be in, so the confirmation is the only check they get. Done when: every mutation's confirmation names the project or list root, `add` reports a group it created, and the CLI tests cover both.
+On 2026-10-16 three tasks for one project were filed into another project's list: the caller's shell had changed directory underneath it, discovery did its job for the directory it was given, and nothing in the output said so. `add` answered "Added 538 Three tabs exhaust the browser's sockets … to Live updates", naming the id and the group but not the project or list root, and it created the `Live updates` group in a list that never had one without a word. The caller noticed only because the ids continued that list's sequence. Every mutation (`add`, `edit`, `done`, `reopen`, `cancel`, `mv`, `rm`, `promote`, `comment`) should name the list it acted on, as the registered project's name when one owns it or the list root otherwise, and `add` should say when it created a group, since a new group is as often a typo or a wrong list as an intention. Agents file tasks through this CLI from whatever directory their shell happens to be in, so the confirmation is the only check they get. Done when: every mutation's confirmation names the project or list root, `add` reports a group it created, and the CLI tests cover both.
 
 ## Comments
 
-### @nzila at 2026-10-20 03:55:04 +00:00
+### @agent at 2026-10-20 03:55:04 +00:00
 
-Done: Both plan tasks implemented test-first, two commits on nzila/01M5BNYKBCPQ871BB9FTKDC1QE.
+Done: Both plan tasks implemented test-first, two commits on the run's branch.
 
 Task 1 — every mutation names its list (commit a2e0797 `feat(cli): a mutation's confirmation names the list it wrote to`):
 - `src/cli/render.ts`: new `listName(project)` returning the registered name, else `ProjectInfo.location` (the list root).
@@ -61,6 +61,3 @@ Checks:
 
 Commits: a2e0797 and e076d93 are conventional feat(cli) commits, each scoped to one plan task. No new modules, so no colocation question. Worktree is clean.
 
-Branch: nzila/01M5BNYKBCPQ871BB9FTKDC1QE
-
-nzila run 01M5BNYKBCPQ871BB9FTKDC1QE

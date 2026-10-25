@@ -39,7 +39,7 @@ Run `01M5FHX9RBYAMV5NPB44VCEA0V`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
   repository root, or from the bundle, it gives 49461 bytes. Filed as 49.
 - Neither review asked how an installed bin gets a current `dist/`:
   - main has no `dist/`;
-  - the workspace's store copy of todo-md has no `dist/` or `scripts/`;
+  - a consumer's store copy of todo-md has no `dist/` or `scripts/`;
   - existing `.bin/todo` links still point at `src/cli/bin.ts` until the
     next install;
   - `build:cli` never empties its outdir.

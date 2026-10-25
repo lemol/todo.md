@@ -33,19 +33,19 @@ Frontmatter (72). How `yaml` parses a registry that uses lone CR everywhere.
 
 ## Comments
 
-### @nzila at 2026-10-22 07:21:43 +00:00
+### @agent at 2026-10-22 07:21:43 +00:00
 
 Done: Implemented and committed a80f9ae0db0a82b70f3152a4cd4592c1e0135dba (fix(hub): report registry syntax errors at lone-CR file lines). Worktree clean.
 
 Followed plan.path's one-commit task without scope changes. Read task 72's landed outcome and src/markdown/frontmatter.ts first; matched its complete-terminator LF/CRLF/lone-CR offset scan and `at line N, column C` suffix, without a fence adjustment. Private hub helper avoids a markdown import, so architecture/boundaries remain unchanged. Read/write formatting uses the exact parsed text, rendering once per write. Existing alias refusal remains green. README documents no-LF position preservation; all-CR parsing and frontmatter untouched.
 
-Test-first: added all four planned exact-message rows. Correct attempt-local TMPDIR run before production changes: 32 pass, 3 fail (required LF and mixed-CRLF fixtures expected line 5, received 4; alias-property fixture expected 4:12, received 3:12). All-CR preservation passed. After implementation and final spacing edits: TMPDIR="$NZILA_HOME/attempts/$NZILA_ATTEMPT/probe-tmp" bun test test/hub/registry.test.ts test/cli/bin.test.ts => 35 pass, 0 fail. Separately completed bun run lint and bun run typecheck => exit 0. git diff --check clean before commit.
+Test-first: added all four planned exact-message rows. Correct attempt-local TMPDIR run before production changes: 32 pass, 3 fail (required LF and mixed-CRLF fixtures expected line 5, received 4; alias-property fixture expected 4:12, received 3:12). All-CR preservation passed. After implementation and final spacing edits: TMPDIR="<attempt>/probe-tmp" bun test test/hub/registry.test.ts test/cli/bin.test.ts => 35 pass, 0 fail. Separately completed bun run lint and bun run typecheck => exit 0. git diff --check clean before commit.
 
 Failures reported along the way: initial TMPDIR inside worktree caused an additional CLI discovery assertion failure (31 pass/4 fail); corrected to the plan's attempt-local temp root, where CLI passed before production edits. This is an invocation correction, not a claim of a pre-existing test failure. Initial effect/AGENTS.md require.resolve failed through package exports; upward filesystem resolution succeeded and guide was read completely. Lint initially and on first spacing retry failed at registry.ts:219; corrected the blank line after multiline const head and final lint passed. No remaining failures.
 
 Test-selection search run: rg -n 'yamlFailure|at line|Nested mappings|An alias node|Unresolved alias' src test; re-ran after edits in src/hub test/hub test/cli/bin.test.ts. Registry positions/alias messages pinned in registry suite and CLI bin suite; other hits were untouched frontmatter paths. No harness/rule changes.
 
-External-code evidence: bun -e importing parseDocument,YAMLParseError on required and all-CR inputs observed syntax:true, pos:[28,29], YAML message 4:1 for required input and syntax:true, pos:[9,10], message 1:10 for all-CR input. Read landed frontmatter helper using /\r\n?|\n/g and +1 fence adjustment; read docs/architecture/hub.md confirming existing import boundaries. No decisions over nzila output parsers/matchers, so no gate-log corpus sampling applicable.
+External-code evidence: bun -e importing parseDocument,YAMLParseError on required and all-CR inputs observed syntax:true, pos:[28,29], YAML message 4:1 for required input and syntax:true, pos:[9,10], message 1:10 for all-CR input. Read landed frontmatter helper using /\r\n?|\n/g and +1 fence adjustment; read docs/architecture/hub.md confirming existing import boundaries. No decisions over orchestrator output parsers/matchers, so no gate-log corpus sampling applicable.
 
 No installs, shared dependency edits, probe links, or writes to another checkout. Temporary worktree-local logs removed. Full gate intentionally left to check stage.
 
@@ -95,8 +95,4 @@ Verification (plan): Step1 focused `TMPDIR=... bun test test/hub/registry.test.t
 
 Absence claims with proof: Search `Keep the file position` across repo returns empty now; same phrase in base `git show 518c2f7:src/hub/registry.ts` line 193 proves search works — no stale copy. Search `at line 5, column 1` finds only test/hub/registry.test.ts:166,170 (live) — task evidence cites old 4:1 as history (dated), no live stale. Search `from.*markdown` in registry.ts empty — no forbidden import. Boundaries `bun test test/boundaries.test.ts` 13 pass 0 fail confirms graph.
 
-Branch: nzila/01M5H70907897M4EGGFKS9K0BN
 
-Branch: nzila/01M5H70907897M4EGGFKS9K0BN
-
-nzila run 01M5H70907897M4EGGFKS9K0BN

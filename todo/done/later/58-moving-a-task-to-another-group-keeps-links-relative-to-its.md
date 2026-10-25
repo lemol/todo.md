@@ -33,7 +33,7 @@ Inbound links from other files to the moved one; the re-spelling in 57.
 
 ## Comments
 
-### @nzila at 2026-10-22 01:50:22 +00:00
+### @agent at 2026-10-22 01:50:22 +00:00
 
 Done: Addressed review F1 in commit 8def5df (clean working tree).
 
@@ -42,7 +42,7 @@ Verified the finding against the current implementation: renameGroup's inside pr
 Fix: relocate oldDir itself to newDir only when moveWhole. Descendant handling, per-file moves, and write order remain unchanged. No review notes were rejected. The original three plan tasks were already implemented; this follow-up corrects the plan's descendant-only relocation boundary. The existing spec's whole-directory decision remains unchanged.
 
 Verification (separate commands, each completed):
-- bun run lint: initially failed formatting in test/fs/writing.test.ts; recorded via nzila note before fixing. Formatted only the two changed files with bunx --no-install oxfmt. Re-run passed.
+- bun run lint: initially failed formatting in test/fs/writing.test.ts; recorded via a run note before fixing. Formatted only the two changed files with bunx --no-install oxfmt. Re-run passed.
 - bun run typecheck: passed before and after formatting.
 - bun test test/fs test/git/commits.test.ts test/cli/errors.test.ts test/web/contracts.test.ts test/web/middleware/project.test.ts: 271 pass, 0 fail.
 - git diff --check: passed.
@@ -128,6 +128,3 @@ Not raised:
 
 Quality is 4 for a commit-hygiene detail from round 1: the reformat of links.test.ts landed inside the docs commit.
 
-Branch: nzila/01M5GKF5WZ5HC80GEH4YE9CMCC
-
-nzila run 01M5GKF5WZ5HC80GEH4YE9CMCC

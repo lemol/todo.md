@@ -12,9 +12,9 @@ status.
 
 Three pressures, each independent:
 
-1. **The archive lies.** `todo/done/12-register-repos-todo-md-apps-in-lemol-workspace.md`
+1. **The archive lies.** `todo/done/12-register-apps-in-a-consuming-monorepo.md`
    records `completed_at: 2026-09-18T19:13:18Z` for work nobody did: the task
-   asked to register `repos/todo-md/apps/*` in `lemol-workspace`, and commit
+   asked to register `apps/*` in a consuming monorepo, and commit
    `d47fcd2` had already moved the web app into `src/web`, leaving no `apps/`
    directory. Spec §2.6 makes `completed_at` REQUIRED in done files, so there
    is no way to file a task as "finished with" rather than "completed".
@@ -198,12 +198,12 @@ A cancelled task file:
 
 ```markdown
 ---
-title: Register repos/todo-md/apps/* in lemol-workspace
+title: Register apps/* in a consuming monorepo
 tags: [web]
 completed_at: 2026-09-18T19:13:18Z
 outcome: cancelled
 cancelled_reason: Superseded by d47fcd2, which moved the web app into src/web.
-  There is no apps/ directory, and repos/* already covers todo-md.
+  There is no apps/ directory, and the monorepo already covers todo-md.
 ---
 ```
 

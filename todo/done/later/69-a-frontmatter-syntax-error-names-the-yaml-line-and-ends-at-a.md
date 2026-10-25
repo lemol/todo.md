@@ -34,7 +34,7 @@ The hub registry's messages (todo-md:68). Aliases and non-mappings, whose messag
 
 ## Comments
 
-### @nzila at 2026-10-22 05:17:13 +00:00
+### @agent at 2026-10-22 05:17:13 +00:00
 
 Done: Commit 7f83761: a YAML frontmatter syntax error now reads `... end with a ] at line 3, column 5`. The line is the file's line and there is no trailing colon.
 
@@ -83,7 +83,7 @@ Comments: read the brief (no "Pre-start task comments" block present) and the ta
 
 Implementer's stated gaps: the do report states no gaps section; its "Not run: bun run check and full suite, as instructed" and "No node_modules probe link" are scope/hygiene notes, not gaps. No gap on a Done-when command or named test stays missing: focused tests reran here (125 pass), and check#1 ran the full gate.
 
-Commits vs rule: one nzila commit on the branch, 7f83761 "fix(markdown): report frontmatter syntax errors at file coordinates", exactly the plan's stated message and file list (src/markdown/{frontmatter,taskFile,todoFile}.ts, src/markdown/README.md, 5 test files). No commit outside its rule.
+Commits vs rule: one commit on the branch, 7f83761 "fix(markdown): report frontmatter syntax errors at file coordinates", exactly the plan's stated message and file list (src/markdown/{frontmatter,taskFile,todoFile}.ts, src/markdown/README.md, 5 test files). No commit outside its rule.
 
 Check command: brief check.command is "bun run check". check#1 reported passed on 7f83761 (1601 tests across 109 files). That is the command named here; the focused bun test + bun run lint + bun run typecheck I ran are the change-touching checks, not the gate.
 
@@ -120,6 +120,3 @@ Citations that do not open (the verdict stands; a finding may still be right):
 - `src/todoFile.ts:82-87` path does not exist
 - `later/2-syn.md:3` path does not exist
 - `cli/query.test.ts:195` path does not exist
-Branch: nzila/01M5GZZW777W18V0ZKZRXVK5YB
-
-nzila run 01M5GZZW777W18V0ZKZRXVK5YB

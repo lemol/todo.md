@@ -13,7 +13,7 @@ Done when: the import copies an fs list into a sqlite project with IDs, groups, 
 
 ## Comments
 
-### @nzila at 2026-10-20 06:23:59 +00:00
+### @agent at 2026-10-20 06:23:59 +00:00
 
 Done: Addressed review finding F1 (--from with --path into a missing directory) in one new commit.
 
@@ -46,7 +46,7 @@ Comments: read task file (above, no Comments section) and brief (no Pre-start ta
 
 Implementer's stated gaps: none stated. do#2 prose pushback (did not reuse `SqliteSource.databaseFile`, kept CLI's own `paths.join(home,"projects",info.name,SqliteSource.defaultFile)` at :268) is within review#1's offered options (mkdir OR reuse databaseFile). Duplication pre-existed in c493ff4; smaller diff accepted, not a gap.
 
-nzila commits: none in base..HEAD per brief (f4b60b9 is base "nzila: close todo-md:40"). The 4 commits are feature commits, no tool-commit rule to check.
+Orchestrator commits: none in base..HEAD per brief (f4b60b9, the base, is the commit that closed todo-md:40). The 4 commits are feature commits, no tool-commit rule to check.
 
 Brief Decisions: no Decision table in brief to contradict. Design doc decisions (store+source, no promote, WAL, file location) still hold; design `docs/superpowers/specs/2026-10-19-sqlite-source-design.md:24,121` still calls import a follow-up — dated record, stays, as review#1 noted.
 
@@ -56,7 +56,7 @@ Fixture-encodes-bug: checked numbers against fixture totals (above), not code; c
 
 Constraint left out: none. Groups-only DB also refused by same `SELECT (SELECT COUNT(*) FROM tasks)+(SELECT COUNT(*) FROM groups)` (`src/sqlite/importList.ts:37`); correct (groups are state). Warning-only diagnostics do not block (`severity==="error"` filter at `src/cli/commands/projects.ts:248`); correct per spec diagnostics.
 
-Scale (measured, compliant path in attempt dir): `bun $NZILA_HOME/attempts/$NZILA_ATTEMPT/scale-probe2.ts` output `open=1000 done=200 importMs=24 counts={"open":1000,"done":200}` and `open=5000 done=1000 importMs=36 counts={"open":5000,"done":1000}`. Single write transaction, linear, tiny.
+Scale (measured, compliant path in attempt dir): `bun <attempt>/scale-probe2.ts` output `open=1000 done=200 importMs=24 counts={"open":1000,"done":200}` and `open=5000 done=1000 importMs=36 counts={"open":5000,"done":1000}`. Single write transaction, linear, tiny.
 
 Spec match: no spec change; `SqliteTodoStore` still `promote:false` (`src/sqlite/SqliteTodoStore.ts:175,899`), README Import section replaces removed "No import" limit. Stale search `rg -n "No import|deferred to a follow" src docs todo test` finds nothing live (exit 0, no hits); same against `git show f4b60b9:src/sqlite/README.md` hits line 103, so search works (hard-wrap safe: short phrase).
 
@@ -84,6 +84,3 @@ New flag trace: `--from` Flag at :123 → `absolute()` :228 → `listRootOf` :23
 
 Citations are `rg -n`/`Read` lines re-openable; absent claims show search + base hit.
 
-Branch: nzila/01M5BY8G3RZ74Z8874W4GJZ4TM
-
-nzila run 01M5BY8G3RZ74Z8874W4GJZ4TM

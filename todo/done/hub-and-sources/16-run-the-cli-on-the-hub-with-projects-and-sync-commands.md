@@ -71,7 +71,7 @@ description, flag and argument descriptions, and examples, as
 | `todo projects add <target> [--name] [--source]` | `projectInput(target, …)` then `hub.add`. Prints the project line. |
 | `todo projects rm <name> [--force]` | `hub.remove`. |
 | `todo projects rename <from> <to>` | `hub.rename`. |
-| `todo sync [<name>…] [--all]` | No names and no `--all`: the current project. One line per project (`mionso: pulled 3 commits, pushed 1`, `todo-md: nothing to sync`, `work: error (auth): …`). Exit 1 if any failed. |
+| `todo sync [<name>…] [--all]` | No names and no `--all`: the current project. One line per project (`acme: pulled 3 commits, pushed 1`, `todo-md: nothing to sync`, `work: error (auth): …`). Exit 1 if any failed. |
 | `todo ls --all`, `todo next --all` | `overview` over every registered project (`--all` conflicts with `--project`/`--dir`). Human output: a `# <project>` heading per project, then the usual rendering with qualified IDs; error entries render as `# <project>` + `error: …`. |
 
 **Post-mutation warnings.** After a successful mutation on a project whose

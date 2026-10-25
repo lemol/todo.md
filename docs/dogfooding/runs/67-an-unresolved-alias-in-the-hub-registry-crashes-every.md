@@ -36,7 +36,7 @@ Run `01M5GWF9M08NKXCFY84GVQ70KY`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - What to build: 1 done (`read`); 2 done, with the choice stated:
   `--dir` does not need the registry. `resolveProject` already had
   `Effect.orElseSucceed`; a typed `RegistryError` is what lets it work.
-- Comments: none before the run; the only one is nzila's closing comment.
+- Comments: none before the run; the only one is the orchestrator's closing comment.
 - Probes at `6c99e59` (own `HOME`): `--json projects ls` gives one JSON
   error line; `--dir a list` exits 0; `projects add` on a bad registry
   refuses and leaves the file; `projects rm p` with `q: *b` aliasing

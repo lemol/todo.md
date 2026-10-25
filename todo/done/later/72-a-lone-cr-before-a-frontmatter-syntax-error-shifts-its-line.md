@@ -34,13 +34,13 @@ The hub registry (71). Lone-CR handling elsewhere.
 
 ## Comments
 
-### @nzila at 2026-10-22 07:05:14 +00:00
+### @agent at 2026-10-22 07:05:14 +00:00
 
 Done: Fixed the lone-CR frontmatter line shift in `src/markdown/frontmatter.ts`: `readFrontmatter` now maps the yaml error's byte offset (`first.pos[0]`) to a 1-based line/column with a new `offsetLineCol` helper that counts CRLF, LF and lone CR — the same breaks `splitLines` uses — then adds 1 for the opening fence. Keeps the old `linePos` path only as a fallback when `pos` is absent (yaml syntax errors carry `pos`; no README gap to document since `linePos` is no longer used on the error path).
 
 Test-first: added `syntax errors below a lone CR use file coordinates` to `test/markdown/taskFile.test.ts` — source `---\ntitle: "a\rb"\nnote: "c\rd"\nx: [\n---\nBody\n` now reports `at line 6, column 5` with diagnostic `line: 6` in the message, `parseTaskFile`, `parseTodoFile`, and the `updateTaskFile` failure. It failed first with line 4 (yaml's LF-only count), passes after the fix.
 
-Verified: `bun run lint` clean (after `oxfmt` on the touched files), `bun run typecheck` clean, and focused tests green — `test/markdown/{frontmatter,todoFile,taskFile,lines}.test.ts`, `test/cli/frontmatter.test.ts`, `test/fs/{invalidFrontmatter,parsing}.test.ts` (137 pass), plus `test/boundaries.test.ts` (13 pass). Searched `src/` and `test/` for `linePos|readFrontmatter|at line \d+, column` to find value-pinning tests; none regressed. Committed `e4e49d4` on `nzila/01M5H69YMWEPGVP6D5NJCKHPJF`; worktree clean, no probe links left. Did not run the full `bun run check` suite per the brief.
+Verified: `bun run lint` clean (after `oxfmt` on the touched files), `bun run typecheck` clean, and focused tests green — `test/markdown/{frontmatter,todoFile,taskFile,lines}.test.ts`, `test/cli/frontmatter.test.ts`, `test/fs/{invalidFrontmatter,parsing}.test.ts` (137 pass), plus `test/boundaries.test.ts` (13 pass). Searched `src/` and `test/` for `linePos|readFrontmatter|at line \d+, column` to find value-pinning tests; none regressed. Committed `e4e49d4` on the run's branch; worktree clean, no probe links left. Did not run the full `bun run check` suite per the brief.
 
 Review: approved (5/5)
 review#1 of e4e49d4 (base 9cfb794): approve.
@@ -85,6 +85,3 @@ No new config/flag/intent; helper producer is src (readFrontmatter), not tests-o
 
 Verification observed (not predicted): `bun test` on 8 touched files: 150 pass 0 fail; `bun run typecheck` clean; `bun run lint` clean. Full `bun run check` left to check/land stages per instructions; gate already green.
 
-Branch: nzila/01M5H69YMWEPGVP6D5NJCKHPJF
-
-nzila run 01M5H69YMWEPGVP6D5NJCKHPJF

@@ -29,7 +29,7 @@ the same load.
 
 ## Comments
 
-### @nzila at 2026-10-21 18:13:45 +00:00
+### @agent at 2026-10-21 18:13:45 +00:00
 
 Done: Implemented task 1 in one commit: acbb6930e77b3a3a2fcc351aaee166c05ddeba01. Only test/hub/fs.test.ts changed. Both arm-then-settle tests now tap raw FileSystem watch paths and excuse an emission only when an earlier-write path arrived after the previous emission. Ignored writes must also be observed by the raw watch. No timing windows lengthened; no production or sandbox changes.
 
@@ -46,7 +46,7 @@ Verification:
 
 Focused search: `rg -n 'watchList|fsSource.changes|takeWithin|eventually\(|liveTest' src test` (saved proof/focused-search.log). Local helpers only are added; shared test/hub/helpers.ts, Disk, eventually, takeWithin, liveTest and production values are unchanged. Focused tier is the changed test file. No full gate run: check stage owns it.
 
-Evidence logs and load script: verification.path artifact, this attempt's proof/{red-late,ignore,debounce,lock,old-guard,head-guard,loaded-rerun,load-tests-*}.log. Read the prior plan and sampled its output.log for recorded reproduction/load evidence, then independently repeated the failure-class and mutation checks above. Scratch worktree removed. Shared install untouched. No subagent tool is available; nzila's next review stage receives the commit and this evidence. Run branch/worktree retained for nzila integration.
+Evidence logs and load script: verification.path artifact, this attempt's proof/{red-late,ignore,debounce,lock,old-guard,head-guard,loaded-rerun,load-tests-*}.log. Read the prior plan and sampled its output.log for recorded reproduction/load evidence, then independently repeated the failure-class and mutation checks above. Scratch worktree removed. Shared install untouched. No subagent tool is available; the orchestrator's next review stage receives the commit and this evidence. Run branch/worktree retained for the orchestrator's integration.
 
 Review: approved (4/5)
 Approved. The diff from 92d3a8a is one commit, acbb693, and touches only test/hub/fs.test.ts (+97/-29). I read all of it.
@@ -55,7 +55,7 @@ Check: check.command is `bun run check`, and check#1 passed it at acbb693 (1433 
 
 Done-when / required cases
 - "Cause named, with the failing message as evidence": pushed back, accepted. The original a1df35a message was never captured. The implementer reproduced a failure with a1df35a's sandbox guard (`guarded = [join(repo, "todo"), realHome]`): `this test wrote outside its temporary directory … ~ cache/list.json` at 1236.20ms, against the reported 1239.83ms. The same writer under HEAD's guard (ea846d9, todo-md:48) passes 6/6. The commit message says the historical attribution is not certain. The logs are at proof/old-guard.log and proof/head-guard.log.
-- "Reviewer sees `--rerun-each 50` pass under the same load": done, I observed it. My load was 6 CPU burners plus 2 loops of `bun test test/hub` from a HEAD scratch worktree. Script: attempts/$NZILA_ATTEMPT/proof/load.sh. Result: `300 pass / 0 fail / 1100 expect() calls [138.34s]`. Load averages were 8.64 before and 16.38 after. Log: proof/loaded-rerun.log.
+- "Reviewer sees `--rerun-each 50` pass under the same load": done, I observed it. My load was 6 CPU burners plus 2 loops of `bun test test/hub` from a HEAD scratch worktree. Script: <attempt>/proof/load.sh. Result: `300 pass / 0 fail / 1100 expect() calls [138.34s]`. Load averages were 8.64 before and 16.38 after. Log: proof/loaded-rerun.log.
 - "Make the assertion insensitive to late events, without lengthening windows": done. `watching` taps raw `FileSystem.watch` paths, and `quiet` excuses an emission only when a raw path the window's own write doesn't claim arrived after the last emission. The windows are unchanged: 5 s, 500 ms, 300 ms settle, 200 ms probe.
 - "Check the sibling `emits once per burst …`": done. It uses the same `arm` and `quiet` helpers.
 
@@ -82,7 +82,7 @@ What to build: there are no numbered items. The Build paragraph's three asks (ca
 
 Decisions: the brief has none.
 
-Commits: acbb693 is the do commit. It follows the repo's conventional `test(hub): … (todo-md:51)` form, its author is Leza Lutonda, and it changes only the test file. No other nzila commits are on the branch.
+Commits: acbb693 is the do commit. It follows the repo's conventional `test(hub): … (todo-md:51)` form, its author is Leza Lutonda, and it changes only the test file. No other orchestrator commits are on the branch.
 
 Quantities in the commit message:
 - 1236.20ms: matches proof/old-guard.log.
@@ -93,6 +93,3 @@ Lint: `bun run lint` exits 0 with no oxlint warnings (0 warnings). The base can 
 
 Observed outside the diff: one of my 48 load-loop runs of `bun test test/hub` failed `autoSync > syncs every syncable project one interval after startup` with `NotFound: FileSystem.makeTempDirectoryScoped`. That happened with two `test/hub` runs going at once. This diff does not touch that test, so it may be a separate flake worth a task.
 
-Branch: nzila/01M5FRMZVN018V0P7SJJ7DQB62
-
-nzila run 01M5FRMZVN018V0P7SJJ7DQB62

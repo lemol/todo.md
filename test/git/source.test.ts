@@ -41,9 +41,9 @@ const removing = (force: boolean) =>
 
 describe("the git source", () => {
   test("names a project after the repository", () => {
-    expect(repoNameOf("git@github.com:lemol/mionso.git")).toBe("mionso")
+    expect(repoNameOf("git@github.com:acme/app.git")).toBe("app")
     expect(repoNameOf("https://github.com/lemol/Todo.md.git")).toBe("todo-md")
-    expect(repoNameOf("https://github.com/lemol/mionso")).toBe("mionso")
+    expect(repoNameOf("https://github.com/acme/app")).toBe("app")
     expect(repoNameOf("/srv/repos/acme.git/")).toBe("acme")
     expect(repoNameOf("")).toBeUndefined()
   })

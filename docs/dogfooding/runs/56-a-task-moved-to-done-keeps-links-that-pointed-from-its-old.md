@@ -35,8 +35,8 @@ Run `01M5GFSJB0W0BXB5F6XWCE9GPN`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
     plus `test/fs/links.test.ts` "rebased … retains decoded target … in both
     directions". review#3's single-expect reversal (archived `exists` to
     `false`) failed 27 tests; I did not repeat it.
-- Comments: the task file's only comment is nzila's closing comment; the
-  brief had none. No numbered build items; plan task 1 is done.
+- Comments: the task file's only comment is the orchestrator's closing
+  comment; the brief had none. No numbered build items; plan task 1 is done.
 - Defect, filed as 57: `encode` rebuilds every rebased destination with
   `encodeURIComponent`, so the author's spelling is lost and done then reopen
   does not round-trip. Probe on `756b909` (scratch test, real files):
@@ -54,7 +54,7 @@ Run `01M5GFSJB0W0BXB5F6XWCE9GPN`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   ends in a newline; without one, only the item line is added.
 - No timings regeneration: `test/fs/links.test.ts` is new, but this
   repository has no `test/timings.json`.
-- Friction to report to nzila (already noted at 54): the skill's
-  `review.ts` and `rating.ts` resolve `bin.ts` from the current git
-  toplevel, so they fail from a todo-md worktree; both work from the nzila
-  checkout.
+- Friction to report to the orchestrator (already noted at 54): the
+  skill's `review.ts` and `rating.ts` resolve `bin.ts` from the current git
+  toplevel, so they fail from a todo-md worktree; both work from the
+  orchestrator's checkout.

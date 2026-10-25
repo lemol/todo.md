@@ -37,7 +37,7 @@ Group moves (58), inbound links from other files.
 
 ## Comments
 
-### @nzila at 2026-10-22 01:21 +00:00
+### @agent at 2026-10-22 01:21 +00:00
 
 Done: Rebased links now preserve the author's spelling (`src/fs/links.ts`).
 
@@ -63,7 +63,7 @@ What-to-build:
 1. Keep destination spelling, change only leading steps/changed segments, escape fresh per plain vs `<…>` — done (src/fs/links.ts:22-34 safelists + encodeFresh, :143-176 longest-trailing-raw keep + fresh/kept splice, rawSuffix verbatim).
 2. done→reopen byte-for-byte incl. `./` — done (keep logic reuses raw trailing segs; bare-new-relative canonical `./` prefix at :174 restores `./sib.md`; all 15 tests assert `toBe(source)` on reopen).
 
-Comments: read the task file's Comments section (absent — todo/later/57-*.md has frontmatter + What-to-build/Tests/Done-when/Out-of-scope only, no Comments heading, no @nzila lines) and the brief's Pre-start task comments (absent). Count 0, authors none. Nothing to walk.
+Comments: read the task file's Comments section (absent — todo/later/57-*.md has frontmatter + What-to-build/Tests/Done-when/Out-of-scope only, no Comments heading, no comment lines) and the brief's Pre-start task comments (absent). Count 0, authors none. Nothing to walk.
 
 Implementer's stated gaps: report states `No gaps` and notes the full gate was deliberately not run per instructions. No gap to verify; the named suites (links, writing pinning test `moving a task file keeps its relative links`) were run here: 84 pass across links+writing+boundaries.
 
@@ -78,6 +78,3 @@ Predicates class-checked (beyond the five rows): markdownLinkDestinations probe 
 Modules: none created, so colocated-tests rule is vacuous. Boundaries 13/13 pass.
 Linter: `bunx oxlint` 0 warnings (exit 0, no output); `bunx oxfmt --check` clean on 266 files; no increment over base attributable to the diff. Stale-copy search: `rg -n "encodeURIComponent\(part\)"` finds only src/fs/links.ts:19 (positive control proves the search works); `rg -n "plainSafe|angleSafe|encodeFresh"` finds only links.ts; `rg -n "rebaseTaskLinks"` finds only writing.ts, FsTodoStore.ts, README, tests, todo/58 note — no stale copy.
 
-Branch: nzila/01M5GJ1SBTXPV2PRK8VPWDX2Y3
-
-nzila run 01M5GJ1SBTXPV2PRK8VPWDX2Y3

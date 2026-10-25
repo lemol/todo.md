@@ -34,7 +34,7 @@ scope: the bundle (its `.tsx` are compiled at build time), and asking
 
 ## Comments
 
-### @nzila at 2026-10-21 18:20:43 +00:00
+### @agent at 2026-10-21 18:20:43 +00:00
 
 Done: Fixed todo-md:52: src/web/load.ts now puts the jsxImportSource pragma on the file's first line with a space instead of a newline, so line numbers are unchanged. The plugin still covers pragma-less .tsx files.
 
@@ -61,7 +61,7 @@ Build items:
 Tests and Done when:
 - The test loads a `.tsx` that throws on a known line through the plugin and asserts that line. Pinned by test/web/load.test.ts "the JSX loader keeps the source's line numbers in stack traces". The test is next to the web tests in test/web.
 - What would make it fail: a stack that does not contain `thrower.tsx:2:`. The fixture has two lines and builds the Error on line 2, so the expected number comes from the fixture, not from the code.
-- "Fails with the newline restored": I reversed it myself. In a scratch worktree (.nzila-scratch-$NZILA_ATTEMPT, since removed) I put `\n` back in load.ts and ran `bun test test/web/load.test.ts`. Result: `(fail) ... Expected to contain: "thrower.tsx:2:" Received: "Error: boom\n at .../thrower.tsx:3:25"`, 0 pass, 1 fail. This closes the gap do#1 stated, that it had not re-run the test with the newline restored.
+- "Fails with the newline restored": I reversed it myself. In a scratch worktree (since removed) I put `\n` back in load.ts and ran `bun test test/web/load.test.ts`. Result: `(fail) ... Expected to contain: "thrower.tsx:2:" Received: "Error: boom\n at .../thrower.tsx:3:25"`, 0 pass, 1 fail. This closes the gap do#1 stated, that it had not re-run the test with the newline restored.
 - "Keep todo-md:49's test passing": `bun test test/web/load.test.ts test/cli/web.test.ts test/web/server.test.ts` gave 9 pass, 0 fail.
 
 Comments: I read the task file `todo/release/52-the-web-jsx-loader-shifts-every-tsx-stack-trace-line-by-one.md` at review time. It has no Comments section, and the brief has no pre-start comments. That is 0 comments and 0 authors.
@@ -72,7 +72,7 @@ Implementer's stated gaps:
 - Did not search for altered values: pushed back, it does not matter here, because the change alters no literal. I searched anyway with `rg -n -F 'component */\n' .` (excluding node_modules). It hits only the task file's own description, which is dated history describing the bug. Proof the search works: run on the base `git show c4bc18c:src/web/load.ts` it finds line 6, the old `contents:` line.
 - Docs: src/web/README.md:57 and docs/architecture/tooling.md:76 describe load.ts registering the JSX loader. They do not mention a newline and remain accurate.
 
-nzila's own commits: none on this branch; the only one is the implementer's fix commit 28b61cc. Decisions: none in the brief.
+The orchestrator's own commits: none on this branch; the only one is the implementer's fix commit 28b61cc. Decisions: none in the brief.
 
 Class check (probe outside the repo, importing the plugin; each line shows file and stack frame):
 - A file with a UTF-8 BOM: `bom.tsx:2:25`. Line correct, so the BOM does not break parsing.
@@ -94,6 +94,3 @@ New config, command, event or intent: none. New directories: none; the new test 
 
 Citations that do not open (the verdict stands; a finding may still be right):
 - `.../thrower.tsx:3` path does not exist
-Branch: nzila/01M5FTWT1WZANJ294VC9CB051F
-
-nzila run 01M5FTWT1WZANJ294VC9CB051F

@@ -57,7 +57,7 @@ main(process.argv.slice(2), { cwd, env, username, color, home, userHome, sources
   `projects …`, `sync`. The full surface is in the
   [cli README](../../src/cli/README.md).
 - **Projects:** `--project <name>` (exclusive with `--dir`); qualified
-  `project:id` references (`mionso:12`); `todo projects …` to manage the
+  `project:id` references (`acme:12`); `todo projects …` to manage the
   registry; `todo sync` to refresh remotes; `ls`/`next --all` over `overview`.
   Unregistered lists work exactly as before. See the
   [hub design](../superpowers/specs/2026-09-13-hub-design.md#cli).

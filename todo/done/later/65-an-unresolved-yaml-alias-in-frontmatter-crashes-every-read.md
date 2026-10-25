@@ -37,7 +37,7 @@ The hub registry's own YAML (`src/hub/registry.ts`), which reads with `doc.get`,
 
 ## Comments
 
-### @nzila at 2026-10-22 03:58:14 +00:00
+### @agent at 2026-10-22 03:58:14 +00:00
 
 Done: Review finding F1 fixed: frontmatterEdits no longer drops keys when frontmatter with an unresolvable alias is a flow map or other non-block-map shape.
 
@@ -55,7 +55,7 @@ Test-first evidence:
 - Focused suites: bun test test/markdown/frontmatter.test.ts test/markdown/taskFile.test.ts test/markdown/todoFile.test.ts test/cli/query.test.ts test/fs/parsing.test.ts -> 106 pass, 0 fail.
 - bun run lint -> clean (oxfmt + oxlint). bun run typecheck -> clean (tsc). Ran as separate commands. git diff --check clean, working tree clean after commit.
 - Focused-test search for report: grep -rln "readFrontmatter|frontmatterEdits|invalid-frontmatter|taskFileParserVersion" src test finds src/markdown/{todoFile,frontmatter,taskFile}.ts, src/fs/{README,parsing}.ts, test/markdown/{taskFile,todoFile,frontmatter}.test.ts, test/cli/query.test.ts. Ran the markdown + query + fs/parsing suites above; no shared harness changed.
-- Parser version stays 4; no src/fs change. Did not run bun run check or the full suite, per instructions; the check stage owns those. No other checkout or shared install touched. No nzila-output parser changed, so recorded-output corpus sampling inapplicable. No acceptance gaps.
+- Parser version stays 4; no src/fs change. Did not run bun run check or the full suite, per instructions; the check stage owns those. No other checkout or shared install touched. No orchestrator-output parser changed, so recorded-output corpus sampling inapplicable. No acceptance gaps.
 
 Review: approved (4/5)
 Review round 3: approved. Read the whole d6e861d..265fc5b diff, not just the last fix. No new findings. Earlier F1 and F2 are both fixed.
@@ -85,7 +85,7 @@ Regression evidence, in a detached scratch worktree beneath this worktree (now r
 - With a65fce5 frontmatter.ts: 18 pass, 1 fail; non-mapping replacement test receives [] rather than its two-line replacement. This proves the F2 pin detects the over-broad guard.
 
 Class/external-library checks
-Ran a direct bun probe against the installed yaml parseDocument(...).toJS(), alongside readFrontmatter, both parsers, frontmatterEdits and updateTaskFile. Raw unresolved flow-map/sequence/scalar/nested/key/merge inputs print "Unresolved alias (the anchor must be set before the alias): a"; the wrapped readers print invalid-frontmatter instead and the writer preserves or splices according to shape. Plain sequence/scalar toJS succeeds and the writer replaces them. Valid anchors and a recursive anchor parse without diagnostics. A malformed lone-CR example takes the pre-existing parse-error fallback. Deliberately did not inject custom tag handlers: these functions expose no custom-tag configuration; the changed catch handles arbitrary toJS throws. No nzila-output parser changed, so recorded nzila-output corpus checks are inapplicable.
+Ran a direct bun probe against the installed yaml parseDocument(...).toJS(), alongside readFrontmatter, both parsers, frontmatterEdits and updateTaskFile. Raw unresolved flow-map/sequence/scalar/nested/key/merge inputs print "Unresolved alias (the anchor must be set before the alias): a"; the wrapped readers print invalid-frontmatter instead and the writer preserves or splices according to shape. Plain sequence/scalar toJS succeeds and the writer replaces them. Valid anchors and a recursive anchor parse without diagnostics. A malformed lone-CR example takes the pre-existing parse-error fallback. Deliberately did not inject custom tag handlers: these functions expose no custom-tag configuration; the changed catch handles arbitrary toJS throws. No orchestrator-output parser changed, so recorded orchestrator-output corpus checks are inapplicable.
 
 Cost and consistency
 Measured with bun -e: 100 frontmatterEdits calls on an unresolved block map with 1,001 keys took 2030.0 ms (about 20.3 ms/edit on this machine). No new I/O or extra parse pass was introduced: the writer already parsed and called readFrontmatter. Both work synchronously over the same immutable string, so the two parses cannot observe a file moving between them. A subsequent call retries independently; catching the library error introduces no mutable error state.
@@ -99,7 +99,7 @@ Verification and gaps
 - Implementer states "No acceptance gaps"; no named-test or Done-when gap remains. The omitted whole-gate run belongs to check and its recorded result is available.
 
 Scope/commit audit
-Checked every listed commit against its rule: 9b5c5d4 handles reader throws; 48f171a handles per-key edits/deletion; a65fce5 addresses F1; 265fc5b addresses F2 and the README nit. All are task/review fixes; no unrelated nzila housekeeping commit appears. No modules, directories, configuration fields, commands, events or intents are introduced. Existing tests remain in the repository's test/markdown and test/cli layout.
+Checked every listed commit against its rule: 9b5c5d4 handles reader throws; 48f171a handles per-key edits/deletion; a65fce5 addresses F1; 265fc5b addresses F2 and the README nit. All are task/review fixes; no unrelated orchestrator housekeeping commit appears. No modules, directories, configuration fields, commands, events or intents are introduced. Existing tests remain in the repository's test/markdown and test/cli layout.
 
 Whole-tree hidden-inclusive literal search was first validated against the base source. "frontmatter must be a mapping" occurs in the live constant (frontmatter.ts:30), the live reader test (frontmatter.test.ts:51), and the historical 2026-09-12 markdown-module plan (:771 and :847); all remain accurate. notMapping occurs only at the declaration, reader return and writer guard. No literal/version change requires a documentation migration.
 
@@ -108,6 +108,3 @@ Overall score 4 reflects the two earlier implementation misses; the final review
 
 Citations that do not open (the verdict stands; a finding may still be right):
 - `fs/parsing.ts:216-225` path does not exist
-Branch: nzila/01M5GTG9BEZNWKKCKHYYGP6WRC
-
-nzila run 01M5GTG9BEZNWKKCKHYYGP6WRC

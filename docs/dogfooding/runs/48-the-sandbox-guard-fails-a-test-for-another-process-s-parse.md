@@ -33,7 +33,7 @@ Run `01M5FN5A6TVZ68NN3DJJE7F67B`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
   name; it no longer watches `cache/`.
 - Filed nothing. No test files added, moved or deleted; this repository
   has no `test/timings.json`.
-- Friction for nzila (not filed here): the skill's `review.ts` and
-  `rating.ts` call `bin.ts show` under the current repository's root, so in
-  todo-md they run the todo CLI and crash; `rating.ts` works run from the
-  nzila checkout.
+- Friction for the orchestrator (not filed here): the skill's `review.ts`
+  and `rating.ts` call `bin.ts show` under the current repository's root, so
+  in todo-md they run the todo CLI and crash; `rating.ts` works run from the
+  orchestrator's checkout.

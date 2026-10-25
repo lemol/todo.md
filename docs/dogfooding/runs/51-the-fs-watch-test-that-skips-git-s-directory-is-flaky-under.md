@@ -36,7 +36,7 @@ Run `01M5FRMZVN018V0P7SJJ7DQB62`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
     through the whole body, which fits a failure after the test from the
     guard, not one in the window.
   - `--rerun-each 50` under load. Observed by the reviewer, log at
-    `~/.nzila/attempts/01M5FTCRMQNB85Q866PVM1QDEF/proof/loaded-rerun.log`.
+    the attempt's `proof/loaded-rerun.log`.
 - Sibling `emits once per burst …`: same `arm` and `quiet` helpers.
 - `not.toMatchObject({ emitted: true, late: [] })` fails only when the test
   emitted and nothing late excuses it, because Bun matches arrays by length.

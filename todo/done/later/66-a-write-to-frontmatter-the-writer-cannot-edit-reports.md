@@ -39,9 +39,9 @@ The hub registry's YAML (todo-md:67).
 
 ## Comments
 
-### @nzila at 2026-10-22 04:48:38 +00:00
+### @agent at 2026-10-22 04:48:38 +00:00
 
-Done: todo-md:66 implemented in two commits on nzila/01M5GY12N5NBDM94VGGKMW955K.
+Done: todo-md:66 implemented in two commits on the run's branch.
 
 What was built (followed plan.md task order):
 - d4de5c7 `fix(markdown,fs): fail writes to frontmatter the writer cannot edit`
@@ -111,6 +111,3 @@ Non-blocking notes:
 - A valid flow map with a trailing comment (`{a: 1} # c`) still loses the comment when rewritten in block style. This was already the case before this change, and the spec's "MAY be rewritten in block style" allows it.
 - Commit eb3c46e is titled docs(spec) but also adds test/cli/frontmatter.test.ts.
 
-Branch: nzila/01M5GY12N5NBDM94VGGKMW955K
-
-nzila run 01M5GY12N5NBDM94VGGKMW955K

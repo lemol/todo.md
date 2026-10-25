@@ -114,9 +114,6 @@ name comes from the hub.
 
 ## Comments
 
-### @nzila at 2026-09-16 03:05:22 +00:00
+### @agent at 2026-09-16 03:05:22 +00:00
 
 Done: Approved. The prior readiness deadlock is fixed at src/hub/changes.ts:88-94: Deferred readiness completes on every watcher exit before defect handling, so an acquisition defect cannot hold RcRef subscription startup. test/hub/changes.test.ts:90-122 reproduces a defecting broken source, asserts subscribeChanges returns, then emits exactly one healthy-source event and asserts the correct fixture project payload; this checks the full failure class rather than only the old example. A broken watcher logs and ends while the healthy watcher remains live, matching src/hub/README.md watcher-resilience contract. Verified bun test test/hub/changes.test.ts (8 pass) and bun run check: biome, tsc, and 539 tests across 72 files passed; git diff --check and working tree are clean.
-Branch: nzila/01M2M0H8Y043A0RSHMGBW4QGQK
-
-nzila run 01M2M0H8Y043A0RSHMGBW4QGQK

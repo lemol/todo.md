@@ -5,7 +5,7 @@ group: Hub and sources
 completed_at: 2026-10-05T02:09:40Z
 outcome: completed
 ---
-A task in one list often waits on a task in another. On 2026-10-02, filing work that waits on `slash-usage:01` and `slash-usage:07` from the workspace, nzila and xonton lists failed: `todo add … --project workspace --depends-on slash-usage:01` says "task project slash-usage contradicts --project workspace", and with `--dir` it says "use --project or --dir, not both". The dependency ended up as bold prose in each description, which `ready`/`blocked` can't see.
+A task in one list often waits on a task in another. On 2026-10-02, filing work that waits on `slash-usage:01` and `slash-usage:07` from other lists failed: `todo add … --project workspace --depends-on slash-usage:01` says "task project slash-usage contradicts --project workspace", and with `--dir` it says "use --project or --dir, not both". The dependency ended up as bold prose in each description, which `ready`/`blocked` can't see.
 
 The hub design lists cross-project dependencies as a non-goal (`docs/superpowers/specs/2026-09-13-hub-design.md`, Non-goals and §CLI: "anchors and dependencies in another project, are usage errors"). The CLI disagrees with itself, though:
 
@@ -32,17 +32,17 @@ The hub design lists cross-project dependencies as a non-goal (`docs/superpowers
 
 ## Comments
 
-### @nzila at 2026-10-05 02:09:40 +00:00
+### @agent at 2026-10-05 02:09:40 +00:00
 
 Done: Diagnosis of check#4 (no code change; recommend one unchanged retry).
 
-FAILED (observed): `MemoryTodoStore without remove conforms to TodoStore > reopen puts the task back at the end of its section`. The assertion is not about reopen. It is the afterEach guard in test/sandbox.ts: "this test wrote outside its temporary directory, into /Users/lemol/.todo-md: ~ cache/2bxygtig92o.json". Log: /Users/lemol/.nzila/attempts/01M44VF9JG1KFPGZYA72EKSYYX/output.log lines 527-531. 1159 pass, 1 fail.
+FAILED (observed): `MemoryTodoStore without remove conforms to TodoStore > reopen puts the task back at the end of its section`. The assertion is not about reopen. It is the afterEach guard in test/sandbox.ts: "this test wrote outside its temporary directory, into /Users/lemol/.todo-md: ~ cache/2bxygtig92o.json". Log: <attempts>/01M44VF9JG1KFPGZYA72EKSYYX/output.log lines 527-531. 1159 pass, 1 fail.
 
 INVESTIGATED:
 - The failing test is the in-memory store's conformance. It does not touch the hub or any cache dir.
 - `grep -niE "cache|homedir|\.todo-md"` over `git diff main...HEAD -U0` shows one hit, the pre-existing `cacheDir: path.join(options.home, "cache")` at src/hub/Hub.ts:208. It derives from the home that sandbox.ts replaces with a temp dir, and this branch does not change it.
 - The earlier failed check, attempt 01M44TJXRA77BR2HGDVXBSJCR7, had the same escape: `~ cache/2bxygtig92o.json`. It was blamed on a different test, `the git store conforms to TodoStore > cancel makes the task done with outcome cancelled`. The same file escaping under unrelated tests in separate runs fits an outside writer. The sandbox snapshots the real ~/.todo-md before and after each test, so any process writing there during that window is blamed on whichever test is running.
-- Live processes on this machine run against the real ~/.todo-md: `bun bin.ts serve` (pid 63697, cwd xonton/apps/web) and `bun src/cli/bin.ts serve --reload-when-stale` (pid 71097, cwd nzila). I did not capture which process wrote the cache file. This is a suspected cause, not proven.
+- Live processes on this machine run against the real ~/.todo-md: `bun bin.ts serve` (pid 63697, in another project's web app) and `bun src/cli/bin.ts serve --reload-when-stale` (pid 71097, in another checkout). I did not capture which process wrote the cache file. This is a suspected cause, not proven.
 - Focused run: `bun test test/spec` gives 228 pass, 84 skip, 0 fail (includes the Memory conformance suite). The working tree is clean.
 
 NOT proven: that the serve processes wrote the file. Passing in isolation does not establish that either.
@@ -121,6 +121,3 @@ Evaluation completes in under 250ms for 200 foreign dependencies across projects
 - **Focused tests**: Ran 188 tests across 12 touched-area test files (`Hub.test.ts`, `tasks.test.ts`, `check.test.ts`, `metadata.test.ts`, `taskFile.test.ts`, `boundaries.test.ts`, `refs.test.ts`, `TodoService.test.ts`, `query.test.ts`, `help.test.ts`, `render.test.ts`, `parsing.test.ts`) -> 188 pass, 0 fail (597 assertions).
 - **Working tree**: Clean, no uncommitted changes, no stray files.
 
-Branch: nzila/01M44QZNM69CV5Y13KBSWR54PA
-
-nzila run 01M44QZNM69CV5Y13KBSWR54PA

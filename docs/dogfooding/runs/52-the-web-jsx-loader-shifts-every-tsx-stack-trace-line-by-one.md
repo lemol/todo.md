@@ -36,7 +36,7 @@ Run `01M5FTWT1WZANJ294VC9CB051F`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
     process. That is harmless: a second pragma is a no-op, and
     `tsconfig.json` already sets `jsxImportSource` for this repository's
     files.
-- nzila friction (this is nzila's task, not this list's): the review's
+- Orchestrator friction (its task, not this list's): the review's
   closing block listed `.../thrower.tsx:3` as a "citation that does not
   open". That was a quoted stack frame from a test run, not a citation.
 - No timings regeneration: this repository has no `test/timings.json`.

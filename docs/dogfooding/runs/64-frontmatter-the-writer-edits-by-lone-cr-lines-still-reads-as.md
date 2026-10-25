@@ -29,7 +29,7 @@ Run `01M5GSN1918XK88YR3V42Q38CC`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - The reversals were the implementer's and the reviewer's. I did not
   repeat them.
 - What to build 1 to 3: all done (`parseYaml`, `taskFile.ts`, the README).
-- Comments: none before the run. The only comment is nzila's closing one.
+- Comments: none before the run. The only comment is the orchestrator's closing one.
 - The cache: `src/fs/parsing.ts` keys task-file parses by
   `taskFileParserVersion`. `TODO.md` parses are cached in memory only, by
   source, so the bump covers every cached read.

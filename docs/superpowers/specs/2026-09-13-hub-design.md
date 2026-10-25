@@ -38,7 +38,7 @@ document records the decisions, their reasons and the task breakdown.
 
 | Decision | Chosen | Alternatives and why not |
 | --- | --- | --- |
-| Module name | `hub` (`@lemol/todo-md/hub`) | `server-core` suggests an HTTP server, yet the CLI uses it too; `workspace` collides with Bun workspaces and `lemol-workspace`; `projects` reads badly for sync and queries. |
+| Module name | `hub` (`@lemol/todo-md/hub`) | `server-core` suggests an HTTP server, yet the CLI uses it too; `workspace` collides with Bun workspaces; `projects` reads badly for sync and queries. |
 | How sources plug in | **Injected**: the hub defines a `Source` interface; apps pass `sources: [fsSource, gitSource, jiraSource]` | Hub importing every adapter makes a closed set and loads everything everywhere. No abstraction makes each frontend rewire stores and sync per project, the duplication the hub exists to remove. |
 | Registration | **Explicit registry** in `~/.todo-md/projects.yaml`, managed from the CLI and the web app | Auto-registering on use fills the registry with throwaway lists. Scanning root directories is slow and names are implicit; it can be added on top later. |
 | Reading remote data | **Local replica + explicit `sync`**: the directory (fs), the clone (git), a JSON mirror (jira) | Reading live from remotes is slow, rate-limited and offline-hostile. |
@@ -99,10 +99,10 @@ project deletes the directory; renaming moves it.
 projects:
   todo-md:
     source: fs
-    path: ~/Labs/lemolsoft/lemol-workspace/repos/todo-md
-  mionso:
+    path: ~/labs/todo-md
+  acme:
     source: git
-    url: git@github.com:lemol/mionso.git
+    url: git@example.com:acme/app.git
     branch: main          # optional; default: the remote's HEAD
     list: todo            # optional: the list directory inside the repo
   work:
@@ -413,7 +413,7 @@ interface SyncOutcome {
   `withTodo` becomes `hub.resolve` then `hub.todo`.
 - **`--project <name>`** global flag; exclusive with `--dir` (exit 2).
 - **Qualified references** wherever a task ID is taken (`todo done
-  mionso:12`). A reference whose project contradicts `--project`, or an
+  acme:12`). A reference whose project contradicts `--project`, or an
   anchor in another project, is a usage error. Dependencies may name
   another project (`--depends-on other:7`) and are resolved through the
   hub (task 35).

@@ -14,14 +14,14 @@ Run `01M5FNPM0NYA62PTHW6JQNXVGM`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
   against `docs/architecture/README.md`'s rule that only composition roots
   do.
 - do#2 recorded the exception in that rule. check#2 waited 6 minutes for
-  the machine gate slot, held by xonton:208's land, then passed.
+  the machine gate slot, held by another project's land, then passed.
 - review#2 approved: re-measured, reversed each pin in a scratch worktree.
 
 ## Controller review (intensive)
 
 - Done when:
   - `keyOf` under 3 ms cold: not a unit test (a wall clock). Measured
-    here over nzila's list, 3 cold runs: `files=596 chars=4697597`,
+    here over another project's list, 3 cold runs: `files=596 chars=4697597`,
     1.32, 1.15, 1.12 ms.
   - `todo list` unchanged: review#2's byte comparison of 606 lines, base
     against head on a miss and on a hit.
@@ -36,9 +36,9 @@ Run `01M5FNPM0NYA62PTHW6JQNXVGM`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
   from disk, which hold no lone surrogates. No task.
 - The first `expect` in the `keyOf` test is tautological; the literal pin
   after it carries the test. No task.
-- Comments: one, by @nzila (the closing note). Filed nothing. No test files
-  added, moved or deleted.
-- Friction for nzila (not filed here): the brief names
-  `.agents/skills/nzila-dogfood/scripts/review-lock` as a path in this
-  repository, where it does not exist; it lives in nzila's checkout, and
+- Comments: one, by the orchestrator (the closing note). Filed nothing. No
+  test files added, moved or deleted.
+- Friction for the orchestrator (not filed here): the brief names its
+  dogfooding skill's `scripts/review-lock` as a path in this repository,
+  where it does not exist; it lives in the orchestrator's checkout, and
   `review.ts` and `rating.ts` only work run from there (as in 48).

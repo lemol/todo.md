@@ -58,7 +58,7 @@ the person's job, and other live runs may still be using some of them.
 
 ## Comments
 
-### @nzila at 2026-10-21 19:08:06 +00:00
+### @agent at 2026-10-21 19:08:06 +00:00
 
 Done: Built both plan tasks, one commit each (e6418e1, 4ea7f36).
 
@@ -109,6 +109,3 @@ OTHER CHECKS: predicate class — cleanup is exact-path, no matcher; the test's 
 
 NOTES (non-blocking): (a) web-dir cleanup has no committed pin — only this reviewer's manual TMPDIR check; a future mkdtemp without scratchDirectory would not trip any test. Task required only the one test, so not a defect, but a whole-run TMPDIR assertion would be the durable pin. (b) afterAll rmSync loop is not per-dir fault-isolated; with force:true a throw is unlikely, nits only.
 
-Branch: nzila/01M5FX034Q2TARN6M0MV1JV05N
-
-nzila run 01M5FX034Q2TARN6M0MV1JV05N

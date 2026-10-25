@@ -10,7 +10,7 @@
  *
  * The hub's `cache/` directory is not watched. It holds the parse cache, which
  * is never a source of truth (spec, storage architecture), and every real
- * `todo` or nzila process on the machine rewrites it, so a change there edits
+ * `todo` process or tool built on it rewrites it, so a change there edits
  * no one's work and would fail whichever test happened to be running. The
  * registry and the rest of the home, and this repository's `todo/`, stay
  * watched.

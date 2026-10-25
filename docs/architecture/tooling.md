@@ -65,7 +65,7 @@ The web UI lives in `src/web` and ships in the published package, so `remix` (ex
 - **TypeScript**, strict, with `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`.
 - **Biome** for linting and formatting.
-- **One gate for CI and `lemol-workspace`:** `bun run check` runs lint,
+- **One gate for CI and downstream checks:** `bun run check` runs lint,
   typecheck and tests.
 - **One build step.** Subpath exports point at TypeScript sources, which Bun
   runs directly, the same as `@lemol/framework`; the installed executable is

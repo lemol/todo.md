@@ -32,7 +32,7 @@ Frontmatter (69). The layout of edited entries (70).
 
 ## Comments
 
-### @nzila at 2026-10-22 05:32:35 +00:00
+### @agent at 2026-10-22 05:32:35 +00:00
 
 Done: Implemented and committed as 8aa248c (fix(hub): remove dangling colon from registry syntax errors).
 
@@ -67,6 +67,3 @@ Implementer's stated gaps: the only one is that the full gate was not run, as th
 
 Ran: `bun test test/hub/registry.test.ts test/cli/bin.test.ts` gave 26 pass / 0 fail. `bun run lint`: "All matched files use the correct format", 0 warnings, same as the base. Other copies: `rg -n -F 'split(/\r\n|\r|\n/)[0]' src test` finds only src/hub/registry.ts:108. Frontmatter (69) has its own handling and is out of scope. The diff adds no config, command or migration, and no doc mentions the message format. The cost is one regex on one line per error.
 
-Branch: nzila/01M5H186F0NY2BYW8386A7NXT6
-
-nzila run 01M5H186F0NY2BYW8386A7NXT6

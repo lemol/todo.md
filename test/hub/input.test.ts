@@ -10,15 +10,15 @@ const input = (target: string, options: Partial<ProjectInputOptions> = {}) =>
 
 describe("projectInput", () => {
   test.each([
-    ["git@github.com:lemol/mionso.git", "git", { url: "git@github.com:lemol/mionso.git" }],
+    ["git@github.com:acme/app.git", "git", { url: "git@github.com:acme/app.git" }],
     ["ssh://git@host.example/repo.git", "git", { url: "ssh://git@host.example/repo.git" }],
     [
       "https://git.example.com/team/repo.git",
       "git",
       { url: "https://git.example.com/team/repo.git" },
     ],
-    ["https://github.com/lemol/mionso", "git", { url: "https://github.com/lemol/mionso" }],
-    ["github.com/lemol/mionso", "git", { url: "https://github.com/lemol/mionso" }],
+    ["https://github.com/acme/app", "git", { url: "https://github.com/acme/app" }],
+    ["github.com/acme/app", "git", { url: "https://github.com/acme/app" }],
     ["./repos/app", "fs", { path: "/work/repos/app" }],
     ["app", "fs", { path: "/work/app" }],
     ["/srv/app", "fs", { path: "/srv/app" }],
@@ -106,8 +106,8 @@ describe("projectInput", () => {
 
   test("path is left out of every other source's config", () => {
     expect(input("/srv/app", { path: "/srv/app.db" }).config).toEqual({ path: "/srv/app" })
-    expect(input("git@github.com:lemol/mionso.git", { path: "/srv/app.db" }).config).toEqual({
-      url: "git@github.com:lemol/mionso.git",
+    expect(input("git@github.com:acme/app.git", { path: "/srv/app.db" }).config).toEqual({
+      url: "git@github.com:acme/app.git",
     })
   })
 })

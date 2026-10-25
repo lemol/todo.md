@@ -33,7 +33,7 @@ Task-file frontmatter, which already splices. Error messages (71).
 
 ## Comments
 
-### @nzila at 2026-10-22 05:54:37 +00:00
+### @agent at 2026-10-22 05:54:37 +00:00
 
 Done: Implemented plan tasks 1 and 2, in order, with separate commits:
 - 8901d29 fix(hub): splice registry edits so untouched entries keep their layout
@@ -112,6 +112,3 @@ Findings checked, no open finding:
 
 Quality: lint/typecheck/boundaries/diff-check clean; blank-line/brace style holds; docs updated in same diff.
 
-Branch: nzila/01M5H1RGRR2RVDY3M821SY4P4F
-
-nzila run 01M5H1RGRR2RVDY3M821SY4P4F

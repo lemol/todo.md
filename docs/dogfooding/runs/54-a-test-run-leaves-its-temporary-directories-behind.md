@@ -10,8 +10,8 @@ Run `01M5FX034Q2TARN6M0MV1JV05N`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
 - plan#1 probed bun 1.4.3. A preload's `afterAll` runs once, after the
   last file, even when a test fails. It does not run under `--bail`.
   `exit` and `beforeExit` never fire. The plan had no Files block, so
-  nzila noted that it checked no overlap. That cost nothing at width 1,
-  and nzila:572 covers it.
+  the orchestrator noted that it checked no overlap. That cost nothing at
+  width 1.
 - do#1 added `scratchDirectory(prefix)` to `test/sandbox.ts`. The
   preload's `afterAll` removes exactly the paths it recorded. The sandbox
   home, the git templates and the web tests' directories (including
@@ -39,8 +39,8 @@ Run `01M5FX034Q2TARN6M0MV1JV05N`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
     exited 0 (1437 tests each), and only `todo-md-test-home-other` was
     left.
 - Build items 1 to 3 are done, as review#1 walked them. Comments: the task
-  file's only comment is nzila's own closing comment, and the brief had
-  none.
+  file's only comment is the orchestrator's own closing comment, and the
+  brief had none.
 - do#1's stated gaps:
   - The whole-suite isolated run is done by the check above.
   - The `--bail` gap is pushed back: the repository never passes
@@ -57,7 +57,7 @@ Run `01M5FX034Q2TARN6M0MV1JV05N`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
 - No timings regeneration: `test/sandbox.test.ts` gained a test but no
   test file was added, moved or deleted, and this repository has no
   `test/timings.json`.
-- Friction to report to nzila: the skill's `scripts/rating.ts` runs
-  `bin.ts show` under the current git toplevel, so it fails from a todo-md
-  worktree (`events.filter is not a function`). It works when run from the
-  nzila checkout.
+- Friction to report to the orchestrator: the skill's `scripts/rating.ts`
+  runs `bin.ts show` under the current git toplevel, so it fails from a
+  todo-md worktree (`events.filter is not a function`). It works when run
+  from the orchestrator's checkout.

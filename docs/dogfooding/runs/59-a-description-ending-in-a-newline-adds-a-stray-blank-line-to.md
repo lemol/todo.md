@@ -28,8 +28,8 @@ Run `01M5GN24YAX4XK8SEM65Z652XK`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - What to build 1 (stop the newline reaching the splice): done in
   `src/markdown/items.ts`. 2 (stdin vs literal final newline): done, both
   normalize, said in `src/cli/README.md`.
-- Comments: the brief had none; the task file has only nzila's closing
-  comment.
+- Comments: the brief had none; the task file has only the orchestrator's
+  closing comment.
 - Real use: filing 61 with a heredoc `todo add --description -` changed
   `todo/TODO.md` by the item line only.
 - Class probes on `877b01e` (scratch list, isolated `HOME`): stdin
@@ -39,6 +39,7 @@ Run `01M5GN24YAX4XK8SEM65Z652XK`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   filed as 61.
 - No timings regeneration: tests were modified, none added, moved or
   deleted.
-- Friction for nzila (not filed here, as at 57 and 58): `review.ts` and
-  `rating.ts` resolve the CLI from the repository root, so from todo-md
-  they run `todo show` and fail; run them with the nzila checkout as cwd.
+- Friction for the orchestrator (not filed here, as at 57 and 58):
+  `review.ts` and `rating.ts` resolve the CLI from the repository root, so
+  from todo-md they run `todo show` and fail; run them with the
+  orchestrator's checkout as cwd.

@@ -29,7 +29,7 @@ Run `01M5GZE6PN6VFAAV539B369V8D`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - What to build: 1 done, refuse (`read`); 2 done (README); 3 done
   (`write`'s catch). `update` reads before it edits, so `read`'s
   whole-document `toJS` holds up the premise in the catch's comment.
-- Comments: none before the run; the only one is nzila's closing comment.
+- Comments: none before the run; the only one is the orchestrator's closing comment.
 - Class probes at `95e9c79` (own `HOME`):
   - an alias as an entry's key (`*k : {…}`) lists as a broken entry named
     `*k`. That is consistent with "a key that is not a valid name";

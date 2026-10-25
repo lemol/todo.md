@@ -38,7 +38,7 @@ Run `01M5GY12N5NBDM94VGGKMW955K`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   frontmatter, grep shows no other `updateTaskFile` caller); 2 done (fails,
   with the reason); 3 done (spec §2.10 bullet, README, storage.md); 4 done
   with no code change.
-- Comments: none before the run; the only one is nzila's closing comment.
+- Comments: none before the run; the only one is the orchestrator's closing comment.
 - Probes at `1efcb60` (scratch list, own `HOME`, `TODO_MD_HOME`): flow map
   with alias, syntax error, sequence and a CRLF flow map with alias each
   refuse `edit`/`done`/`cancel` with exit 1 and leave the file; `--json`

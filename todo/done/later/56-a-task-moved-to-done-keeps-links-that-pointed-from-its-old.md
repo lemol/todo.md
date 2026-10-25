@@ -5,7 +5,7 @@ group: Later
 completed_at: 2026-10-22T00:55:46Z
 outcome: completed
 ---
-Seen twice on 2026-10-21 in project1. `todo done` moved `todo/a-session-in-the-app/16-….md` to `todo/done/a-session-in-the-app/16-….md`, and `todo/planning-in-the-app/03-….md` to `todo/done/planning-in-the-app/03-….md`. Each move goes one directory deeper. The task bodies' relative links, such as `../../product/projects/…/README.md`, were written from the old directory, so after the move they point one level short. project1's `check-docs` then reported them broken. We fixed them by hand (project1 `b4defa8`, `4a5f8ff`). `reopen` makes the reverse move and would break them the other way.
+Seen twice on 2026-10-21 in another project. `todo done` moved `todo/a-session-in-the-app/16-….md` to `todo/done/a-session-in-the-app/16-….md`, and `todo/planning-in-the-app/03-….md` to `todo/done/planning-in-the-app/03-….md`. Each move goes one directory deeper. The task bodies' relative links, such as `../../product/projects/…/README.md`, were written from the old directory, so after the move they point one level short. That project's `check-docs` then reported them broken. We fixed them by hand. `reopen` makes the reverse move and would break them the other way.
 
 #### Done when
 
@@ -13,7 +13,7 @@ Moving a task file between `todo/<group>/` and `todo/done/<group>/`, by `done`, 
 
 ## Comments
 
-### @nzila at 2026-10-22 00:55:46 +00:00
+### @agent at 2026-10-22 00:55:46 +00:00
 
 Done: Committed 86f28c2 (fix(fs): preserve Markdown destination syntax when rebasing links). Worktree is clean.
 
@@ -44,7 +44,7 @@ Post-change reference searches:
 - rg -n 'rebaseTaskLinks|markdownLinkDestinations|decodedDestination' src test (26 lines).
 These cover the shared writer/reopen routes and their normalization/config/conformance/CLI tests. No defaults, configuration fields, command lists or shared test-harness rules changed.
 
-Plan continuation: the initial implementation commit already existed, so this visit makes one corrective commit rather than repeating task 1. The entity decoder reuses parseAst to avoid maintaining CommonMark character-reference rules or changing dependencies. No spec changes needed: fixes implement the existing relocation promise. No shared-install or other-checkout changes, no cross-project tasks. No nzila-output parser/predicate was changed, so recorded-output corpus sampling does not apply. Whole gate intentionally left to check stage.
+Plan continuation: the initial implementation commit already existed, so this visit makes one corrective commit rather than repeating task 1. The entity decoder reuses parseAst to avoid maintaining CommonMark character-reference rules or changing dependencies. No spec changes needed: fixes implement the existing relocation promise. No shared-install or other-checkout changes, no cross-project tasks. No orchestrator-output parser/predicate was changed, so recorded-output corpus sampling does not apply. Whole gate intentionally left to check stage.
 
 Review: approved (4/5)
 Reviewed the whole f2c09b9..dd508d7 diff: 10 files, commits b0c605b, 86f28c2 and dd508d7. I read it against task 56, spec §2.10, the plan and check#3. Approved.
@@ -100,7 +100,7 @@ VERIFICATION
 - Linter: "Found 0 warnings and 0 errors." (check#3 output.log:8). The baseline from rounds 1 and 2 was also 0. My `bun run lint` is clean.
 - Stale references: `rg -n "decodedDestination|angle form" src test docs todo` finds only src/markdown/links.ts:12, :16 and :138, all live.
 - The diff changes no counts, defaults, config fields, CLI flags or events. The spec still matches the code.
-- Commits: all three are task-56 scope. No nzila-owned rule commits.
+- Commits: all three are task-56 scope. No orchestrator-owned rule commits.
 - Reads: target existence is checked before any write, and the write order is unchanged. Because of the list lock, only an external deletion between check and move could interfere, and the link would then be rebased to a missing target. That is acceptable.
 
 COST AT SCALE (scratch test/fs/review-scale3.test.ts, real disk, one move)
@@ -114,6 +114,3 @@ Entity destinations cost about 2.3x at 5000 because of the extra parseAst call p
 
 Scratch worktree removed. The branch is clean and the shared install untouched.
 
-Branch: nzila/01M5GFSJB0W0BXB5F6XWCE9GPN
-
-nzila run 01M5GFSJB0W0BXB5F6XWCE9GPN

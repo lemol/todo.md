@@ -9,13 +9,11 @@ so nobody has verified them.
 
 Evidence (2026-10-21, main `a1df35a`):
 
-- The main checkout has no `dist/`. `lemol-workspace/node_modules/.bin/todo`
-  and `repos/nzila/node_modules/.bin/todo` still link to
-  `src/cli/bin.ts`, from installs made before the land. The next install
-  relinks them to `dist/bin.js`.
-- `lemol-workspace`'s store copy
-  (`node_modules/.bun/@lemol+todo-md@file+repos+todo-md+…`) holds neither
-  `dist/` nor `scripts/`. Whether Bun runs a `file:` or `workspace:`
+- The main checkout has no `dist/`. Consumers' `node_modules/.bin/todo`
+  links still point at `src/cli/bin.ts`, from installs made before the
+  land. The next install relinks them to `dist/bin.js`.
+- A consumer's store copy (`node_modules/.bun/@lemol+todo-md@file+…`)
+  holds neither `dist/` nor `scripts/`. Whether Bun runs a `file:` or `workspace:`
   member's `prepare` is unverified.
 - Even when built, `dist/` is not rebuilt by `git pull`, a land, or a
   checkout. The installed `todo` then runs old code, while the external
@@ -35,6 +33,6 @@ Tests first: in `test/cli/bundle.test.ts`, a rebuild after removing an
 entry leaves only the new outputs, and the installed entry runs with no
 `dist/`.
 
-Done when: those tests pass. A person runs `bun install` in
-`lemol-workspace` and confirms `node_modules/.bin/todo --help` works.
+Done when: those tests pass. A person runs `bun install` in a consumer
+and confirms `node_modules/.bin/todo --help` works.
 Out of scope: publishing to a registry.

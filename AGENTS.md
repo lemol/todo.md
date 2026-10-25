@@ -71,12 +71,11 @@ bun src/cli/bin.ts web --dir todo  # run the local web app
   the run an empty hub and fails any test that writes to the real list or
   registry.
 - **Effect version.** `effect` is an exact peer dependency matching the
-  other lemol repositories (framework, org, nzila, mionso). Change it only
+  other lemol repositories (framework, org). Change it only
   together with them, and keep `@effect/platform-bun` and
   `@effect/platform-node-shared` (pinned and overridden) on the same version.
 - **The core stands alone.** `spec`, `markdown`, `core`, `fs`, `hub`
-  and `cli` must not depend on other lemol repositories.
-  `lemol-workspace` composes this repo as `repos/todo-md`. `src/web` is a
+  and `cli` must not depend on other lemol repositories. `src/web` is a
   composition root and may depend on `@lemol/ui`.
 - **CLI help.** Every command needs a description, a description for each
   flag and argument, and examples; `test/cli/help.test.ts` checks every

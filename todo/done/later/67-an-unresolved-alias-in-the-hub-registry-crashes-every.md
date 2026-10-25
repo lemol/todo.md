@@ -31,7 +31,7 @@ Task-file and `TODO.md` frontmatter (65, 66).
 
 ## Comments
 
-### @nzila at 2026-10-22 04:26:36 +00:00
+### @agent at 2026-10-22 04:26:36 +00:00
 
 Done: Fixed review finding R1 in commit 2e4a550. The check in `read` is now `doc.toJS({ mapAsMap: true })`, so a registry with a collection key no longer prints Node's "Keys with collection values will be stringified" warning. Unresolved aliases and alias bombs still throw.
 
@@ -88,6 +88,3 @@ Earlier findings: R1 fixed (see above). No new open findings.
 
 Citations: src/hub/registry.ts:127, :146, :105-109, :117-160, :162-172; test/hub/registry.test.ts:197-204, :206-230, :233-250, :275-293, :295-312; test/cli/bin.test.ts:56-94; src/hub/resolve.ts:89-90; src/hub/README.md:72-76. Commands: `git diff --stat f225a22..HEAD`, `rg -n "toJS\(|parseDocument" src`, `rg -n "Unresolved alias" .`, `rg -n mapAsMap .`, `bun test ...`, `bun run lint`, `bun run typecheck`, `bun test test/boundaries.test.ts`, yaml/CLI/cost `bun -e` probes.
 
-Branch: nzila/01M5GWF9M08NKXCFY84GVQ70KY
-
-nzila run 01M5GWF9M08NKXCFY84GVQ70KY

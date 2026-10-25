@@ -33,9 +33,9 @@ Lone-CR (`\r`-only) files: `splitLines` does not treat a lone CR as a line endin
 
 ## Comments
 
-### @nzila at 2026-10-22 02:44:29 +00:00
+### @agent at 2026-10-22 02:44:29 +00:00
 
-Done: fix(markdown): preserve CRLF frontmatter lines during edits (1ee7a07 on nzila/01M5GQBC812V17ZGK5JA1NC78H).
+Done: fix(markdown): preserve CRLF frontmatter lines during edits (1ee7a07 on the run's branch).
 
 Path confirmed before fixing: `updateTaskFile` passes the mdast yaml node's `value` (raw, keeps `\r\n`) into `setFrontmatterFields`, which split on `"\n"` only, so kept lines ended in `\r` and `joinLines` added the file's `\r\n` on top — reproduced exactly as the task describes, and the 6 new tests failed red at base (130 pass / 6 fail, matching the plan's known-bad run).
 
@@ -70,7 +70,7 @@ Tests and Done-when, each pinned:
 - Diagnostic: `readFrontmatter > diagnostics stop at every line ending`.
 - Multiline CRLF: `setFrontmatterFields > keeps YAML ranges aligned after a multiline CRLF value`.
 
-Reversals in scratch worktree .nzila-scratch-$NZILA_ATTEMPT (removed afterwards; status clean):
+Reversals in a scratch worktree (removed afterwards; status clean):
 (a) base frontmatter.ts: 6 fail / 90 pass. The 6 failures are exactly the new tests.
 (b) only the message split reverted: 1 fail (`diagnostics stop at every line ending`).
 (c) parseDocument and lineOf on raw `yaml` while keeping `textLines` lines: 0 fail.
@@ -90,7 +90,7 @@ Not tried on purpose: lone-CR files (out of scope). Note: with normalization, a 
 
 Comments: the task file todo/later/62-editing-a-crlf-task-file-s-frontmatter-writes-a-stray.md has no Comments section (`grep -n Comments` returned nothing), so 0 comments and no authors. The brief has no pre-start comments. Implementer's gaps: none stated.
 
-Commit check: one nzila commit, 1ee7a07 fix(markdown). It is in scope for the task and its message matches the change.
+Commit check: one commit, 1ee7a07 fix(markdown). It is in scope for the task and its message matches the change.
 
 Spec: docs/spec.md:231 says "Writers preserve the line ending style of existing files". The code now honors that. The README rule extension is accurate.
 
@@ -100,6 +100,3 @@ Cost: setFrontmatterFields now calls textLines twice on the frontmatter. That is
 
 No new config, commands or modules.
 
-Branch: nzila/01M5GQBC812V17ZGK5JA1NC78H
-
-nzila run 01M5GQBC812V17ZGK5JA1NC78H

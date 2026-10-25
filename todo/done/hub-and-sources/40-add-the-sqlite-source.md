@@ -19,7 +19,7 @@ Done when:
 
 ## Comments
 
-### @nzila at 2026-10-20 05:58:57 +00:00
+### @agent at 2026-10-20 05:58:57 +00:00
 
 Done: # Diagnosis: check#3 (commit 742f678, `bun run check`) — 1 failure, external, no change justified
 
@@ -36,7 +36,7 @@ Same signature as check#2's three sandbox failures. The suite is otherwise green
 
 #### Investigation (observed evidence)
 
-- The escaped file's content begins `{"version":1,"root":"/Users/lemol/Labs/lemolsoft/lemol-workspace/repos/xonton/.worktrees/01M5BWJZFZNKGEBXJ5GM0PX4S0/todo",...}` — a parse cache for another project's list. No code path in this repo's tests reads xonton's todo directory; the victim test uses a pure in-memory store. The write is external (another run's `todo` CLI on this shared machine).
+- The escaped file's content begins `{"version":1,"root":"<another project>/.worktrees/01M5BWJZFZNKGEBXJ5GM0PX4S0/todo",...}` — a parse cache for another project's list. No code path in this repo's tests reads that project's todo directory; the victim test uses a pure in-memory store. The write is external (another run's `todo` CLI on this shared machine).
 - Timing: file mtime 01:33 local; gate started 05:29:42Z (01:29 local), ran 597s with load1 8.2. The write landed mid-gate.
 - Ongoing pattern: `ls -lt /Users/lemol/.todo-md/cache/` shows external writes all night (00:06, 00:15, 00:55, 01:33, 01:41 local) — the shared home is written continuously by other agents/runs, so any ~600s gate run can catch one in some test's `afterEach` window.
 
@@ -85,13 +85,13 @@ No new findings.
 3. Schema, one transaction per mutation, WAL, no lock, created empty and titled: store.test.ts "opens the file in WAL mode, with no lock file beside it" and "keeps the list when reopened, ..."; test/cli/sqlite-driver.test.ts "a failed transaction rolls back whole".
 4. path:, default location, `~` expansion, watchList over db and -wal, remove deletes only a hub-placed file: test/sqlite/source.test.ts (path expanded; "removing deletes the file the hub placed and leaves a path file alone"; live change test) and test/cli/sqlite.test.ts.
 5. Export, boundaries rows, README, and help: package.json `./sqlite`; help.test.ts "projects add documents the sqlite source and its --path flag", which review #1 already reversed and saw fail.
-6. `bun run check`: check.command is `bun run check`, the same command the Done when names. check#5 passed it at 62727f4 ("Ran 1406 tests across 102 files. [45.74s]", gate output /Users/lemol/.nzila/attempts/01M5BXX3JC2WQEZB5XD32K14K7/output.log). check#3 and check#4 failed on the sandbox guard tripping on ~/.todo-md/cache, which was external; main's 623fb10 and 2a3b14b fixed that. I did not run the gate.
+6. `bun run check`: check.command is `bun run check`, the same command the Done when names. check#5 passed it at 62727f4 ("Ran 1406 tests across 102 files. [45.74s]", gate output <attempts>/01M5BXX3JC2WQEZB5XD32K14K7/output.log). check#3 and check#4 failed on the sandbox guard tripping on ~/.todo-md/cache, which was external; main's 623fb10 and 2a3b14b fixed that. I did not run the gate.
 
 #### Other walks
 - What to build: the task has no numbered list, so the Done-when items above stand in for it.
 - Comments: I read todo/hub-and-sources/40-add-the-sqlite-source.md at review time. It has no Comments section, and the brief has no Pre-start task comments. That is 0 comments and no authors.
 - Implementer's stated gaps: do#2, do#3 and do#4 state none. do#4 names a test-infrastructure follow-up (make the sandbox tolerant of cache churn). Main has since done it (623fb10), so nothing is left open here.
-- nzila's own commits: none on this branch. All eight are conventional implementer commits, each scoped to its fix.
+- The orchestrator's own commits: none on this branch. All eight are conventional implementer commits, each scoped to its fix.
 - Focused tests run at HEAD: `bun test test/boundaries.test.ts test/sqlite test/cli/sqlite-driver.test.ts test/cli/sqlite.test.ts test/cli/help.test.ts test/spec/MemoryTodoStore.test.ts test/spec/capabilities.test.ts test/fs/conformance.test.ts` gave 400 pass, 90 skip, 0 fail across 10 files. `bun run lint` printed "All matched files use the correct format".
 - Linter: 0 warnings ("Found 0 warnings and 0 errors.", line 8 of the check#5 gate log). The base also had 0.
 - Cost at scale: review #1 measured it (add about 19ms at n=2000, linear, like MemoryTodoStore). This round adds one indexed-free COUNT with an extra `id != ?`, which does not change the order of growth.
@@ -99,6 +99,3 @@ No new findings.
 
 Score: 4. The fixes are correct and pinned by a conformance case all adapters run, and the docs are now current. The quality and tests dimensions stay at 4 because F1 needed a review round to find and F4 has no interruption test.
 
-Branch: nzila/01M5BQ5P8N95H7JETQ2X0G1K4N
-
-nzila run 01M5BQ5P8N95H7JETQ2X0G1K4N

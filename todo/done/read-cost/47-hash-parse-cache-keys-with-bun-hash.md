@@ -7,9 +7,9 @@ outcome: completed
 ---
 Every process hashes the full text of every file in the list to build the
 parse-cache key (`keyOf`, `src/fs/parsing.ts`), in JavaScript (cyrb53). On
-nzila's list (596 files, 4.7 MB) that is 9.6 ms cold per command; `Bun.hash`
+another project's list (596 files, 4.7 MB) that is 9.6 ms cold per command; `Bun.hash`
 over the same texts takes 2.0 ms. In a CPU profile of
-`todo --project nzila ls`, `hash` is the largest piece of real work (~18 ms
+`todo --project <other> ls`, `hash` is the largest piece of real work (~18 ms
 with profiler overhead), ahead of parsing `TODO.md`.
 
 Use `Bun.hash` for `keyOf`. The key format changes, so existing cache files
@@ -27,7 +27,7 @@ startup otherwise hides the gain.
 
 ## Comments
 
-### @nzila at 2026-10-21 17:09:08 +00:00
+### @agent at 2026-10-21 17:09:08 +00:00
 
 Done: Addressed review F1: docs/architecture/README.md rule on Bun/Node APIs now records a deliberate exception: `fs` calls the global `Bun.hash` for parse-cache keys (src/fs/parsing.ts), so fs runs on Bun only. Chose the doc fix over injecting the hash from the composition root (cheaper, as the review suggested).
 Minor note (tautological first expect in the keyOf test): left as is; the literal pin follows it and is optional per the review.
@@ -46,15 +46,15 @@ Review#2 of todo-md:47 (diff `2675e67..f28bd95`: `docs/architecture/README.md`, 
 #### Done-when, required tests, and scratch reversals
 
 1. **`keyOf` over a 600-file, ~5 MB list costs under 3 ms cold (Done-when #1):**
-   - Not pinned by a unit test (appropriate for a wall-clock benchmark); measured directly across 5 cold runs with `bun /Users/lemol/.nzila/attempts/01M5FNQ4P3P6TKAZY3H4Z85VK1/bench/keyof.ts $PWD /Users/lemol/Labs/lemolsoft/lemol-workspace/repos/nzila/todo`:
+   - Not pinned by a unit test (appropriate for a wall-clock benchmark); measured directly across 5 cold runs with `bun <attempts>/01M5FNQ4P3P6TKAZY3H4Z85VK1/bench/keyof.ts $PWD <other>/todo`:
      - HEAD (`f28bd95`): `files=596 chars=4697597 ms=1.26`, `1.23`, `1.26`, `1.29`, `1.23` (all under 3 ms).
      - Base (`2675e67`, cyrb53 `keyOf`): `files=596 chars=4697597 ms=10.80`, `9.04`, `9.27`.
    - Re-derives the quantities in commit `ffc1e13` ("from 9.0 ms to 1.3 ms") and the doc comment in `src/fs/parsing.ts:56-57` ("several times faster than `hash` over a whole list", ~7.4x).
 2. **`todo list` output is unchanged (Done-when #2):**
-   - Measured on a fresh copy of nzila's list at `$NZILA_HOME/attempts/$NZILA_ATTEMPT/list` with isolated `HOME` and `TODO_MD_HOME`:
+   - Measured on a fresh copy of that list at `<attempt>/list` with isolated `HOME` and `TODO_MD_HOME`:
      - Base `2675e67` (`writes cyrb53 cache`), HEAD `f28bd95` first run (`misses old cyrb53 keys and rewrites cache`), and HEAD `f28bd95` second run (`hits new Bun.hash keys`) each printed 606 lines and compared byte-identical via `cmp` (`base1 vs head_miss: SAME`, `base1 vs head_hit: SAME`).
 3. **`bun run check` passes (Done-when #3 / `check.command`):**
-   - Brief `check.command` is `bun run check` (identical to the Done-when command). `check#2` ran `bun run check` (`bun run lint && bun run typecheck && bun run test`) on `f28bd95dc60e9d40b31828722b9b04754d5c0151` and passed: `1304 pass, 128 skip, 0 fail`, `Ran 1432 tests across 105 files. [54.91s]` (`/Users/lemol/.nzila/attempts/01M5FPBQTXHBMJBN8Z1CQ8DDTE/output.log:1803-1807`).
+   - Brief `check.command` is `bun run check` (identical to the Done-when command). `check#2` ran `bun run check` (`bun run lint && bun run typecheck && bun run test`) on `f28bd95dc60e9d40b31828722b9b04754d5c0151` and passed: `1304 pass, 128 skip, 0 fail`, `Ran 1432 tests across 105 files. [54.91s]` (`<attempts>/01M5FPBQTXHBMJBN8Z1CQ8DDTE/output.log:1803-1807`).
 4. **Added/updated tests in `test/fs/parsing.test.ts` and scratch reversals:**
    - `test/fs/parsing.test.ts:49-52` (`keyOf > keys a parse by path, length and Bun.hash of the text`): asserts `keyOf("01-a.md", withComment)` is `"01-a.md:197:z484hkxqy8ou"` (where `withComment.length === 197` and `Bun.hash(withComment).toString(36) === "z484hkxqy8ou"`).
      - Reversed in detached worktree (`src/fs/parsing.ts:60` reverted to `hash(source)`): failed with `Expected: "01-a.md:197:z484hkxqy8ou", Received: "01-a.md:197:1woid7foeyd"`.
@@ -79,11 +79,11 @@ Review#2 of todo-md:47 (diff `2675e67..f28bd95`: `docs/architecture/README.md`, 
 #### Implementer's stated gaps and plan verification
 
 - Both `do#1` and `do#2` state: full gate left to `check`, no gaps. `check#1` and `check#2` ran `bun run check` and passed.
-- All 5 verification steps in `/Users/lemol/.nzila/attempts/01M5FNQ4P3P6TKAZY3H4Z85VK1/plan.md:81-102` (focused tests `23 pass / 0 fail` + known-bad reversals, `bun run lint`, `bun run typecheck`, cold `keyOf` benchmark + known-bad cyrb53 baseline, and sandboxed `todo ls --all` comparison) were observed in the plan and re-run and confirmed in this review.
+- All 5 verification steps in `<attempts>/01M5FNQ4P3P6TKAZY3H4Z85VK1/plan.md:81-102` (focused tests `23 pass / 0 fail` + known-bad reversals, `bun run lint`, `bun run typecheck`, cold `keyOf` benchmark + known-bad cyrb53 baseline, and sandboxed `todo ls --all` comparison) were observed in the plan and re-run and confirmed in this review.
 
 #### Commits on branch
 
-- `git log 2675e676d92f3915d9a120cf044c8909fae82991..HEAD` contains only `ffc1e13` and `f28bd95` (both authored by `Leza Lutonda <lemol-c@hotmail.com>` for task 47); there are no nzila-authored commits on the branch to check against commit rules.
+- `git log 2675e676d92f3915d9a120cf044c8909fae82991..HEAD` contains only `ffc1e13` and `f28bd95` (both authored by `Leza Lutonda <lemol-c@hotmail.com>` for task 47); there are no orchestrator-authored commits on the branch to check against commit rules.
 
 #### Stale references, value searches, and call sites
 
@@ -101,11 +101,8 @@ Review#2 of todo-md:47 (diff `2675e67..f28bd95`: `docs/architecture/README.md`, 
 
 #### Inputs, external events, linter, and layout
 
-- **Inputs checked for `keyOf(path, source)`:** `01-a.md` with `withComment` (197 chars), 596 real task files in `nzila/todo` (4,697,597 chars total, including frontmatter, markdown bodies, and comments), cyrb53 reversal, path-omitted reversal, and root-hash reversal. Non-ASCII strings were evaluated in `/Users/lemol/.nzila/attempts/01M5FNQ4P3P6TKAZY3H4Z85VK1/plan.md:78,94` (`Bun.hash` handles UTF-16/non-Latin-1 deterministically at ~2.6 ms over 600 files).
+- **Inputs checked for `keyOf(path, source)`:** `01-a.md` with `withComment` (197 chars), 596 real task files in `<other>/todo` (4,697,597 chars total, including frontmatter, markdown bodies, and comments), cyrb53 reversal, path-omitted reversal, and root-hash reversal. Non-ASCII strings were evaluated in `<attempts>/01M5FNQ4P3P6TKAZY3H4Z85VK1/plan.md:78,94` (`Bun.hash` handles UTF-16/non-Latin-1 deterministically at ~2.6 ms over 600 files).
 - **External events:** None (pure in-process hashing; any future `Bun.hash` output change across Bun versions causes a one-time cache miss and rewrite, identical to this migration).
-- **Linter:** `0 warnings` (`Found 0 warnings and 0 errors.` in `/Users/lemol/.nzila/attempts/01M5FPBQTXHBMJBN8Z1CQ8DDTE/output.log:8` and `bun run lint`); base `2675e67` had `0 warnings` (`Found 0 warnings and 0 errors.` via `bun run lint` in detached worktree at `2675e67`).
+- **Linter:** `0 warnings` (`Found 0 warnings and 0 errors.` in `<attempts>/01M5FPBQTXHBMJBN8Z1CQ8DDTE/output.log:8` and `bun run lint`); base `2675e67` had `0 warnings` (`Found 0 warnings and 0 errors.` via `bun run lint` in detached worktree at `2675e67`).
 - **Colocation:** No new modules or directories created; tests remain in `test/fs/parsing.test.ts`.
 
-Branch: nzila/01M5FNPM0NYA62PTHW6JQNXVGM
-
-nzila run 01M5FNPM0NYA62PTHW6JQNXVGM

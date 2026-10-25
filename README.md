@@ -57,9 +57,6 @@ peer dependency.
 bun add "git+ssh://git@github.com/lemol/todo.md.git#todo-md@0.2.0"
 ```
 
-In [lemol-workspace](https://github.com/lemol/lemol-workspace), it is checked
-out at `repos/todo-md`, and the consumers there resolve that clone directly.
-
 ## Docs
 
 - [Specification](docs/spec.md): the model, operations and file format.
@@ -81,7 +78,7 @@ Across projects:
 
 ```sh
 todo projects add ~/labs/acme         # register another list
-todo projects add git@github.com:lemol/mionso.git   # or one in a git repository
+todo projects add git@example.com:acme/app.git      # or one in a git repository
 todo --project acme ls                # work on it from anywhere
 todo ls --all                         # everything, every project
 todo sync --all                       # refresh remotes

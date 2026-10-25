@@ -28,9 +28,9 @@ forever. Credentials are the user's own git setup; nothing is stored here.
 
 ```yaml
 projects:
-  mionso:
+  acme:
     source: git
-    url: git@github.com:lemol/mionso.git
+    url: git@example.com:acme/app.git
     branch: main        # optional; the repository's own by default
     list: docs/todo     # optional; `todo/` then the repository root by default
 ```

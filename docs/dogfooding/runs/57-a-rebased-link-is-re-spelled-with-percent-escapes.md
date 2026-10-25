@@ -29,8 +29,8 @@ Run `01M5GJ1SBTXPV2PRK8VPWDX2Y3`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - What to build 1 (keep spelling, rewrite only changed steps): done. 2
   (byte-for-byte reopen, `./` included): done for `./`, but at the cost of
   the bare spelling.
-- Comments: the task file has only nzila's closing comment; the brief had
-  none.
+- Comments: the task file has only the orchestrator's closing comment; the
+  brief had none.
 - Defect, filed as 60 (a decision): the unconditional `./` prefix makes a
   bare link into the task's own directory reopen as `./…`; the base
   round-tripped it. Probe on `d9ecf4c` (script in the attempt directory,
@@ -46,8 +46,8 @@ Run `01M5GJ1SBTXPV2PRK8VPWDX2Y3`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   normalises to `../top.md` (a non-minimal path; not filed).
 - No timings regeneration: no test file added, moved or deleted, and this
   repository has no `test/timings.json`.
-- Friction for nzila (not filed here): the brief names
-  `.agents/skills/nzila-dogfood/scripts/review-lock`, which exists only in
-  the nzila checkout, not in todo-md; `rating.ts` must still run from the
-  nzila checkout (noted at 54); its skeleton leaves `flow.fit` as `null`
+- Friction for the orchestrator (not filed here): the brief names its
+  dogfooding skill's `scripts/review-lock`, which exists only in the
+  orchestrator's checkout, not in todo-md; `rating.ts` must still run from
+  that checkout (noted at 54); its skeleton leaves `flow.fit` as `null`
   without naming the `too-light | right | too-heavy` choices `rate` wants.

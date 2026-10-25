@@ -8,16 +8,16 @@ outcome: completed
 Most of every `todo` command is loading code, not reading lists. On
 2026-10-21 (main 4b48168, bun 1.4.3) `bun -e 0` starts in 16 ms, but
 `todo --help` takes 159 ms and importing `src/cli/index.ts` alone 125 ms;
-a CPU profile of `todo --project nzila ls` spends ~40 ms in `node:path`
+a CPU profile of `todo --project <other> ls` spends ~40 ms in `node:path`
 module resolution with no `src/` caller. A `bun build src/cli/bin.ts
 --target=bun --minify` bundle prints the same output for `ls`, `next --json`,
-`--project nzila ls` and `ls --all`, and halves every command (best of 5):
+`--project <other> ls` and `ls --all`, and halves every command (best of 5):
 
 | command                 | source | bundle |
 | ----------------------- | ------ | ------ |
 | `todo --help`           | 159 ms | 72 ms  |
 | `todo ls` (this list)   | 195 ms | 100 ms |
-| `todo --project nzila ls` | 157 ms | 73 ms  |
+| `todo --project <other> ls` | 157 ms | 73 ms  |
 | `todo ls --all`         | 156 ms | 73 ms  |
 
 Add a `build:cli` script that bundles `src/cli/bin.ts` to `dist/`, point
@@ -34,7 +34,7 @@ a test pins that the bundled and source CLIs print the same output for
 
 ## Comments
 
-### @nzila at 2026-10-21 16:30:14 +00:00
+### @agent at 2026-10-21 16:30:14 +00:00
 
 Done: Fixed review R1 in commit 81df7d3 (fix(cli): share the bundled runtime with lazy web server). Worktree clean.
 
@@ -100,6 +100,3 @@ Observation outside this diff (no src file changed): source `bun src/cli/bin.ts 
 
 No branch edits, installs or shared-install changes. Probe and scratch dirs were removed.
 
-Branch: nzila/01M5FHX9RBYAMV5NPB44VCEA0V
-
-nzila run 01M5FHX9RBYAMV5NPB44VCEA0V

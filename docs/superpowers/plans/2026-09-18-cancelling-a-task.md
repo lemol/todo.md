@@ -1260,7 +1260,7 @@ git commit -m "Show and record cancellation in the web app"
 The feature's first real use, and an end-to-end check that the whole path works on the repo's own list.
 
 **Files:**
-- Modify: `todo/TODO.md`, `todo/done/12-register-repos-todo-md-apps-in-lemol-workspace.md`
+- Modify: `todo/TODO.md`, `todo/done/12-register-apps-in-a-consuming-monorepo.md`
 
 - [ ] **Step 1: Reopen it**
 
@@ -1276,8 +1276,8 @@ Expected: task 12 is open again, with no `completed_at`.
 ```bash
 bun src/cli/bin.ts cancel 12 --reason - <<'EOF'
 Superseded by d47fcd2, which moved the web app into src/web. There is no
-apps/ directory, and the workspace's `repos/*` glob plus the
-`@lemol/todo-md` override already cover this repository.
+apps/ directory, and the consuming monorepo already covers this
+repository.
 EOF
 ```
 

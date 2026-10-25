@@ -5,12 +5,12 @@ group: M3 — @lemol/ui adoption
 completed_at: 2026-09-20T18:34:44Z
 outcome: completed
 ---
-Adopt `@lemol/ui` in `src/web`, completely. todo-md becomes the first real consumer and the reference look and implementation of the `mini` design: its web UI is rebuilt on `mini` (theme, `Document`, `AppShell`, `Nav`, states) plus `@lemol/ui/remix` components. The current hand-rolled UI is not kept — no editorial theme, no carried-over look. Where the current UI teaches something worth keeping, accommodate `mini` for it (preferably upstream in `repos/ui`); the result stays recognizably mini.
+Adopt `@lemol/ui` in `src/web`, completely. todo-md becomes the first real consumer and the reference look and implementation of the `mini` design: its web UI is rebuilt on `mini` (theme, `Document`, `AppShell`, `Nav`, states) plus `@lemol/ui/remix` components. The current hand-rolled UI is not kept — no editorial theme, no carried-over look. Where the current UI teaches something worth keeping, accommodate `mini` for it (preferably upstream in `@lemol/ui`); the result stays recognizably mini.
 
-Full spec: `repos/ui/docs/superpowers/specs/2026-09-17-lemol-ui-architecture-design.md` (in lemol-workspace; that path is not inside this repo).
+Full spec: `docs/superpowers/specs/2026-09-17-lemol-ui-architecture-design.md` in the ui repository (not inside this repo).
 Implementation plan: `docs/superpowers/plans/2026-09-20-m3-todo-md-adoption.md`.
 
-## Rule changes in repos/todo-md
+## Rule changes in todo-md
 
 Its `AGENTS.md` currently forbids this outright. Narrow the rule to the core:
 

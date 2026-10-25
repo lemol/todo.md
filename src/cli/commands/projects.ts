@@ -300,12 +300,11 @@ export const projectsAdd = Command.make(
       description: "Start it with the tasks of a Markdown list, IDs and all",
     },
     {
-      command: "todo projects add git@github.com:lemol/mionso.git",
+      command: "todo projects add git@example.com:acme/app.git",
       description: "Clone a git repository and follow its list",
     },
     {
-      command:
-        "todo projects add https://github.com/lemol/mionso.git --branch main --list docs/todo",
+      command: "todo projects add https://example.com/acme/app.git --branch main --list docs/todo",
       description: "Follow one branch and one directory of it",
     },
     {
@@ -428,7 +427,7 @@ export const sync = Command.make(
   Command.withDescription("Sync projects with their remotes; exits 1 when any sync failed"),
   Command.withExamples([
     { command: "todo sync", description: "Sync the current project" },
-    { command: "todo sync work mionso", description: "Sync two projects" },
+    { command: "todo sync work acme", description: "Sync two projects" },
     { command: "todo sync --all", description: "Sync every project" },
     { command: "todo sync --all --json", description: "Every outcome as JSON" },
   ]),

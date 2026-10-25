@@ -38,9 +38,9 @@ Classic-Mac files made entirely of lone CRs, beyond not losing data.
 
 ## Comments
 
-### @nzila at 2026-10-22 03:08:52 +00:00
+### @agent at 2026-10-22 03:08:52 +00:00
 
-Done: todo-md:63 lone-CR line model is unified. Two commits on nzila/01M5GR8TK2F1K4NYQ383K3PZMA, worktree clean, no probe artifacts left behind.
+Done: todo-md:63 lone-CR line model is unified. Two commits on the run's branch, worktree clean, no probe artifacts left behind.
 
 What was built (exactly the plan's two tasks):
 
@@ -90,6 +90,3 @@ Minor, not blocking: joinLines has a redundant `const joined` before the return,
 
 Both commits are the implementation's own and fit the task. No stale `setFrontmatterFields` references remain (the implementer searched src and test; I did not re-run it).
 
-Branch: nzila/01M5GR8TK2F1K4NYQ383K3PZMA
-
-nzila run 01M5GR8TK2F1K4NYQ383K3PZMA

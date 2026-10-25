@@ -17,7 +17,7 @@ error: NotFound: FileSystem.makeTempDirectoryScoped (/var/folders/…/T/todo-md-
 ENOENT: no such file or directory, lstat '/var/folders/…/T/todo-md-NkoIpl'
 ```
 
-Log: `~/.nzila/attempts/01M5FTCRMQNB85Q866PVM1QDEF/proof/loaded-rerun.log.loop1`,
+Log: `<attempts>/01M5FTCRMQNB85Q866PVM1QDEF/proof/loaded-rerun.log.loop1`,
 from line 155. The directory is the `diskWith` root (`test/fs/helpers.ts`,
 `fs.makeTempDirectoryScoped({ prefix: "todo-md-" })`). Something removed a
 temporary directory the test had just made, or one the scope had already
@@ -46,9 +46,9 @@ Out of scope: the fs watch timing windows (todo-md:51).
 
 ## Comments
 
-### @nzila at 2026-10-21 18:48:37 +00:00
+### @agent at 2026-10-21 18:48:37 +00:00
 
-Done: todo-md:53 implemented per plan ($NZILA_HOME/attempts/01M5FVMGY4GNWZ90TA571H6J3P/plan.md), two commits on nzila/01M5FV6NF5Y86H3GPDC2HGJ6AH over 46fe26b. I agreed with the plan's cause throughout; no deviations except a type-level cast noted below.
+Done: todo-md:53 implemented per plan (<attempts>/01M5FVMGY4GNWZ90TA571H6J3P/plan.md), two commits on the run's branch over 46fe26b. I agreed with the plan's cause throughout; no deviations except a type-level cast noted below.
 
 Cause (taken from the plan, verified against this tree): the `lstat` in `NotFound: FileSystem.makeTempDirectoryScoped (…/todo-md-XXXXXX)` comes from the scope finalizer's `rm -r`, not creation — `@effect/platform-node-shared` builds `makeTempDirectoryScoped` as `acquireRelease(mkdtemp, dir => orDie(rm(dir, {recursive:true})))` (checked: `grep -n makeTempDirectoryScoped node_modules/@effect/platform-node-shared/src/NodeFileSystem.ts` shows the acquireRelease shape; mkdtemp performs no lstat). Nobody else deletes the root: `grep -rn "remove(" src test/sandbox.ts test/fs/helpers.ts` shows removals only of files the code created (locks, `.tmp`, moved-aside dirs). The writer during removal is the hub: base `effectTest` ran `Effect.provide(effect, layer)` inside one `Effect.scoped`, so the disk layer's scope closed before the test scope holding the hub, its autoSync fiber and watchers; the autoSync test ends on `Queue.take` before `writeState` runs, so the sync's mkdir/write/rename raced the `rm -r`.
 
@@ -61,18 +61,18 @@ Verification (each as a separate command, all in the worktree): `bun run lint` c
 Not run (reviewer's check, for the review step): two concurrent `bun test test/hub --rerun-each 20` loops under load. Deliberately not run by hand per the plan's instruction that concurrent full-suite runs on one machine are the reviewer's gate.
 
 Review: approved (5/5)
-Approved `nzila/01M5FV6NF5Y86H3GPDC2HGJ6AH` (`955ad3909f070c30414c400fcee925766abc39e5` over base `46fe26b2c5133ef2448a882ad3fc9d77917c76db`, two commits: `43e057c` and `955ad39`).
+Approved the run's branch (`955ad3909f070c30414c400fcee925766abc39e5` over base `46fe26b2c5133ef2448a882ad3fc9d77917c76db`, two commits: `43e057c` and `955ad39`).
 
 #### 1. Task Comments
 - Read the brief (no `Pre-start task comments` section) and `todo/read-cost/53-a-hub-test-s-temporary-list-vanishes-under-concurrent-test.md:1-42` at review time.
 - Comment count: 0 (`none`); authors: none.
 
 #### 2. Numbered "What to build" Items
-1. **Reproduce it: two or three `bun test test/hub --rerun-each 20` loops at once, under load. Record the failing message and the test.** — **Done** (`plan.md:11`, logs in `~/.nzila/attempts/01M5FVMGY4GNWZ90TA571H6J3P/probe/loop{1,2,3}.log`: 14 of 1200 runs across 3 loops failed `(fail) autoSync > syncs every syncable project one interval after startup` with `error: NotFound: FileSystem.makeTempDirectoryScoped (/var/folders/yf/tsckr3ss2_scxcnl3lwn90vr0000gn/T/todo-md-V2rkPU)`, `syscall: "lstat"`, matching `~/.nzila/attempts/01M5FTCRMQNB85Q866PVM1QDEF/proof/loaded-rerun.log.loop1:171-180`).
+1. **Reproduce it: two or three `bun test test/hub --rerun-each 20` loops at once, under load. Record the failing message and the test.** — **Done** (`plan.md:11`, logs in `<attempts>/01M5FVMGY4GNWZ90TA571H6J3P/probe/loop{1,2,3}.log`: 14 of 1200 runs across 3 loops failed `(fail) autoSync > syncs every syncable project one interval after startup` with `error: NotFound: FileSystem.makeTempDirectoryScoped (/var/folders/yf/tsckr3ss2_scxcnl3lwn90vr0000gn/T/todo-md-V2rkPU)`, `syscall: "lstat"`, matching `<attempts>/01M5FTCRMQNB85Q866PVM1QDEF/proof/loaded-rerun.log.loop1:171-180`).
 2. **Name the cause with evidence.** — **Done** (`plan.md:12-15`, `do#1` summary):
    - `lstat` comes from the scope finalizer's `rm(directory, { recursive: true })`, not `mkdtemp`: verified in `../../node_modules/@effect/platform-node-shared/src/NodeFileSystem.ts:203-210` (`Effect.acquireRelease(makeDirectory(options), (directory) => Effect.orDie(removeDirectory(directory, { recursive: true })))`).
    - No code under test or `test/sandbox.ts` removes foreign paths under `tmpdir()`: verified via `grep -rn "remove(" src test/sandbox.ts test/fs/helpers.ts test/hub/helpers.ts` and `test/sandbox.ts:37-40`.
-   - When a directory tree mutates while Bun's `fs.promises.rm(root, { recursive: true })` walks it, a missing child is reported as `ENOENT lstat` with `path: root` (verified in `~/.nzila/attempts/01M5FVMGY4GNWZ90TA571H6J3P/probe/rmrace.ts:1-26`).
+   - When a directory tree mutates while Bun's `fs.promises.rm(root, { recursive: true })` walks it, a missing child is reported as `ENOENT lstat` with `path: root` (verified in `<attempts>/01M5FVMGY4GNWZ90TA571H6J3P/probe/rmrace.ts:1-26`).
    - Two causes allowed the hub to write into `root` during `rm -r`:
      1. `effectTest` (`src/spec/testing/effectTest.ts`) previously ran `Effect.provide(effect, layer).pipe(Effect.scoped, ...)`, closing the `diskWith` layer scope before the test scope holding `hubOn`'s `autoSync` fiber (`test/hub/helpers.ts:53`, `test/hub/sync.test.ts:245-252`, where `memorySource.sync` offers to `synced` before `makeSyncer` calls `writeState` at `src/hub/sync.ts:61-78`).
      2. Even when the test scope closes first, interrupting the `autoSync` fiber mid-`writeState` (`src/hub/state.ts:48-63`) let an in-flight async fs operation or `onError` temp-file removal race `rm -r`.
@@ -82,17 +82,17 @@ Approved `nzila/01M5FV6NF5Y86H3GPDC2HGJ6AH` (`955ad3909f070c30414c400fcee925766a
 - **Test 1 (scope closing order):** Pinned in `test/spec/effectTest.test.ts:26-40` (`closes the test's scope before the layer's`).
   - Asserts `expect(closed).toEqual(["test", "layer"])` (`test/spec/effectTest.test.ts:39`).
   - To fail, `closed` must differ from `["test", "layer"]` (e.g. `["layer", "test"]` when the layer finalizer runs before the test scope finalizer).
-  - Reversed in scratch worktree `.nzila-scratch-01M5FW98Q8DHA2ADT01N68ZPBN`:
+  - Reversed in a scratch worktree:
     - Reversing the `expect` literal to `["layer", "test"]` failed: `error: expect(received).toEqual(expected)`, `- "layer", "test", + "layer"`.
     - Restoring the base composition (`Effect.provide(effect, layer)` inside `Effect.scoped`) failed: `error: expect(received).toEqual(expected)`, `- "test", "layer", + "test"`.
 - **Test 2 (uninterruptible `writeState`):** Pinned in `test/hub/sync.test.ts:160-192` (`sync > an interrupted sync still finishes the state write it started`).
   - Asserts `expect(yield* disk.tree()).toEqual([".todo-md/projects.yaml", ".todo-md/projects/m/state.json"])` (`test/hub/sync.test.ts:186-189`).
   - To fail, `.todo-md/projects/m/state.json` must be absent (or a `.tmp` file left behind) after `Fiber.interrupt(sync)` completes while `writeFileString` was gated mid-write.
-  - Reversed in scratch worktree `.nzila-scratch-01M5FW98Q8DHA2ADT01N68ZPBN`:
+  - Reversed in a scratch worktree:
     - Removing `".todo-md/projects/m/state.json"` from the expected array failed: `error: expect(received).toEqual(expected)`, `+ ".todo-md/projects/m/state.json"`.
     - Restoring base `src/hub/state.ts` (without `Effect.uninterruptible`) failed: `error: expect(received).toEqual(expected)`, `- ".todo-md/projects/m/state.json"`.
 - **Done when — Reviewer's check (`two concurrent bun test test/hub --rerun-each 20 loops under load show no NotFound for a todo-md- directory`):**
-  - Executed in this review alongside 4 CPU burner processes (`$NZILA_HOME/attempts/01M5FW98Q8DHA2ADT01N68ZPBN/hub1.log` and `hub2.log`):
+  - Executed in this review alongside 4 CPU burner processes (`<attempts>/01M5FW98Q8DHA2ADT01N68ZPBN/hub1.log` and `hub2.log`):
     - `hub1.log`: `2720 pass`, `0 fail`, `6460 expect() calls`, `Ran 2720 tests across 14 files. [107.14s]`, `exit 0`.
     - `hub2.log`: `2720 pass`, `0 fail`, `6460 expect() calls`, `Ran 2720 tests across 14 files. [107.84s]`, `exit 0`.
     - `grep -c "NotFound: FileSystem.makeTempDirectoryScoped"` on both logs: `0` and `0`.
@@ -108,8 +108,8 @@ Approved `nzila/01M5FV6NF5Y86H3GPDC2HGJ6AH` (`955ad3909f070c30414c400fcee925766a
 - **Commits:**
   - `43e057c2b2c21a7f1ca90fd7e067710929d3267c`: `fix(spec): close an effectTest's scope before its layer's (todo-md:53)` — matches Plan Task 1 (`src/spec/README.md`, `src/spec/testing/effectTest.ts`, `test/spec/effectTest.test.ts`).
   - `955ad3909f070c30414c400fcee925766abc39e5`: `fix(hub): finish a state write a sync started, even when interrupted (todo-md:53)` — matches Plan Task 2 (`src/hub/README.md`, `src/hub/state.ts`, `test/hub/sync.test.ts`).
-- **Check command:** `check.command` is `bun run check` (`bun run lint && bun run typecheck && bun run test` in `/Users/lemol/.nzila/attempts/01M5FW7KYTM4GRVGZK1KGXQC7F/output.log:2`, passing `1308 pass, 128 skip, 0 fail` across 106 files in `49.59s`). This differs from the Done-when reviewer's check (`two concurrent bun test test/hub --rerun-each 20 loops under load`); `check#1` ran `bun run check`, and `review#1` ran the concurrent `test/hub` loops.
-- **Linter warnings:** `0 warnings, all none; base had 0` — verified via `bun run lint` (`oxfmt --check && oxlint`) at base `46fe26b` (`Found 0 warnings and 0 errors`) and at HEAD `955ad39` (`Found 0 warnings and 0 errors`, matching `/Users/lemol/.nzila/attempts/01M5FW7KYTM4GRVGZK1KGXQC7F/output.log:8`).
+- **Check command:** `check.command` is `bun run check` (`bun run lint && bun run typecheck && bun run test` in `<attempts>/01M5FW7KYTM4GRVGZK1KGXQC7F/output.log:2`, passing `1308 pass, 128 skip, 0 fail` across 106 files in `49.59s`). This differs from the Done-when reviewer's check (`two concurrent bun test test/hub --rerun-each 20 loops under load`); `check#1` ran `bun run check`, and `review#1` ran the concurrent `test/hub` loops.
+- **Linter warnings:** `0 warnings, all none; base had 0` — verified via `bun run lint` (`oxfmt --check && oxlint`) at base `46fe26b` (`Found 0 warnings and 0 errors`) and at HEAD `955ad39` (`Found 0 warnings and 0 errors`, matching `<attempts>/01M5FW7KYTM4GRVGZK1KGXQC7F/output.log:8`).
 
 #### 6. Predicates, Searches, Quantities, and Verification Steps
 - **Predicates/guards:**
@@ -129,6 +129,3 @@ Approved `nzila/01M5FV6NF5Y86H3GPDC2HGJ6AH` (`955ad3909f070c30414c400fcee925766a
 
 Citations that do not open (the verdict stands; a finding may still be right):
 - `../../node_modules/@effect/platform-node-shared/src/NodeFileSystem.ts:203-210` path does not exist
-Branch: nzila/01M5FV6NF5Y86H3GPDC2HGJ6AH
-
-nzila run 01M5FV6NF5Y86H3GPDC2HGJ6AH

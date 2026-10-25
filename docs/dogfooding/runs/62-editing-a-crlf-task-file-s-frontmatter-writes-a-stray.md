@@ -44,5 +44,5 @@ Run `01M5GQBC812V17ZGK5JA1NC78H`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
     Filed as 63.
 - No timings regeneration: tests were modified, none added, moved or
   deleted.
-- Friction for nzila (not filed here, as at 57 to 61): `rating.ts` must run
-  with the nzila checkout as cwd.
+- Friction for the orchestrator (not filed here, as at 57 to 61):
+  `rating.ts` must run with its checkout as cwd.

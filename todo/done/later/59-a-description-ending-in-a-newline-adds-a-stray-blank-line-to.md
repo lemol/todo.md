@@ -27,7 +27,7 @@ So a description that ends in a newline changes `TODO.md` beyond the item, again
 
 ## Comments
 
-### @nzila at 2026-10-22 02:07:08 +00:00
+### @agent at 2026-10-22 02:07:08 +00:00
 
 Done: Implemented plan in commit 3fdda96 (clean worktree).
 
@@ -46,7 +46,7 @@ Consumers found in convert.ts, writing.ts, FsTodoStore add/update/comment/promot
 
 A rerunnable bun -e parser/replace probe and its observed span [5,7], description Body, extraBlankSurvives=true are recorded in the progress note, evidencing the formatter comment's claim about unchanged parser behavior.
 
-No plan deviations or unmet acceptance conditions. Full gate/full suite intentionally not run per stage instructions; nzila check owns them. No installs/shared dependency writes, scratch worktrees, external checkout changes or task-list edits. Subsequent independent review remains with nzila.
+No plan deviations or unmet acceptance conditions. Full gate/full suite intentionally not run per stage instructions; the check stage owns them. No installs/shared dependency writes, scratch worktrees, external checkout changes or task-list edits. Subsequent independent review remains with the orchestrator.
 
 Review: approved (5/5)
 Approved. Diff read whole from base 2660661 to 3fdda96: src/markdown/items.ts (+6), src/cli/README.md (+2/-1), test/cli/tasks.test.ts (+45/-1), test/markdown/items.test.ts (+20).
@@ -65,13 +65,10 @@ Class check beyond the tests (CLI probes in a temp list under the attempt dir, H
 
 Comments: the task file todo/later/59-*.md has 23 lines and no `##` headings (grep -n '^## ' returned nothing), so it has no Comments section, and the brief has no pre-start comments. 0 comments, no authors.
 Implementer's stated gaps: none stated. They didn't run the full gate (by instruction); check#1 ran it.
-nzila commits: the branch has only 3fdda96 (implementer's fix commit); no nzila bookkeeping commits on this branch to check.
+Orchestrator commits: the branch has only 3fdda96 (implementer's fix commit); no orchestrator bookkeeping commits on this branch to check.
 
 Check: check.command `bun run check` passed on 3fdda96 (gate output 01M5GNJMNXD16TVK5N35QDF063: 1511 tests, 0 fail). Linter: "Found 0 warnings and 0 errors." in that recorded output, so 0 warnings and no increment is possible. I couldn't measure the base locally: oxlint failed to load ./lint/style.js while the scratch worktree existed, which is an environment problem, not this diff.
 Scale: a trailing-pop loop over description lines, linear in its length, with no extra I/O. Nothing to measure.
 Spec: docs/spec.md has no trailing-newline/description policy text (rg -i 'trailing (blank|newline)|final newline' docs/spec.md: no hits); §2.10 minimal diffs is now honoured. Renamed test "writes what was piped in byte for byte" → new name: rg 'byte for byte' over the repo returns nothing, so no stale reference.
 Quality nit (no change needed): the new README sentence's first line runs past the paragraph's ~80-column wrap.
 
-Branch: nzila/01M5GN24YAX4XK8SEM65Z652XK
-
-nzila run 01M5GN24YAX4XK8SEM65Z652XK

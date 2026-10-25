@@ -65,6 +65,7 @@ Run `01M5GR8TK2F1K4NYQ383K3PZMA`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   `setFrontmatterFields`. It is a plan record, so I left it.
 - No timings regeneration: tests were modified, none added, moved or
   deleted.
-- Friction for nzila (not filed here): the person answered plan#1's
-  question with a bare `goto:plan`, which left the preservation rule to the
-  next planner. `rating.ts` must still run with the nzila checkout as cwd.
+- Friction for the orchestrator (not filed here): the person answered
+  plan#1's question with a bare `goto:plan`, which left the preservation
+  rule to the next planner. `rating.ts` must still run with its checkout as
+  cwd.

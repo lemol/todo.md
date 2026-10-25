@@ -38,7 +38,7 @@ Run `01M5GTG9BEZNWKKCKHYYGP6WRC`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
     `check` and `show` work; `check` exits 1 naming the file.
 - What to build 1 to 3: done (the catch, the writer and README, parser
   version kept at 4: a throw was never cached). Comments: none before the
-  run; the only one is nzila's closing comment.
+  run; the only one is the orchestrator's closing comment.
 - **Found (filed 66):** for frontmatter the writer leaves as it is (a flow
   map with an unresolved alias), `todo edit` prints `Updated`, `done`
   prints `Done` and `cancel` prints `Cancelled`, all exit 0, and nothing

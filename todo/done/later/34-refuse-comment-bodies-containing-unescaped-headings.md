@@ -8,11 +8,11 @@ Writing a comment whose body contains depth-3 headings outside code fences produ
 
 ## Comments
 
-### @nzila at 2026-10-05 06:03:11 +00:00
+### @agent at 2026-10-05 06:03:11 +00:00
 
 Done: Gate repair diagnosis for check#3 (commit 68ad53d, `bun run check`): 2 failures, neither caused by this branch's diff. No code change made; working tree clean; retry unchanged.
 
-What failed (observed in gate.output /Users/lemol/.nzila/attempts/01M45A5ZDJSS8MDZM2MRKMSG5T/output.log):
+What failed (observed in gate.output <attempts>/01M45A5ZDJSS8MDZM2MRKMSG5T/output.log):
 - `findListRoot > returns Option.none() when no list exists` (log line 1209)
 - `the git store conforms to TodoStore > renameGroup renames a group in place, updating its tasks` (log line 1488)
 - Both failures are the test/sandbox.ts:102 guard: "this test wrote outside its temporary directory, into /Users/lemol/.todo-md: ~ cache/<hash>.json" (log lines 1205, 1484). Note `~` (rewritten, not added): pre-existing real-home cache files were rewritten mid-suite. 1165 pass / 2 fail / 1287 tests.
@@ -23,7 +23,7 @@ Why the diff is exonerated (observed evidence, each rerunnable):
 - check#1 and check#2 on this same branch passed the full suite (1287 tests); only check#3 failed, with both failures in tests unrelated to the task.
 
 Contention, not causation (suspected cause, stated as suspicion):
-- The rewritten `~/.todo-md/cache/*.json` files point to a concurrent writer to the shared real home: this machine hosts hundreds of nzila attempt dirs and check#3 ran with gate.queued 4. The guard attributes an external write to whichever test's afterEach runs next, which explains two unrelated tests failing on cache rewrites. Isolation runs cannot prove contention, but nothing in the diff can produce these writes.
+- The rewritten `~/.todo-md/cache/*.json` files point to a concurrent writer to the shared real home: this machine hosts hundreds of orchestrator attempt dirs and check#3 ran with gate.queued 4. The guard attributes an external write to whichever test's afterEach runs next, which explains two unrelated tests failing on cache rewrites. Isolation runs cannot prove contention, but nothing in the diff can produce these writes.
 
 Verification supporting unchanged retry (all on the unchanged commit 68ad53d, worktree clean):
 - `bun test test/fs/discovery.test.ts` → 5 pass, 0 fail.
@@ -52,9 +52,9 @@ Plan walk (docs/superpowers/plans/2026-10-05-refuse-comment-headings.md)
 - Task 2 (guard + store/CLI tests): done — guard src/fs/FsTodoStore.ts:488-496 precedes mutate; store + CLI tests above incl. unchanged-state assertions.
 - Verification steps: focused `bun test test/markdown/taskFile.test.ts test/fs/writing.test.ts test/cli/tasks.test.ts test/boundaries.test.ts` OBSERVED 88 pass, 0 fail (237 expect calls). `bun x oxlint` exit 0 with no warnings/errors output; `bun x tsc --noEmit` clean; `git diff --check` clean. Full gate left to check stage; check#4 already passed on this exact commit (68ad53d, 1287 tests).
 
-Class check (this round, bun $NZILA_HOME/attempts/$NZILA_ATTEMPT/probe/class.ts, 33 cases each with embedded-reader cross-check via prependComment+parseTaskFile): tried ATX 1/2/3, 2- and 3-space indents, closing sequences, after-blank, comment-shaped `### @...`, setext `-`/`=` incl. trailing spaces, 3 frontmatter-leading variants, fm-empty, fm-unclosed, 4-space indented code, `#`-nospace, H4/H5, backtick/tilde/info-string fences, unclosed fence, inline code, `\##` escapes, blockquote/list nesting, HTML block, CRLF, plain, empty — ALL 33 matched expectations with embedded comments counts confirming the hazard model (every pred=true ATX-2/setext/fm case yields 0 reloaded comments). Deliberately not: GFM tables/refs (no heading interaction); memory/jira stores (no markdown layout; git delegates to fs at src/git/store.ts:104-105, hub changes.ts:185 and core wrap-then-delegate, so the single fs guard covers every markdown-writing flow); unclosed-fence swallowing (different class than headings, task doesn't ask — probed anyway as allowed/safe).
+Class check (this round, bun <attempt>/probe/class.ts, 33 cases each with embedded-reader cross-check via prependComment+parseTaskFile): tried ATX 1/2/3, 2- and 3-space indents, closing sequences, after-blank, comment-shaped `### @...`, setext `-`/`=` incl. trailing spaces, 3 frontmatter-leading variants, fm-empty, fm-unclosed, 4-space indented code, `#`-nospace, H4/H5, backtick/tilde/info-string fences, unclosed fence, inline code, `\##` escapes, blockquote/list nesting, HTML block, CRLF, plain, empty — ALL 33 matched expectations with embedded comments counts confirming the hazard model (every pred=true ATX-2/setext/fm case yields 0 reloaded comments). Deliberately not: GFM tables/refs (no heading interaction); memory/jira stores (no markdown layout; git delegates to fs at src/git/store.ts:104-105, hub changes.ts:185 and core wrap-then-delegate, so the single fs guard covers every markdown-writing flow); unclosed-fence swallowing (different class than headings, task doesn't ask — probed anyway as allowed/safe).
 
-Reversal: the echo test's literal is request-supplied; full-copy reversal was impractical (worktree resolves node_modules by walking up to the project root, a /tmp copy would not resolve), so sensitivity was demonstrated at the predicate level via probe (bun $NZILA_HOME/attempts/$NZILA_ATTEMPT/probe/reversal.ts): flipping the allowed-body expectation to true fails (pred=false), flipping `## Heading 2` to false fails (pred=true). Prior round review#1 additionally did a real scratch-copy reversal of the echo literal and observed the failure.
+Reversal: the echo test's literal is request-supplied; full-copy reversal was impractical (worktree resolves node_modules by walking up to the project root, a /tmp copy would not resolve), so sensitivity was demonstrated at the predicate level via probe (bun <attempt>/probe/reversal.ts): flipping the allowed-body expectation to true fails (pred=false), flipping `## Heading 2` to false fails (pred=true). Prior round review#1 additionally did a real scratch-copy reversal of the echo literal and observed the failure.
 
 Cost at scale (recorded evidence, not a finding): bun probe/scale2.ts (post-warmup, 3 runs each): typical 2KB allowed 1.0-3.6ms, 2KB refused ~0.7-1.1ms, 100KB allowed ~263ms, 1.2MB allowed 3.3-4.0s. One full parse per comment, linear in body size; human-scale bodies cost single-digit ms. No test measures it and none needs to; no threshold in the task.
 
@@ -66,6 +66,3 @@ Searches (whole repo, proven by hitting live copies)
 
 Linter: `bun x oxlint` exit 0, zero warnings/errors output; no baseline rerun needed (branch adds no new lint surface beyond blank-line style, which oxlint enforces and passes). tsc clean, diff-check clean. Worktree clean, no files written, no commits made.
 
-Branch: nzila/01M458B4T209XFDFWP392ABGRD
-
-nzila run 01M458B4T209XFDFWP392ABGRD

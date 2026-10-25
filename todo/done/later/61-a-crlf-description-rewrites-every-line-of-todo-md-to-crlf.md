@@ -30,7 +30,7 @@ Leading blank description lines (probed on `877b01e`: an inline item with stdin 
 
 ## Comments
 
-### @nzila at 2026-10-22 02:30:27 +00:00
+### @agent at 2026-10-22 02:30:27 +00:00
 
 Done: Path confirmed (red tests reproduce it): formatInlineItem split descriptions on "\n" only, so `Body\r` reached TODO.md and the next splitLines saw a `\r\n` and rewrote the whole file as CRLF. Task files (comments, formatTaskFile, updateTaskFile) had the same split.
 
@@ -50,7 +50,7 @@ Follow-up for the controller to file (out of scope): editing a CRLF task file's 
 Review: approved (5/5)
 Review of e420743 (todo-md:61) — approved.
 
-What was read: full diff 5b40be7..HEAD (8 files), src/markdown/lines.ts, items.ts, taskFile.ts, frontmatter.ts, todoFile.ts, convert.ts, src/markdown/README.md, docs/spec.md §§2.1/2.10, plan at $NZILA_HOME/attempts/01M5GNZRWN0G0QSJZMFBKZSW05/plan.md, task file todo/later/61-a-crlf-description-rewrites-every-line-of-todo-md-to-crlf.md (26 lines). Tree clean (git status empty).
+What was read: full diff 5b40be7..HEAD (8 files), src/markdown/lines.ts, items.ts, taskFile.ts, frontmatter.ts, todoFile.ts, convert.ts, src/markdown/README.md, docs/spec.md §§2.1/2.10, plan at <attempts>/01M5GNZRWN0G0QSJZMFBKZSW05/plan.md, task file todo/later/61-a-crlf-description-rewrites-every-line-of-todo-md-to-crlf.md (26 lines). Tree clean (git status empty).
 
 Task brief required cases and where pinned:
 - LF TODO.md + `add --group <existing> --description -` stdin `Body\r\n`, TODO.md differs by exactly item line, all LF: pinned by test/cli/tasks.test.ts:291 "a CRLF description added to an LF list changes only the item line". Reversal to base lines.ts (5b40be7) makes CLI filter 1 pass 4 fail (new tests red); with fix all pass. Where assertion is over request-supplied value, reversal in scratch worktree shows pinning: breaking textLines to split("\n") makes test/cli/tasks.test.ts --inline variants fail and test/markdown/items.test.ts:74 fail (see evidence below); restoring both to base makes first CLI test fail too (promote path rewrote whole file CRLF under old splitLines rule).
@@ -70,7 +70,7 @@ Implementer's stated gaps:
 - Single commit instead of plan's three: DONE with reason (small interdependent tasks). No repo rule requires one commit per plan task; message `fix(markdown): ...` follows convention. Not a finding.
 - Leading blank descriptions out of scope: untouched, as tasked.
 
-nzila commits vs rule: one commit e420743 on branch; answers the task (fix + decision + tests). No commit outside its rule, no hygiene-only commit, no install/config change. boundaries.test.ts still passes (check stage green).
+Orchestrator commits vs rule: one commit e420743 on branch; answers the task (fix + decision + tests). No commit outside its rule, no hygiene-only commit, no install/config change. boundaries.test.ts still passes (check stage green).
 
 Decision contradiction: none. README "most common (LF on tie), CRLF files stay CRLF" matches code: pure CRLF (crlf>0,lf=0) -> CRLF; pure LF -> LF; empty -> LF. Spec §§2.1/2.10 still match (preserve style for uniform files; minimal diff = rewrite minority only under one-ending model).
 
@@ -99,6 +99,3 @@ Citations that do not open (the verdict stands; a finding may still be right):
 - `cli/render.ts:51` path does not exist
 - `fs/links.test.ts:27,238` path does not exist
 - `web/ui.test.tsx:101` path does not exist
-Branch: nzila/01M5GNZ5RJS3CCR28R3N3K1PC0
-
-nzila run 01M5GNZ5RJS3CCR28R3N3K1PC0

@@ -41,8 +41,8 @@ Run `01M5GKF5WZ5HC80GEH4YE9CMCC`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   2 (whole-directory decision): done, spec §2.10 says
   `../<old-slug>/x.md` becomes `./x.md`. 3 (spec names the operations):
   done.
-- Comments: the brief had none; the task file has only nzila's closing
-  comment.
+- Comments: the brief had none; the task file has only the orchestrator's
+  closing comment.
 - Read beyond the reviews: `renameGroup` rebases every snapshot entry whose
   path is inside the old directory, any group or checked state, and the move
   loop walks `allItems` with an id, so the two sets agree (both skip items
@@ -50,7 +50,7 @@ Run `01M5GKF5WZ5HC80GEH4YE9CMCC`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - Commit hygiene: the `links.test.ts` reformat landed in the docs commit
   `dfbf301` (review 2 noted it). Not filed.
 - No timings regeneration: no test file added, moved or deleted.
-- Friction for nzila (not filed here, as at 57): the brief's
-  `review-lock` path exists only in the nzila checkout; `rating.ts` runs
+- Friction for the orchestrator (not filed here, as at 57): the brief's
+  `review-lock` path exists only in the orchestrator's checkout; `rating.ts` runs
   from there; its skeleton's `flow.fit` is `null` without naming
   `too-light | right | too-heavy`, so `rate` refused a numeric guess once.

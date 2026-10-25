@@ -41,9 +41,9 @@ the bundle, which already renders.
 
 ## Comments
 
-### @nzila at 2026-10-21 17:32:16 +00:00
+### @agent at 2026-10-21 17:32:16 +00:00
 
-Done: Implemented todo-md:49 per plan (one task, one commit `1a050b3` on nzila/01M5FQ7YVQD0W3EWJ9TM5HE3SB).
+Done: Implemented todo-md:49 per plan (one task, one commit `1a050b3` on the run's branch).
 
 What was built:
 - `src/web/load.ts` (new): registers a runtime `Bun.plugin` (`todo-md-remix-jsx`) at module top level that prepends `/** @jsxImportSource remix/component */` to every `.tsx` onLoad with loader `tsx`, then exports `loadServer = () => import("./server.ts")`. Covers every `.tsx` (not just @lemol/ui's) per plan decision; repeat pragma on our own files is harmless.
@@ -71,6 +71,3 @@ What to build: prove cause (plan stage: @lemol/ui pragma-less .tsx compiled with
 
 Minor, non-blocking notes: test hard-codes --port 49170 (could collide on a busy machine; port 0 or a free-port pick would be sturdier). The plugin applies to every .tsx, including our own that already carry the pragma (harmless, stated). tooling.md inserted sentence leaves one long line; oxfmt check passes.
 
-Branch: nzila/01M5FQ7YVQD0W3EWJ9TM5HE3SB
-
-nzila run 01M5FQ7YVQD0W3EWJ9TM5HE3SB

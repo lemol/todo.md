@@ -9,7 +9,7 @@ Inside double quotes the shell runs each backticked span as a command substituti
 
 ## What to do
 
-- `todo comment <id> -` reads the body from stdin, following `wordsText` in nzila (`src/cli/commands/agent.ts`), where a lone `-` in a variadic argument means stdin.
+- `todo comment <id> -` reads the body from stdin, where a lone `-` in a variadic argument means stdin.
 - Reuse the deferred `CliContext.stdin` that task 21 adds; do not pre-read it.
 - Keep the text byte-for-byte: leading and trailing whitespace and newlines included.
 - Decide whether `--author` stays as it is (it should).

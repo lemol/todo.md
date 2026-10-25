@@ -6,7 +6,7 @@ group: Hub and sources
 completed_at: 2026-10-07T00:50:36Z
 outcome: completed
 ---
-**Why.** nzila routes a task on a shared team list to the repository that does it (nzila's docs/specs/m9-team-tasks.md §5 and §8), and the team's Jira says which repository through the issue's **components**. Today `todo jira pull` keeps only `extra.jira_id` from the issue, so the routing field never arrives.
+**Why.** An orchestrator routes a task on a shared team list to the repository that does it, and the team's Jira says which repository through the issue's **components**. Today `todo jira pull` keeps only `extra.jira_id` from the issue, so the routing field never arrives.
 
 **Decisions.**
 - The pull writes the issue's component names to `extra.components`, joined with `, ` in Jira's order. An issue with no components leaves the field absent, and removes it if it was set by an earlier pull.
@@ -22,7 +22,7 @@ outcome: completed
 
 ## Comments
 
-### @nzila at 2026-10-07 00:50:36 +00:00
+### @agent at 2026-10-07 00:50:36 +00:00
 
 Done: Built task 38: `todo jira pull` now copies an issue's components into `extra.components`. Lint, typecheck and the focused tests all pass.
 
@@ -68,6 +68,3 @@ Notes (non-blocking, next touch):
 2. planPull add branch calls `componentsOf(remote)` twice (lines 183/185); hoist to a const.
 3. Optional: src/cli/README.md `todo jira pull` row still summarizes following as "title, description, assignee and status" - now omits extra.components. It was already a summary (omits tags/dependsOn), so leaving it is defensible; update it if the row is meant to be exhaustive.
 
-Branch: nzila/01M49WWWBRVJE377S4J9ES2J1F
-
-nzila run 01M49WWWBRVJE377S4J9ES2J1F

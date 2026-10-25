@@ -17,11 +17,11 @@ Run `01M5GNZ5RJS3CCR28R3N3K1PC0`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   `commentLines`, `formatTaskFile` and `updateTaskFile`; `splitLines`
   counts endings. One commit instead of the plan's three, with its reason.
 - check#1 passed (1531 tests) after seven minutes waiting for the machine
-  gate slot held by nzila:592's gate.
+  gate slot held by another project's gate.
 - review#1 (oc_go_spark_xh) approved: reversed `textLines` and `lines.ts`
   in scratch, class-checked `textLines` and the mixed rule, measured the
   `splitLines` cost. Five citations dropped their `src/`/`test/` prefix and
-  nzila flagged them as paths that do not open.
+  the orchestrator flagged them as paths that do not open.
 
 ## Controller review (intensive)
 
@@ -35,8 +35,8 @@ Run `01M5GNZ5RJS3CCR28R3N3K1PC0`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
 - What to build 1: done (`textLines`, four call sites). 2: decided and
   changed, in `src/markdown/README.md` "Line endings"; code agrees. Spec
   §2.1 ("preserve the line ending style") still holds for uniform files.
-- Comments: none before the run; the task file now has only nzila's
-  closing comment.
+- Comments: none before the run; the task file now has only the
+  orchestrator's closing comment.
 - Class probes on `6af1afe` (scratch list, isolated `HOME`): a title with
   `\r` is refused ("Expected a single line"); `todo comment 2 $'c1\r\nc2'`
   writes LF lines; `add --description -` with `Body\r` writes an LF task
@@ -46,5 +46,5 @@ Run `01M5GNZ5RJS3CCR28R3N3K1PC0`, loop `01M5GFQE4CEH965H2CH9XZYRSS` (width
   as 62.
 - No timings regeneration: tests were modified, none added, moved or
   deleted.
-- Friction for nzila (not filed here, as at 57 to 59): `review.ts` and
-  `rating.ts` must run with the nzila checkout as cwd.
+- Friction for the orchestrator (not filed here, as at 57 to 59):
+  `review.ts` and `rating.ts` must run with its checkout as cwd.

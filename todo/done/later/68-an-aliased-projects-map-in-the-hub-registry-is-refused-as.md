@@ -33,7 +33,7 @@ Task-file frontmatter (66). Nested collection keys inside an entry's value still
 
 ## Comments
 
-### @nzila at 2026-10-22 05:00:18 +00:00
+### @agent at 2026-10-22 05:00:18 +00:00
 
 Done: Chose to refuse `projects: *x` on read with "projects must be a map, not an alias" (registry.ts `read`). A failed `doc.toString()` on write now says "<file>: the edit would leave alias *p unresolved"; the file stays unchanged. README alias bullet says entry-value aliases are fine and `projects` itself is not.
 Tests: added the aliased-projects case to the "alias failures" table and updated the anchor-delete test's message. Both pass, along with all of test/hub (147 pass). oxlint and tsc are clean.
@@ -81,6 +81,3 @@ Commit ce02317 is a single fix(hub) commit and stays within the task.
 
 Minor and not blocking: `rename` rewrites `{source: memory}` as `{ source: memory }`. This predates the change, because `doc.toString()` reformats flow maps, and it is outside this task.
 
-Branch: nzila/01M5GZE6PN6VFAAV539B369V8D
-
-nzila run 01M5GZE6PN6VFAAV539B369V8D

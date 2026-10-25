@@ -42,12 +42,12 @@ Run `01M5FQ7YVQD0W3EWJ9TM5HE3SB`, loop `01M5FHVVJ6H539ZGYMN78TTRXJ` (width
   and the test reads the URL from stdout.
 - Fixed here: the `docs/architecture/tooling.md` line that do#1 left
   unwrapped.
-- Comments: one, by @nzila (the closing note). No test files were added,
-  moved or deleted, and this repository has no `test/timings.json`.
+- Comments: one, by the orchestrator (the closing note). No test files were
+  added, moved or deleted, and this repository has no `test/timings.json`.
 - Not filed here:
   - For `@lemol/ui`: ship the `jsxImportSource` pragma in its `.tsx`, so
     consumers need no loader.
-  - For nzila:
+  - For the orchestrator:
     - `digest.ts` crashes on a `message.content` that is a string.
-    - `review.ts` and `rating.ts` only work when run from nzila's checkout.
+    - `review.ts` and `rating.ts` only work when run from its checkout.
     - review#1 put its scratch worktree inside the run's worktree.

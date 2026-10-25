@@ -8,7 +8,7 @@ outcome: completed
 `test/sandbox.ts` snapshots the whole real hub home (`~/.todo-md`, or
 `$TODO_MD_HOME`) and fails whichever test was running when anything under it
 changed. The hub's parse cache lives there (`~/.todo-md/cache/*.json`), and
-every real `todo` or nzila process on the machine rewrites it. So a gate that
+every real `todo` process on the machine, or tool built on it, rewrites it. So a gate that
 runs while anything else reads a list fails a test that touched nothing.
 
 Evidence: todo-md:46's check#1 (attempt `01M5FJF8MYD6DS1TF27WW4M2PX`,
@@ -36,7 +36,7 @@ out of the hub home; task 47's key format.
 
 ## Comments
 
-### @nzila at 2026-10-21 16:42:27 +00:00
+### @agent at 2026-10-21 16:42:27 +00:00
 
 Done: The sandbox guard no longer watches the real hub home's top-level `cache/` directory. The registry, the rest of the home and this repo's `todo/` are still watched.
 
@@ -53,10 +53,10 @@ Review: approved (5/5)
 Review of do#1 (commit f464a94) for todo-md:48 — visit 1, no earlier rounds.
 
 Required cases (task Tests + Done-when):
-1. "a change under <home>/cache/ is not reported" — PINNED in test/sandbox.test.ts:28 "skipped directories are not reported, the files beside them still are": writes cache/list.json + cache/added.json, expects changesBetween(before, snapshotOf(dir, ["cache"])) toBe "" (test/sandbox.test.ts:39). What it must see to fail: any non-empty string (e.g. "  ~ cache/list.json"). Reversed in scratch copy (.nzila-scratch-$NZILA_ATTEMPT) to expect "  ~ cache/list.json": failed with Received "" (4 pass 1 fail), proving the code truly skips. Also ran new tests against base test/sandbox.ts (47ad69c): fails with `Export named 'guarded' not found`, proving tests-first (old code cannot pass new tests).
+1. "a change under <home>/cache/ is not reported" — PINNED in test/sandbox.test.ts:28 "skipped directories are not reported, the files beside them still are": writes cache/list.json + cache/added.json, expects changesBetween(before, snapshotOf(dir, ["cache"])) toBe "" (test/sandbox.test.ts:39). What it must see to fail: any non-empty string (e.g. "  ~ cache/list.json"). Reversed in a scratch copy to expect "  ~ cache/list.json": failed with Received "" (4 pass 1 fail), proving the code truly skips. Also ran new tests against base test/sandbox.ts (47ad69c): fails with `Export named 'guarded' not found`, proving tests-first (old code cannot pass new tests).
 2. "a change to the registry file next to it still is" — PINNED in same test (test/sandbox.test.ts:42): after registry.json rewrite expects "  ~ registry.json". Pre-existing test test/sandbox.test.ts:8 still pins default behavior: snapshotOf(dir) with no skip reports "  ~ cache/with spaces" (test/sandbox.test.ts:21), so skip is opt-in, not global.
 3. "guarded skip lists" (Done-when's second case) — PINNED in test/sandbox.test.ts:48 "the real hub's cache is skipped and its registry is not": guarded entry for realHome has skip ["cache"], repo/todo has [] (test/sandbox.test.ts:49-50). Single expect over a value the request supplied? The ["cache"] literal is the diff's own value, but the behavioral test (1+2) independently proves the skip works; the pin test only locks wiring. Reversal of the behavioral assertion above covers the fail-direction.
-4. Docs: guard comment says what it skips and why — DONE in test/sandbox.ts:11-16: cache/ not watched, parse cache never source of truth, every real todo/nzila rewrites it, registry/rest/home and repo todo/ stay watched.
+4. Docs: guard comment says what it skips and why — DONE in test/sandbox.ts:11-16: cache/ not watched, parse cache never source of truth, every real todo process rewrites it, registry/rest/home and repo todo/ stay watched.
 
 What-to-build walk (unnumbered paragraph read as items):
 - Guard stops counting real home's cache/ — done (test/sandbox.ts:30-32 guarded entry {dir: realHome, skip: ["cache"]}; test/sandbox.ts:46 snapshotOf(dir, skip=[]) + test/sandbox.ts:61-63 `if (at !== dir || !skip.includes(entry.name))`; applied at baseline test/sandbox.ts:113 and afterEach test/sandbox.ts:120 via skips map test/sandbox.ts:114).
@@ -73,7 +73,7 @@ Implementer's stated gaps:
 - "Did not read attempt output logs; fixtures constructed" — pushed back as not mattering here: real record read by reviewer instead (ls ~/.todo-md/cache/*.json shows 9 files e.g. 11xj4xzbwcu.json; Hub.ts:227 + storage.md:71-79 confirm <home>/cache shape; gate output 01M5FN7EDGK7RRHTMNHQQ0X372/output.log lines 15/17 show sandbox tests passing). Fixture class (list.json/added.json/registry.json) matches real class (hash .json + sibling registry file).
 - "Did not run bun run check per step instructions" — done elsewhere: check#1 reported passed on f464a94 (artifacts check.passed=f464a94, check.command="bun run check": 1430 tests/105 files). Reviewer ran only touched checks per instructions: bun test test/sandbox.test.ts 5 pass, bun run lint clean (oxfmt + oxlint, 0 warnings), bun run typecheck clean.
 
-Nzila commits vs rules: branch has one commit f464a94 "test(sandbox): stop guarding the hub's parse cache". Brief lists no commit-message rule; no finding. No work outside rule (only the two test files).
+Orchestrator commits vs rules: branch has one commit f464a94 "test(sandbox): stop guarding the hub's parse cache". Brief lists no commit-message rule; no finding. No work outside rule (only the two test files).
 
 Brief Decision vs code: no contradiction. Decision says top-level cache/ skipped, rest watched — code does exactly that (top-level-only condition at!==dir).
 
@@ -85,6 +85,3 @@ Other checks: no test encodes bug numbers from fixture totals (assertions are ""
 
 Quality: lint+typecheck clean, style matches file (blank-line/brace rules pass via oxfmt/oxlint), no scope creep beyond exports needed for the pin tests (repo/realHome/guarded exported, test-only surface).
 
-Branch: nzila/01M5FN5A6TVZ68NN3DJJE7F67B
-
-nzila run 01M5FN5A6TVZ68NN3DJJE7F67B

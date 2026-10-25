@@ -72,7 +72,7 @@ onboard:01M5BVEFKSMMYD68H9E303YCWJ:tasks/make-the-test-sandbox-guard-cheap.md
 
 ## Comments
 
-### @nzila at 2026-10-20 16:42:58 +00:00
+### @agent at 2026-10-20 16:42:58 +00:00
 
 Done: Implemented and committed stat-only escape snapshots in test/sandbox.ts; no content reads or hashing, and no cache exclusion. Exported snapshotOf/changesBetween, retained per-test guard attribution and +/-/~ reports, and updated metadata wording. Snapshot parsing preserves paths containing spaces.
 
@@ -83,7 +83,7 @@ Test-first evidence: initial focused run had 1 pass and 1 expected failure (read
 Verification: bun run lint and bun run typecheck both passed. Earlier lint failures were formatting in both changed files, then one padding-line error; both corrected and rerun successfully. Search: rg -n 'snapshotOf|changesBetween|sandbox|unguarded' test src found only test/sandbox.ts, with no other harness consumers. Full gate intentionally not run, per step instructions; check stage owns it. No manifests or files outside the requested sandbox/test scope changed.
 
 Review: approved (5/5)
-Approved. Reviewed the entire diff from 43bd4ef through 92d5992; no findings. The only commit, 92d5992, answers this task's stat-only guard requirement and changes only test/sandbox.ts and its colocated test. No nzila housekeeping commits require separate justification. The branch is unchanged by review; detached scratch worktrees were removed.
+Approved. Reviewed the entire diff from 43bd4ef through 92d5992; no findings. The only commit, 92d5992, answers this task's stat-only guard requirement and changes only test/sandbox.ts and its colocated test. No orchestrator housekeeping commits require separate justification. The branch is unchanged by review; detached scratch worktrees were removed.
 
 Comments checked: read the brief (no Pre-start task comments supplied) and the complete current todo/44-make-the-test-sandbox-s-escape-guard-cheap.md (no Comments section). Comment count: 0; authors: none. There are no comment requests to disposition.
 
@@ -103,6 +103,3 @@ Verification and gaps: the implementer's only stated deferral was the full gate,
 
 Stale-text search: first validated 'Every file below|rewritten|parse cache' against git show 43bd4ef:test/sandbox.ts (matched the old snapshot comment, '~ rewritten' and cache comment). Then searched the whole tree including hidden .agents files with rg --hidden, excluding .git and node_modules. Other 'rewritten' occurrences concern Markdown writers or historical task records; the task's '~ rewritten' wording is an instruction, not a stale API description. The changed metadata format is local to the exported test helpers and preload. No production config, API, migration or new module directory is introduced.
 
-Branch: nzila/01M5D2SG37DEP6V0RX7YQQ6MGR
-
-nzila run 01M5D2SG37DEP6V0RX7YQQ6MGR

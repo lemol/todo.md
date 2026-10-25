@@ -26,7 +26,7 @@ Out, for later tasks:
   ignore it, so the published package is unchanged and does not depend on
   Remix.
 - **Dependencies.** `@lemol/todo-md: workspace:*`, `remix: 3.0.0-rc.2`
-  (exact, matching mionso's `money-web`; upgraded together like `effect`),
+  (exact; upgraded together like `effect`),
   `@effect/platform-bun`, `mdast-util-from-markdown`, `mdast-util-to-hast`,
   `hast-util-to-html`, and `effect` as a peer dependency.
 - **Imports.** The app is a consumer: it imports `@lemol/todo-md/spec`,
@@ -262,4 +262,4 @@ The server has no auth; it is safe because only this machine can reach it.
   `bun run web`.
 - `todo/TODO.md`: complete 05, and add follow-ups: hosted GitHub-backed web
   app; move/reorder, remove and rename group in the web app; a `todo web`
-  command; registering `repos/todo-md/apps/*` in lemol-workspace.
+  command; registering `apps/*` in a consuming monorepo.

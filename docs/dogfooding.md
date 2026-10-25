@@ -1,8 +1,9 @@
-# Dogfooding nzila on todo-md
+# Dogfooding an orchestrator on todo-md
 
-nzila loops run this list. This file is their handoff: **Now** holds live
-state and the next step, and **Runs** links one file per reviewed run. The
-process is the `nzila-dogfood` skill in the nzila repository.
+An agent orchestrator's loops run this list. This file is their handoff:
+**Now** holds live state and the next step, and **Runs** links one file per
+reviewed run. The process is a dogfooding skill in the orchestrator's own
+repository.
 
 ## Now
 
