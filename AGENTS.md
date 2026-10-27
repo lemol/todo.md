@@ -40,7 +40,7 @@ test/          bun:test suites, mirroring src/, plus boundaries.test.ts
 bun install
 bun run check         # lint + typecheck + tests: the gate for every change
 bun test              # tests only
-bun run fix           # apply oxlint + oxfmt fixes
+bun run fix           # apply oxlint fixes + bun fmt
 bun src/cli/bin.ts    # run the todo CLI from source
 bun src/cli/bin.ts web --dir todo  # run the local web app
 ```
@@ -57,7 +57,7 @@ bun src/cli/bin.ts web --dir todo  # run the local web app
   consts; leave a blank line after a multi-line const and between consts
   and a following call, around every `if`, loop, `switch` and `try`, and before `return`. An `if` whose body spans
   lines takes braces; a one-line `if (x) return y` does not. oxlint enforces
-  this (`.oxlintrc.json`, local rules in `lint/style.js`) and oxfmt formats
+  this (`.oxlintrc.json`, local rules in `lint/style.js`) and `bun fmt` formats
   (`.oxfmtrc.json`); `bun run fix` applies both.
 - **Conformance.** Every `TodoStore` implementation must pass
   `runConformance`.

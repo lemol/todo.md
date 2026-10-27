@@ -24,8 +24,8 @@
     "check": "bun run lint && bun run typecheck && bun run test",
     "build:cli": "bun scripts/build-cli.ts",
     "prepare": "bun run build:cli",
-    "lint": "oxfmt --check && oxlint",
-    "fix": "oxlint --fix && oxfmt",
+    "lint": "bun fmt --check && oxlint",
+    "fix": "oxlint --fix && bun fmt",
     "typecheck": "tsc -p tsconfig.json",
     "test": "bun test",
     "test:boundaries": "bun test test/boundaries.test.ts",
@@ -50,7 +50,6 @@
     "@types/bun": "^1.4.2",
     "@types/mdast": "^4.0.4",
     "effect": "4.0.0",
-    "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
     "typescript": "^7.0.2"
   },
