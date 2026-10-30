@@ -3,7 +3,6 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -11,11 +10,11 @@ import {
   utimesSync,
   writeFileSync,
 } from "node:fs"
-import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { scratchDirectory } from "../sandbox.ts"
 
 const root = resolve(import.meta.dir, "../..")
-const scratch = mkdtempSync(join(tmpdir(), "todo-md-bundle-"))
+const scratch = scratchDirectory("todo-md-bundle-")
 const packageDir = join(scratch, "package")
 const outdir = join(packageDir, "dist")
 const source = join(root, "src/cli/bin.ts")
@@ -38,7 +37,7 @@ const run = (entry: string, ...args: string[]) => {
   }
 }
 
-const checkout = (dir = mkdtempSync(join(scratch, "checkout-"))) => {
+const checkout = (dir = scratchDirectory("checkout-")) => {
   mkdirSync(dir, { recursive: true })
 
   for (const path of ["src", "scripts", "bin", "package.json", "bun.lock", "tsconfig.json"]) {

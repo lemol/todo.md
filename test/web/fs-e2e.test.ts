@@ -1,6 +1,5 @@
 import { afterEach, expect, test } from "bun:test"
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Layer, ManagedRuntime } from "effect"
@@ -8,6 +7,7 @@ import { fsSource, Hub } from "../../src/hub/index.ts"
 import type { HubRuntime } from "../../src/web/app/middleware/project.tsx"
 import { createAppRouter } from "../../src/web/app/router.ts"
 import { routes } from "../../src/web/app/routes.ts"
+import { scratchDirectory } from "../sandbox.ts"
 import { makeFakeAssets } from "./harness.ts"
 
 const cleanup: Array<() => Promise<void>> = []
@@ -17,10 +17,10 @@ afterEach(async () => {
 })
 
 const setUp = async (todoMd: string) => {
-  const root = await mkdtemp(join(tmpdir(), "todo-md-web-e2e-"))
+  const root = scratchDirectory("todo-md-web-e2e-")
 
   await writeFile(join(root, "TODO.md"), todoMd)
-  const home = await mkdtemp(join(tmpdir(), "todo-md-web-e2e-home-"))
+  const home = scratchDirectory("todo-md-web-e2e-home-")
 
   await mkdir(join(home, "projects", "disk"), { recursive: true })
   await writeFile(

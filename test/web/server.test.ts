@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "bun:test"
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { mkdir, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { startServer } from "../../src/web/server.ts"
+import { scratchDirectory } from "../sandbox.ts"
 
 const cleanup: Array<() => Promise<void>> = []
 
@@ -13,8 +13,8 @@ afterEach(async () => {
 const base = { port: 0, host: "127.0.0.1", env: {}, username: "tester" }
 
 test("starts over an unregistered --dir list and serves its board", async () => {
-  const home = await mkdtemp(join(tmpdir(), "todo-md-home-"))
-  const dir = await mkdtemp(join(tmpdir(), "todo-md-list-"))
+  const home = scratchDirectory("todo-md-home-")
+  const dir = scratchDirectory("todo-md-list-")
 
   await writeFile(join(dir, "TODO.md"), "# Disk list\n")
   const started = await startServer({ ...base, cwd: dir, dir, home, userHome: home })
@@ -35,8 +35,8 @@ test("starts over an unregistered --dir list and serves its board", async () => 
 })
 
 test("starts over a registered fs project by name", async () => {
-  const home = await mkdtemp(join(tmpdir(), "todo-md-home-"))
-  const dir = await mkdtemp(join(tmpdir(), "todo-md-list-"))
+  const home = scratchDirectory("todo-md-home-")
+  const dir = scratchDirectory("todo-md-list-")
 
   await writeFile(join(dir, "TODO.md"), "# Registered list\n")
   await mkdir(join(home, "projects", "acme"), { recursive: true })
@@ -59,8 +59,8 @@ test("starts over a registered fs project by name", async () => {
 })
 
 test("rejects --project together with --dir", async () => {
-  const home = await mkdtemp(join(tmpdir(), "todo-md-home-"))
-  const cwd = await mkdtemp(join(tmpdir(), "todo-md-empty-"))
+  const home = scratchDirectory("todo-md-home-")
+  const cwd = scratchDirectory("todo-md-empty-")
 
   cleanup.push(async () => {
     await rm(home, { recursive: true, force: true })
@@ -72,8 +72,8 @@ test("rejects --project together with --dir", async () => {
 })
 
 test("throws with the standard message when no list is found and no project is given", async () => {
-  const home = await mkdtemp(join(tmpdir(), "todo-md-home-"))
-  const cwd = await mkdtemp(join(tmpdir(), "todo-md-empty-"))
+  const home = scratchDirectory("todo-md-home-")
+  const cwd = scratchDirectory("todo-md-empty-")
 
   cleanup.push(async () => {
     await rm(home, { recursive: true, force: true })

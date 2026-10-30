@@ -1,6 +1,9 @@
 ---
 title: Decide whether a test run gets its own TMPDIR
 tags: [test]
+group: Later
+completed_at: 2026-10-30T18:51:20Z
+outcome: completed
 ---
 todo-md:54 (`59f196f`, `d632075`) gave `test/sandbox.ts` a
 `scratchDirectory(prefix)` helper. The preload's `afterAll` removes exactly

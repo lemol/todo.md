@@ -1,11 +1,11 @@
 import { afterAll, describe, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { scratchDirectory } from "../sandbox.ts"
 
 // The real executable, as a separate process: exit codes and output streams.
 const bin = join(import.meta.dir, "../../src/cli/bin.ts")
-const dir = mkdtempSync(join(tmpdir(), "todo-md-bin-"))
+const dir = scratchDirectory("todo-md-bin-")
 
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
@@ -54,7 +54,7 @@ describe("the todo executable", () => {
   }, 15000)
 
   test("a bad registry is one error line, and --dir does not need it", () => {
-    const scratch = mkdtempSync(join(dir, "alias-"))
+    const scratch = scratchDirectory("alias-")
     const registryHome = join(scratch, "home", ".todo-md")
     const file = join(registryHome, "projects.yaml")
 

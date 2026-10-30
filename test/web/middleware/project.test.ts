@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync, rmSync } from "node:fs"
+import { rmSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Effect, Layer, ManagedRuntime } from "effect"
 import { Hub } from "../../../src/hub/index.ts"
@@ -13,9 +12,10 @@ import {
   projectInfoContext,
   todoRuntimeContext,
 } from "../../../src/web/app/middleware/todo.ts"
+import { scratchDirectory } from "../../sandbox.ts"
 
 const makeHubRuntime = () => {
-  const home = mkdtempSync(join(tmpdir(), "todo-md-project-mw-"))
+  const home = scratchDirectory("todo-md-project-mw-")
   const layer = Hub.layer({
     home,
     userHome: tmpdir(),

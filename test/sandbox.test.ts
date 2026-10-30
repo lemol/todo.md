@@ -1,9 +1,9 @@
 import { expect, test, spyOn } from "bun:test"
 import * as fs from "node:fs"
 import { join } from "node:path"
-import { changesBetween, guarded, realHome, repo, snapshotOf } from "./sandbox.ts"
+import { changesBetween, guarded, realHome, repo, scratchDirectory, snapshotOf } from "./sandbox.ts"
 
-const temporaryDirectory = () => fs.mkdtempSync(join(import.meta.dir, ".sandbox-test-"))
+const temporaryDirectory = () => fs.realpathSync(scratchDirectory("sandbox-test-"))
 
 test("reports added, removed and rewritten files, including paths with spaces and cache", () => {
   const dir = temporaryDirectory()
@@ -119,12 +119,12 @@ test("a run removes the temporary directories it made, and no others", () => {
       join(dir, "fixture.test.ts"),
       [
         'import { expect, test } from "bun:test"',
-        'import { mkdtempSync, rmSync } from "node:fs"',
-        'import { tmpdir } from "node:os"',
+        'import { rmSync } from "node:fs"',
+        `import { scratchDirectory } from ${JSON.stringify(join(import.meta.dir, "sandbox.ts"))}`,
         'import { join } from "node:path"',
         `import { remoteIn } from ${JSON.stringify(join(import.meta.dir, "git", "helpers.ts"))}`,
         'test("seeds a git remote, as the git tier does", () => {',
-        '  const root = mkdtempSync(join(tmpdir(), "fixture-"))',
+        '  const root = scratchDirectory("fixture-")',
         "  try {",
         '    expect(remoteIn(root, { "TODO.md": "# Fixture\\n" })).toBe(join(root, "remote.git"))',
         "  } finally {",

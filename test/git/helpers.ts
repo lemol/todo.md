@@ -8,8 +8,7 @@
  * config decides nothing here and nothing here writes to it.
  */
 
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { BunServices } from "@effect/platform-bun"
 import { Context, Effect, Layer, type Scope } from "effect"
@@ -159,7 +158,7 @@ export const fixture = (options: FixtureOptions = {}): Layer.Layer<GitFixture, n
     GitFixture,
     Effect.gen(function* () {
       const root = yield* Effect.acquireRelease(
-        Effect.sync(() => mkdtempSync(join(tmpdir(), "todo-md-git-"))),
+        Effect.sync(() => scratchDirectory("todo-md-git-")),
         (dir) => Effect.sync(() => rmSync(dir, { recursive: true, force: true })),
       )
 

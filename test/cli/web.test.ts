@@ -1,10 +1,10 @@
 import { afterAll, expect, test } from "bun:test"
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { Effect } from "effect"
 import { effectTest } from "../../src/spec/testing.ts"
 import { diskWith } from "../fs/helpers.ts"
+import { scratchDirectory } from "../sandbox.ts"
 import { todo } from "./harness.ts"
 
 effectTest(
@@ -49,7 +49,7 @@ effectTest(
 
 const source = resolve(import.meta.dir, "../../src/cli/bin.ts")
 // Outside the repository: no tsconfig.json above it names the JSX runtime.
-const scratch = mkdtempSync(join(tmpdir(), "todo-md-web-"))
+const scratch = scratchDirectory("todo-md-web-")
 
 const env = {
   ...process.env,
