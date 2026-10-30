@@ -1,6 +1,9 @@
 ---
 title: A bare sibling link comes back with a ./ prefix after done and reopen
 tags: [bug, decision]
+group: Later
+completed_at: 2026-10-30T19:49:37Z
+outcome: completed
 ---
 todo-md:57 (`9901f13`, landed `d9ecf4c`) made `rebaseTaskLinks` (`src/fs/links.ts`) keep a link's raw spelling, and to make `./sib.md` round-trip it prefixes `./` to every rebased destination whose new relative path does not start with `.` or `..`. The archived form (`../../group/sib.md`) cannot say whether the original was bare or `./`, so the bare spelling, which the code before 57 round-tripped, now changes on reopen. Controller probe on `d9ecf4c` (real files, `group/task.md` to `done/group/task.md` and back):
 

@@ -50,6 +50,7 @@ export const rebaseTaskLinks = Effect.fnUntraced(function* (
   to: string,
   source: string,
   relocate: (path: string) => string = (path) => path,
+  bareLocal = false,
 ): Effect.fn.Return<string, StoreError, Path.Path> {
   const path = yield* Path.Path
   const fromDir = path.dirname(from)
@@ -178,7 +179,17 @@ export const rebaseTaskLinks = Effect.fnUntraced(function* (
 
     if (rawPath.endsWith("/") && !newPath.endsWith("/")) newPath += "/"
 
-    if (newPath !== "." && newFs[0] !== "." && newFs[0] !== "..") newPath = `./${newPath}`
+    if (rawPath === `./${newPath}`) newPath = rawPath
+
+    if (
+      !bareLocal &&
+      newPath !== "." &&
+      newFs[0] !== "." &&
+      newFs[0] !== ".." &&
+      !newPath.startsWith("./")
+    ) {
+      newPath = `./${newPath}`
+    }
 
     result = result.slice(0, start) + newPath + rawSuffix + result.slice(end)
   }

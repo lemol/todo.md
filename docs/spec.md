@@ -575,7 +575,11 @@ left byte-for-byte intact.
   same operation moves (for `renameGroup`, the moved task files, or everything
   in the old directory when the whole directory moves), points to its new
   path. So `./sibling.md` between two tasks of a renamed group stays as
-  written, and `../<old-slug>/x.md` becomes `./x.md`. Only a destination that resolves to an existing file
+  written, and `../<old-slug>/x.md` becomes `./x.md`. On reopening, a
+  rewritten destination within the task's directory uses a bare path; an
+  existing `./` is retained when that destination otherwise stays unchanged.
+  Thus a sibling link written as either `sibling.md` or `./sibling.md` reopens
+  as `sibling.md` after completion. Only a destination that resolves to an existing file
   before the move is rewritten; its query and fragment are kept. Absolute URLs,
   paths starting with `/`, anchor-only (`#…`) and unresolved destinations are
   left as written. Only the destination text changes. Links from other files to

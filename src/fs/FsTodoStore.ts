@@ -415,6 +415,8 @@ const makeStore = (files: Files, parser: Parser, options: Options) =>
                 outcome: null,
                 cancelledReason: null,
               }),
+              undefined,
+              true,
             )
 
             yield* writeTodo(insertItem(snapshot.todo, group, end, linkedItemFor(reopened, path)))

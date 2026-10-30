@@ -176,31 +176,52 @@ for (const [written, archivedInner, target] of [
   }
 }
 
-for (const syntax of ["link", "image", "definition"] as const) {
-  const source =
-    syntax === "definition"
-      ? "[ref]: ./sib.md\n"
-      : `${syntax === "image" ? "!" : ""}[x](./sib.md)\n`
+for (const [written, archivedPath, reopened] of [
+  ["sib.md", "../../group/sib.md", "sib.md"],
+  ["./sib.md", "../../group/sib.md", "sib.md"],
+  ["sub/x.md", "../../group/sub/x.md", "sub/x.md"],
+  ["a&amp;b.md", "../../group/a&amp;b.md", "a&amp;b.md"],
+  ["sib.md#h", "../../group/sib.md#h", "sib.md#h"],
+  ["../group/sib.md", "../../group/sib.md", "sib.md"],
+] as const) {
+  for (const syntax of ["link", "image", "definition"] as const) {
+    const render = (destination: string) =>
+      syntax === "definition"
+        ? `[ref]: ${destination}\n`
+        : `${syntax === "image" ? "!" : ""}[x](${destination})\n`
 
-  const expectedArchived =
-    syntax === "definition"
-      ? "[ref]: ../../group/sib.md\n"
-      : `${syntax === "image" ? "!" : ""}[x](../../group/sib.md)\n`
+    effectTest(
+      `rebased ${syntax} normalizes ${written} on reopen`,
+      Effect.gen(function* () {
+        const disk = yield* Disk
+        const files = yield* makeFiles(disk.root).pipe(Effect.provide(BunServices.layer))
+        const archived = yield* rebaseTaskLinks(
+          files,
+          "group/task.md",
+          "done/group/task.md",
+          render(written),
+        )
 
-  effectTest(
-    `rebased ${syntax} preserves spelling ./sib.md byte-for-byte`,
-    Effect.gen(function* () {
-      const disk = yield* Disk
-      const files = yield* makeFiles(disk.root).pipe(Effect.provide(BunServices.layer))
-      const archived = yield* rebaseTaskLinks(files, "group/task.md", "done/group/task.md", source)
-
-      expect(archived).toBe(expectedArchived)
-      expect(yield* rebaseTaskLinks(files, "done/group/task.md", "group/task.md", archived)).toBe(
-        source,
-      )
-    }),
-    diskWith({ "group/sib.md": "target", "group/.keep": "", "done/group/.keep": "" }),
-  )
+        expect(archived).toBe(render(archivedPath))
+        expect(
+          yield* rebaseTaskLinks(
+            files,
+            "done/group/task.md",
+            "group/task.md",
+            archived,
+            undefined,
+            true,
+          ),
+        ).toBe(render(reopened))
+      }),
+      diskWith({
+        "group/sib.md": "target",
+        "group/sub/x.md": "target",
+        "group/a&b.md": "target",
+        "done/group/.keep": "",
+      }),
+    )
+  }
 }
 
 for (const source of [
