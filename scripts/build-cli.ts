@@ -5,8 +5,9 @@
 // stays in its source module so createAssets finds src/web, not dist/.
 // The native resolver (oxc-resolver) stays outside, keeping output portable.
 
-import { chmodSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
+import { chmodSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
+import { fingerprint } from "../bin/freshness.ts"
 
 const root = resolve(import.meta.dir, "..")
 const outdir = process.argv[2] === undefined ? join(root, "dist") : resolve(process.argv[2])
@@ -16,6 +17,12 @@ const assets = join(root, "src/web/app/assets.ts")
 
 const toPosix = (path: string): string => path.split(sep).join("/")
 
+if (root === outdir || root.startsWith(`${outdir}${sep}`)) {
+  throw new Error("The build output directory must not contain the package root")
+}
+
+rmSync(outdir, { recursive: true, force: true })
+
 // The bundle resolves external assets against its real location, so
 // relativize canonical paths: a symlinked outdir (macOS /tmp) would
 // otherwise miscount the `..` climb and miss the module at runtime.
@@ -23,7 +30,9 @@ mkdirSync(outdir, { recursive: true })
 
 const canonical = (path: string): string => toPosix(realpathSync(path))
 
-const assetsPlugin: Bun.Plugin = {
+const inputFingerprint = fingerprint(root)
+
+const assetsPlugin: Bun.BunPlugin = {
   name: "todo-md-external-web-assets",
 
   setup(build) {
@@ -63,3 +72,10 @@ if (!content.startsWith("#!/usr/bin/env bun")) {
 }
 
 chmodSync(out, 0o755)
+writeFileSync(
+  join(outdir, "freshness.json"),
+  JSON.stringify({
+    fingerprint: inputFingerprint,
+    outputs: result.outputs.map((output) => relative(outdir, output.path)),
+  }) + "\n",
+)

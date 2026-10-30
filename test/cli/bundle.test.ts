@@ -1,11 +1,23 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from "node:fs"
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 const root = resolve(import.meta.dir, "../..")
 const scratch = mkdtempSync(join(tmpdir(), "todo-md-bundle-"))
-const outdir = join(scratch, "dist")
+const packageDir = join(scratch, "package")
+const outdir = join(packageDir, "dist")
 const source = join(root, "src/cli/bin.ts")
 const bundled = join(outdir, "bin.js")
 const installed = join(scratch, "bin/todo")
@@ -26,15 +38,146 @@ const run = (entry: string, ...args: string[]) => {
   }
 }
 
-beforeAll(() => {
-  const build = Bun.spawnSync([process.execPath, "scripts/build-cli.ts", outdir], {
-    cwd: root,
+const checkout = (dir = mkdtempSync(join(scratch, "checkout-"))) => {
+  mkdirSync(dir, { recursive: true })
+
+  for (const path of ["src", "scripts", "bin", "package.json", "bun.lock", "tsconfig.json"]) {
+    if (existsSync(join(root, path))) cpSync(join(root, path), join(dir, path), { recursive: true })
+  }
+
+  symlinkSync(join(root, "node_modules"), join(dir, "node_modules"))
+
+  return dir
+}
+
+const buildCheckout = (dir: string) => {
+  const result = Bun.spawnSync([process.execPath, join(dir, "scripts/build-cli.ts")], {
+    cwd: scratch,
     env,
   })
 
-  expect(build.exitCode, build.stderr.toString()).toBe(0)
+  expect(result.exitCode, result.stderr.toString()).toBe(0)
+}
+
+const linkCheckout = (dir: string) => {
+  const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"))
+  const link = join(dir, "node_modules-bin-todo")
+
+  symlinkSync(join(dir, pkg.bin.todo), link)
+
+  return link
+}
+
+test("installed entry runs source without dist", () => {
+  const dir = checkout()
+  const entry = linkCheckout(dir)
+
+  expect(existsSync(join(dir, "dist"))).toBe(false)
+  expect(run(entry, "--help")).toEqual(run(source, "--help"))
+})
+
+test("rebuilding after removing a lazy entry removes obsolete chunks", () => {
+  const dir = checkout()
+  const entry = join(dir, "src/cli/bin.ts")
+  const lazy = join(dir, "src/cli/lazy.ts")
+
+  writeFileSync(entry, 'console.log((await import("./lazy.ts")).value)\n')
+  writeFileSync(lazy, 'export const value = "lazy"\n')
+  buildCheckout(dir)
+  const oldChunks = readdirSync(join(dir, "dist")).filter(
+    (name) => name !== "bin.js" && name.endsWith(".js"),
+  )
+
+  expect(oldChunks.length).toBeGreaterThan(0)
+  writeFileSync(entry, 'console.log("rebuilt")\n')
+  rmSync(lazy)
+  buildCheckout(dir)
+
+  for (const chunk of oldChunks) expect(existsSync(join(dir, "dist", chunk))).toBe(false)
+
+  expect(run(linkCheckout(dir))).toEqual({ code: 0, stdout: "rebuilt\n", stderr: "" })
+})
+
+for (const change of [
+  "edit",
+  "add",
+  "remove",
+  "lockfile",
+  "missing metadata",
+  "invalid metadata",
+  "missing chunk",
+]) {
+  test(`installed entry falls back to current source: ${change}`, () => {
+    const dir = checkout()
+    const entry = join(dir, "src/cli/bin.ts")
+    const extra = join(dir, "src/cli/extra.ts")
+
+    writeFileSync(
+      entry,
+      'await import("./lazy.ts"); console.log("current", ...process.argv.slice(2)); process.exitCode = 7\n',
+    )
+    writeFileSync(join(dir, "src/cli/lazy.ts"), 'export const value = "lazy"\n')
+    writeFileSync(extra, "// present at build time\n")
+    buildCheckout(dir)
+    // Make bundle selection observable without altering any build inputs.
+    writeFileSync(join(dir, "dist/bin.js"), 'console.log("bundle")\n')
+
+    switch (change) {
+      case "edit":
+        writeFileSync(extra, "// changed after building\n")
+        utimesSync(extra, new Date(0), new Date(0))
+        break
+      case "add":
+        writeFileSync(join(dir, "src/cli/new.ts"), "// new input\n")
+        break
+      case "remove":
+        rmSync(extra)
+        break
+      case "lockfile":
+        writeFileSync(join(dir, "bun.lock"), "changed lockfile\n")
+        break
+      case "missing metadata":
+        rmSync(join(dir, "dist/freshness.json"), { force: true })
+        break
+      case "invalid metadata":
+        writeFileSync(join(dir, "dist/freshness.json"), "{}")
+        break
+      case "missing chunk":
+        rmSync(
+          join(
+            dir,
+            "dist",
+            readdirSync(join(dir, "dist")).find(
+              (name) => name !== "bin.js" && name.endsWith(".js"),
+            )!,
+          ),
+        )
+        break
+    }
+
+    expect(run(linkCheckout(dir), "argument with spaces")).toEqual({
+      code: 7,
+      stdout: "current argument with spaces\n",
+      stderr: "",
+    })
+  })
+}
+
+test("installed entry selects a current bundle", () => {
+  const dir = checkout()
+
+  buildCheckout(dir)
+  writeFileSync(join(dir, "dist/bin.js"), 'console.log("bundle")\n')
+  expect(run(linkCheckout(dir))).toEqual({ code: 0, stdout: "bundle\n", stderr: "" })
+})
+
+beforeAll(() => {
+  checkout(packageDir)
+  buildCheckout(packageDir)
   mkdirSync(join(scratch, "bin"))
-  symlinkSync(bundled, installed)
+  const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"))
+
+  symlinkSync(join(packageDir, pkg.bin.todo), installed)
 
   for (const args of [
     ["init", "--title", "Bundle fixture"],
@@ -50,14 +193,16 @@ beforeAll(() => {
 
 afterAll(() => rmSync(scratch, { recursive: true, force: true }))
 
-test("installs the bundle and builds it in prepare", async () => {
+test("installs the launcher and builds the bundle in prepare", async () => {
   const pkg = await Bun.file(join(root, "package.json")).json()
 
-  expect(pkg.bin.todo).toBe("./dist/bin.js")
+  expect(pkg.bin.todo).toBe("./bin/todo.ts")
   expect(pkg.scripts["build:cli"]).toBe("bun scripts/build-cli.ts")
   expect(pkg.scripts.prepare).toBe("bun run build:cli")
   expect(readdirSync(outdir)).toContain("bin.js")
-  expect(readdirSync(outdir).every((name) => name.endsWith(".js"))).toBe(true)
+  expect(
+    readdirSync(outdir).every((name) => name === "freshness.json" || name.endsWith(".js")),
+  ).toBe(true)
   expect(await Bun.file(bundled).text()).toStartWith("#!/usr/bin/env bun")
   const help = Bun.spawnSync([installed, "--help"], { cwd: scratch, env })
 
@@ -129,19 +274,23 @@ for (const scenario of [
 test.skipIf(process.env.TODO_CLI_BENCHMARK !== "1")(
   "warm installed help is under 80 ms, best of five",
   () => {
-    const measure = () => {
+    const measure = (entry: string) => {
       const start = performance.now()
-      const result = Bun.spawnSync([installed, "--help"], { cwd: scratch, env })
+      const result = Bun.spawnSync([entry, "--help"], { cwd: scratch, env })
 
       expect(result.exitCode, result.stderr.toString()).toBe(0)
 
       return performance.now() - start
     }
 
-    measure()
-    const best = Math.min(...Array.from({ length: 5 }, measure))
+    measure(installed)
+    measure(bundled)
+    const best = Math.min(...Array.from({ length: 5 }, () => measure(installed)))
+    const direct = Math.min(...Array.from({ length: 5 }, () => measure(bundled)))
 
-    console.log(`warm installed help best-of-5: ${best.toFixed(2)} ms`)
+    console.log(
+      `warm help best-of-5: launcher ${best.toFixed(2)} ms, direct ${direct.toFixed(2)} ms, overhead ${(best - direct).toFixed(2)} ms`,
+    )
     expect(best).toBeLessThan(80)
   },
 )

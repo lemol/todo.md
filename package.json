@@ -4,7 +4,7 @@
   "private": true,
   "description": "todo.md: a standard for Markdown task lists, its file-system implementation and the `todo` CLI",
   "bin": {
-    "todo": "./dist/bin.js"
+    "todo": "./bin/todo.ts"
   },
   "type": "module",
   "exports": {

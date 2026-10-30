@@ -69,8 +69,12 @@ The web UI lives in `src/web` and ships in the published package, so `remix` (ex
   typecheck and tests.
 - **One build step.** Subpath exports point at TypeScript sources, which Bun
   runs directly, the same as `@lemol/framework`; the installed executable is
-  bundled instead. `bun run build:cli` bundles `src/cli/bin.ts` into
-  `dist/bin.js` and sibling chunks (built on install via `prepare`). The web
+  bundled instead. The checked-in `bin/todo.ts` launcher uses `dist/bin.js`
+  only when its content fingerprint matches the checkout and all chunks
+  exist, falling back to source otherwise (see the CLI README).
+  `bun run build:cli` clears its output directory, bundles `src/cli/bin.ts`
+  into `dist/bin.js` and sibling chunks, and writes `dist/freshness.json`
+  (also run on install via `prepare`). The web
   server is a lazy chunk sharing the CLI's Effect runtime, not an external
   module receiving bundled schemas. The CLI reaches it through
   `src/web/load.ts`, which registers the `remix/component` JSX loader first.

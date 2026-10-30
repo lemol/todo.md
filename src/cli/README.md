@@ -7,17 +7,29 @@ Built with `effect/cli` on `@effect/platform-bun`.
 
 ## Install
 
-- **As a dependency:** `@lemol/todo-md` declares `bin: { todo: ./dist/bin.js }`,
+- **As a dependency:** `@lemol/todo-md` declares `bin: { todo: ./bin/todo.ts }`,
   so `todo` is on the path in `node_modules/.bin` (for example `bunx todo`).
-  The bundle is built on install (`prepare` runs `bun run build:cli`, which
-  bundles `src/cli/bin.ts` for Bun with minification and code splitting).
+  This checked-in launcher uses the bundle only when its build fingerprint
+  matches the checkout and every generated chunk exists; otherwise it runs
+  `src/cli/bin.ts`. Missing or invalid build metadata also uses source.
+  `prepare` runs `bun run build:cli`, which bundles the CLI for Bun with
+  minification and code splitting, clears old outputs and records freshness.
   Keep all generated `dist/*.js` files together: `todo web` loads its server
   chunk lazily, sharing the CLI's Effect runtime. Only asset discovery
   (`src/web/app/assets.ts`) and the native resolver stay external, preserving
   module-relative source assets without shipping a platform-specific binary.
-- **From a checkout:** `bun run build:cli`, then `bun link` in this repository
-  makes `todo` available globally.
+- **From a checkout:** `bun link` in this repository makes `todo` available
+  globally. Run `bun run build:cli` for faster startup; after source changes,
+  the launcher falls back to source until the next build.
 - **Without installing:** `bun src/cli/bin.ts <command>`.
+
+The freshness check hashes the complete `src/` file list and contents,
+`package.json`, `bun.lock`, `tsconfig.json`, the build script and launcher,
+including the Bun version. It detects additions, removals and edits without
+relying on timestamps or Git. It adds synchronous reads on every invocation;
+the opt-in benchmark in `test/cli/bundle.test.ts` compares launcher and direct
+bundle startup against the 80 ms warm-help budget. Source fallback has the
+source CLI's startup cost and does not rebuild automatically.
 
 Every command has `--help` (or `-h`) with a description, every flag, and
 examples. `todo --help` lists the commands.
